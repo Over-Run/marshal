@@ -41,7 +41,7 @@ data class Developer(
 )
 
 val projDevelopers = arrayOf(
-    Developer("example")
+    Developer("squid233")
 )
 
 val hasJavadocJar: String by rootProject
@@ -69,105 +69,116 @@ val jdkEarlyAccessDoc: String? by rootProject
 
 val targetJavaVersion = jdkVersion.toInt()
 
-group = projGroupId
-version = projVersion
+allprojects {
+    apply(plugin = "java-library")
 
-repositories {
-    mavenCentral()
-    // snapshot repositories
-    //maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
-    //maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots") }
+    group = projGroupId
+    version = projVersion
 
-    //maven { url = uri("https://oss.oss.sonatype.org/content/repositories/releases") }
-    //maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases") }
-}
+    repositories {
+        mavenCentral()
+        // snapshot repositories
+        //maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
+        //maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots") }
 
-dependencies {
-    // add your dependencies
-}
-
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible) {
-        options.release = targetJavaVersion
+        //maven { url = uri("https://oss.oss.sonatype.org/content/repositories/releases") }
+        //maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases") }
     }
-    if (jdkEnablePreview.toBoolean()) options.compilerArgs.add("--enable-preview")
-}
 
-tasks.withType<Test> {
-    if (jdkEnablePreview.toBoolean()) jvmArgs("--enable-preview")
-}
-
-java {
-    val javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    dependencies {
+        // add your dependencies
     }
-    if (hasJavadocJar.toBoolean()) withJavadocJar()
-    if (hasSourcesJar.toBoolean()) withSourcesJar()
-}
 
-tasks.withType<Javadoc> {
-    isFailOnError = false
-    options {
-        encoding = "UTF-8"
-        locale = "en_US"
-        windowTitle = "$projName $projVersion Javadoc"
-        if (this is StandardJavadocDocletOptions) {
-            charSet = "UTF-8"
-            isAuthor = true
-            if (jdkEarlyAccessDoc == null) {
-                links("https://docs.oracle.com/en/java/javase/$jdkVersion/docs/api/")
-            } else {
-                links("https://download.java.net/java/early_access/$jdkEarlyAccessDoc/docs/api/")
-            }
-            if (jdkEnablePreview.toBoolean()) {
-                addBooleanOption("-enable-preview", true)
-                addStringOption("source", jdkVersion)
+    tasks.withType<JavaCompile> {
+        options.encoding = "UTF-8"
+        if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible) {
+            options.release = targetJavaVersion
+        }
+        if (jdkEnablePreview.toBoolean()) options.compilerArgs.add("--enable-preview")
+    }
+
+    tasks.withType<Test> {
+        if (jdkEnablePreview.toBoolean()) jvmArgs("--enable-preview")
+    }
+
+    java {
+        val javaVersion = JavaVersion.toVersion(targetJavaVersion)
+        if (JavaVersion.current() < javaVersion) {
+            toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+        }
+        if (hasJavadocJar.toBoolean()) withJavadocJar()
+        if (hasSourcesJar.toBoolean()) withSourcesJar()
+    }
+
+    tasks.withType<Javadoc> {
+        isFailOnError = false
+        options {
+            encoding = "UTF-8"
+            locale = "en_US"
+            windowTitle = "$projName $projVersion Javadoc"
+            if (this is StandardJavadocDocletOptions) {
+                charSet = "UTF-8"
+                isAuthor = true
+                if (jdkEarlyAccessDoc == null) {
+                    links("https://docs.oracle.com/en/java/javase/$jdkVersion/docs/api/")
+                } else {
+                    links("https://download.java.net/java/early_access/$jdkEarlyAccessDoc/docs/api/")
+                }
+                if (jdkEnablePreview.toBoolean()) {
+                    addBooleanOption("-enable-preview", true)
+                    addStringOption("source", jdkVersion)
+                }
             }
         }
     }
-}
 
 //application {
 //    applicationName = projName
 //    mainClass = "org.example.Main"
 //}
 
-tasks.named<Jar>("jar") {
-    manifestContentCharset = "utf-8"
-    setMetadataCharset("utf-8")
-    manifest.attributes(
-        "Specification-Title" to projName,
-        "Specification-Vendor" to projOrg.name,
-        "Specification-Version" to projVersion,
-        "Implementation-Title" to projName,
-        "Implementation-Vendor" to projOrg.name,
-        "Implementation-Version" to projVersion
-        //"Main-Class" to "org.example.Main"
-    )
-}
+    tasks.named<Jar>("jar") {
+        manifestContentCharset = "utf-8"
+        setMetadataCharset("utf-8")
+        manifest.attributes(
+            "Specification-Title" to projName,
+            "Specification-Vendor" to projOrg.name,
+            "Specification-Version" to projVersion,
+            "Implementation-Title" to projName,
+            "Implementation-Vendor" to projOrg.name,
+            "Implementation-Version" to projVersion
+            //"Main-Class" to "org.example.Main"
+        )
+    }
 
-if (hasSourcesJar.toBoolean()) {
-    tasks.named<Jar>("sourcesJar") {
-        dependsOn(tasks["classes"])
-        archiveClassifier = "sources"
-        from(sourceSets["main"].allSource)
+    if (hasSourcesJar.toBoolean()) {
+        tasks.named<Jar>("sourcesJar") {
+            dependsOn(tasks["classes"])
+            archiveClassifier = "sources"
+            from(sourceSets["main"].allSource)
+        }
+    }
+
+    if (hasJavadocJar.toBoolean()) {
+        tasks.named<Jar>("javadocJar") {
+            val javadoc by tasks
+            dependsOn(javadoc)
+            archiveClassifier = "javadoc"
+            from(javadoc)
+        }
+    }
+
+    tasks.withType<Jar> {
+        archiveBaseName = projArtifactId
+        from(rootProject.file(projLicenseFileName)).rename(
+            projLicenseFileName,
+            "${projLicenseFileName}_$projArtifactId"
+        )
     }
 }
 
-if (hasJavadocJar.toBoolean()) {
-    tasks.named<Jar>("javadocJar") {
-        val javadoc by tasks
-        dependsOn(javadoc)
-        archiveClassifier = "javadoc"
-        from(javadoc)
-    }
-}
-
-tasks.withType<Jar> {
-    archiveBaseName = projArtifactId
-    from(rootProject.file(projLicenseFileName)).rename(projLicenseFileName, "${projLicenseFileName}_$projArtifactId")
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-proc:none")
 }
 
 if (hasPublication.toBoolean() && publicationRepo != null) {
