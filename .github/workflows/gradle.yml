@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         java: [
-          21
+          22-ea
         ]
         os: [ ubuntu-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
@@ -41,7 +41,7 @@ jobs:
           path: |
             build/reports/
       - name: Capture build artifacts
-        if: ${{ runner.os == 'Linux' && matrix.java == '21' }}
+        if: ${{ runner.os == 'Linux' && matrix.java == '22-ea' }}
         uses: actions/upload-artifact@v3
         with:
           name: Artifacts

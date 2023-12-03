@@ -6,4 +6,5 @@ module io.github.overrun.marshal {
     exports overrun.marshal;
 
     requires java.compiler;
+    requires jdk.compiler;
 }

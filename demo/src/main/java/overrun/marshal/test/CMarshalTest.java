@@ -59,10 +59,10 @@ public interface CMarshalTest {
     @Overload
     void testWithArray(int[] arr);
 
-    void testWithRefArray(MemorySegment arr0, MemorySegment arr1, MemorySegment arr2);
+    void testWithRefArray(MemorySegment arr0, MemorySegment arr1, MemorySegment arr2, MemorySegment arr3, MemorySegment arr4);
 
     @Overload
-    void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2);
+    void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2, boolean[] arr3, @Ref boolean[] arr4);
 
     void testWithString(MemorySegment str);
 

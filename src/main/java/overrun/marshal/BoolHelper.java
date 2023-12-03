@@ -35,15 +35,25 @@ public final class BoolHelper {
         return segment;
     }
 
-    public static boolean[] toBoolArray(MemorySegment segment) {
-        final long byteSize = segment.byteSize();
-        if (byteSize > (Integer.MAX_VALUE - 8)) {
-            throw new IllegalStateException(String.format("Segment is too large to wrap as %s. Size: %d", ValueLayout.JAVA_BOOLEAN, byteSize));
+    public static void copy(MemorySegment src, boolean[] dst) {
+        final int length = checkArraySize(Math.min(src.byteSize(), dst.length));
+        for (int i = 0; i < length; i++) {
+            dst[i] = src.getAtIndex(ValueLayout.JAVA_BOOLEAN, i);
         }
-        boolean[] b = new boolean[(int) byteSize];
+    }
+
+    public static boolean[] toArray(MemorySegment segment) {
+        boolean[] b = new boolean[checkArraySize(segment.byteSize())];
         for (int i = 0; i < b.length; i++) {
             b[i] = segment.getAtIndex(ValueLayout.JAVA_BOOLEAN, i);
         }
         return b;
+    }
+
+    private static int checkArraySize(long byteSize) {
+        if (byteSize > (Integer.MAX_VALUE - 8)) {
+            throw new IllegalStateException(String.format("Segment is too large to wrap as %s. Size: %d", ValueLayout.JAVA_BOOLEAN, byteSize));
+        }
+        return (int) byteSize;
     }
 }

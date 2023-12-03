@@ -207,11 +207,16 @@ public class NativeApiProcessor extends AbstractProcessor {
                     final TypeMirror returnType = method.getReturnType();
                     final TypeKind returnTypeKind = returnType.getKind();
                     final boolean array = returnTypeKind == TypeKind.ARRAY;
-                    final boolean booleanArray = array &&
-                                                 getArrayComponentType(returnType).getKind() == TypeKind.BOOLEAN;
+                    final boolean booleanArray = array && isBooleanArray(returnType);
                     final Native annotation = method.getAnnotation(Native.class);
                     final Overload overloadAnnotation = method.getAnnotation(Overload.class);
                     final var parameters = method.getParameters();
+                    // check @Ref
+                    if (parameters.stream()
+                        .filter(e -> e.getAnnotation(Ref.class) != null)
+                        .anyMatch(e -> e.asType().getKind() != TypeKind.ARRAY)) {
+                        throw new IllegalStateException("@Ref must be used on array types");
+                    }
                     final boolean shouldInsertAllocator = parameters.stream().anyMatch(e -> {
                         final TypeMirror type1 = e.asType();
                         final TypeKind kind = type1.getKind();
@@ -256,17 +261,22 @@ public class NativeApiProcessor extends AbstractProcessor {
                         sb.append("SegmentAllocator _segmentAllocator, ");
                     }
                     sb.append(parameters.stream()
-                            .map(e -> (e.getAnnotation(Ref.class) != null ? "@" + PACKAGE_NAME + ".Ref " : "") + toTargetType(e.asType(), overload) + " " + e.getSimpleName())
-                            .collect(Collectors.joining(", ")))
-                        .append(") {\n");
+                        .map(e -> {
+                            final Ref ref = e.getAnnotation(Ref.class);
+                            final String refString = ref != null ?
+                                "@" + PACKAGE_NAME + ".Ref" + (ref.nullable() ? "(nullable = true) " : " ") :
+                                "";
+                            return refString + toTargetType(e.asType(), overload) + " " + e.getSimpleName();
+                        })
+                        .collect(Collectors.joining(", "))).append(") {\n");
                     // method body
                     if (isOverload) {
                         // send a warning if using any boolean array
                         if (booleanArray || parameters.stream().anyMatch(e -> {
                             final TypeMirror type1 = e.asType();
-                            return type1.getKind() == TypeKind.ARRAY && getArrayComponentType(type1).getKind() == TypeKind.BOOLEAN;
+                            return type1.getKind() == TypeKind.ARRAY && isBooleanArray(type1);
                         })) {
-                            processingEnv.getMessager().printWarning("Marshalling boolean array");
+                            processingEnv.getMessager().printWarning(type + "::" + method + ": Marshalling boolean array");
                         }
                         prependOverloadArgs(sb, parameters);
                         if (notVoid) {
@@ -280,7 +290,7 @@ public class NativeApiProcessor extends AbstractProcessor {
                         }
                         if (array && booleanArray) {
                             sb.append(PACKAGE_NAME)
-                                .append(".BoolHelper.toBoolArray(");
+                                .append(".BoolHelper.toArray(");
                         }
                         sb.append(overload).append('(');
                         appendOverloadArgs(sb, parameters);
@@ -295,8 +305,8 @@ public class NativeApiProcessor extends AbstractProcessor {
                             }
                         }
                         sb.append(";\n");
+                        appendRefArgs(sb, parameters);
                         if (shouldStoreResult) {
-                            appendRefArgs(sb, parameters);
                             sb.append("        return $_marshalResult;\n");
                         }
                     } else {
@@ -338,17 +348,25 @@ public class NativeApiProcessor extends AbstractProcessor {
             final boolean array = type.getKind() == TypeKind.ARRAY;
             if (array && isPrimitiveArray(type) && ref != null) {
                 final Name name = e.getSimpleName();
+                final TypeMirror arrayComponentType = getArrayComponentType(type);
                 sb.append("        ")
                     .append(MemorySegment.class.getSimpleName())
                     .append(" _")
                     .append(name)
                     .append(" = ");
                 if (ref.nullable()) sb.append(name).append(" != null ? ");
-                sb.append("_segmentAllocator.allocateFrom(")
-                    .append(toValueLayout(getArrayComponentType(type)))
-                    .append(", ")
-                    .append(name)
-                    .append(')');
+                if (arrayComponentType.getKind() == TypeKind.BOOLEAN) {
+                    sb.append(PACKAGE_NAME)
+                        .append(".BoolHelper.of(_segmentAllocator, ")
+                        .append(name)
+                        .append(')');
+                } else {
+                    sb.append("_segmentAllocator.allocateFrom(")
+                        .append(toValueLayout(arrayComponentType))
+                        .append(", ")
+                        .append(name)
+                        .append(')');
+                }
                 if (ref.nullable()) sb.append(" : MemorySegment.NULL");
                 sb.append(";\n");
             }
@@ -388,7 +406,44 @@ public class NativeApiProcessor extends AbstractProcessor {
     }
 
     private static void appendRefArgs(StringBuilder sb, List<? extends VariableElement> parameters) {
-        // TODO: 2023/12/2
+        parameters.forEach(e -> {
+            final Ref ref = e.getAnnotation(Ref.class);
+            if (ref != null) {
+                final boolean nullable = ref.nullable();
+                final Name name = e.getSimpleName();
+                sb.append("        ");
+                if (nullable) {
+                    sb.append("if (")
+                        .append(name)
+                        .append(" != null) { ");
+                }
+                if (isBooleanArray(e.asType())) {
+                    sb.append(PACKAGE_NAME)
+                        .append(".BoolHelper.copy(")
+                        .append("_")
+                        .append(name)
+                        .append(", ")
+                        .append(name)
+                        .append(')');
+                } else {
+                    sb.append("MemorySegment.copy(")
+                        .append("_")
+                        .append(name)
+                        .append(", ")
+                        .append(toValueLayout(getArrayComponentType(e.asType())))
+                        .append(", 0L, ")
+                        .append(name)
+                        .append(", 0, ")
+                        .append(name)
+                        .append(".length)");
+                }
+                sb.append(';');
+                if (nullable) {
+                    sb.append(" }");
+                }
+                sb.append('\n');
+            }
+        });
     }
 
     private static String methodEntrypoint(ExecutableElement method) {
@@ -412,13 +467,12 @@ public class NativeApiProcessor extends AbstractProcessor {
             case DECLARED -> {
                 if (isMemorySegment(typeMirror)) {
                     yield MemorySegment.class.getSimpleName();
-                } else {
-                    if (isString(typeMirror)) {
-                        yield overload == null ? MemorySegment.class.getSimpleName() : String.class.getSimpleName();
-                    }
-                    // TODO: 2023/12/2 Add support to struct
-                    throw invalidType(typeMirror);
                 }
+                if (isString(typeMirror)) {
+                    yield overload == null ? MemorySegment.class.getSimpleName() : String.class.getSimpleName();
+                }
+                // TODO: 2023/12/2 Add support to struct
+                throw invalidType(typeMirror);
             }
             case ARRAY -> {
                 if (!isPrimitiveArray(typeMirror)) {
@@ -448,6 +502,10 @@ public class NativeApiProcessor extends AbstractProcessor {
 
     private static TypeMirror getArrayComponentType(TypeMirror typeMirror) {
         return ((ArrayType) typeMirror).getComponentType();
+    }
+
+    private static boolean isBooleanArray(TypeMirror typeMirror) {
+        return getArrayComponentType(typeMirror).getKind() == TypeKind.BOOLEAN;
     }
 
     private static boolean isPrimitiveArray(TypeMirror typeMirror) {
