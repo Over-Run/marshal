@@ -15,6 +15,8 @@ import java.lang.foreign.MemorySegment;
 
 @NativeApi(libname = "libglfw.so", name = "GLFW")
 interface CGLFW {
+    @Doc("""
+        A field""")
     int GLFW_KEY_A = 65;
 
     @Doc("""

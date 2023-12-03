@@ -28,6 +28,8 @@ import java.lang.foreign.MemorySegment;
 public interface CMarshalTest {
     int CONST_VALUE = 42;
     boolean BOOL_VALUE = true;
+    @Doc("""
+        A string value""")
     String STR_VALUE = "Hello world";
 
     void test();

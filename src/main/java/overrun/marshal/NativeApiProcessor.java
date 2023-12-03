@@ -487,6 +487,15 @@ public final class NativeApiProcessor extends AbstractProcessor {
             final Object constantValue = e.getConstantValue();
             if (constantValue == null) return;
             final String typeStr = e.asType().toString();
+            final Doc doc = e.getAnnotation(Doc.class);
+            if (doc != null && !doc.value().isBlank()) {
+                sb.append("    /**\n");
+                doc.value().lines().map(s -> "     * " + s).forEach(s -> {
+                    sb.append(s);
+                    sb.append('\n');
+                });
+                sb.append("     */\n");
+            }
             sb.append("    public static final ")
                 .append(isString(typeStr) ? String.class.getSimpleName() : typeStr)
                 .append(' ')

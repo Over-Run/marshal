@@ -23,11 +23,14 @@ import java.lang.annotation.*;
  * <h2>Example</h2>
  * <pre>{@code
  * @Doc("""
+ *     A const value""")
+ * int CONST_VALUE = 42;
+ *
+ * @Doc("""
  *     The documentation
  *
  *     @param p the parameter
- *     @return 1 if success; 0 otherwise"""
- * )
+ *     @return 1 if success; 0 otherwise""")
  * int myFunction(int p);
  * }</pre>
  *
@@ -35,7 +38,7 @@ import java.lang.annotation.*;
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.SOURCE)
 public @interface Doc {
     /**
