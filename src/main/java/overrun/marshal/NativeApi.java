@@ -24,14 +24,20 @@ import java.lang.annotation.*;
  * The generated file will include constants of primitive
  * (boolean, byte, short, int, long, float, double) and String types in the marked class or interface.
  * <h2>Methods</h2>
- * The generator tries to generate <strong>static</strong> methods that invoke native functions.
+ * The {@link Doc @Doc} gives documentation to a method.
+ * <p>
+ * The access modifier of the method can be changed by marking methods with {@link Access @Access}.
  * <p>
  * The {@link Custom @Custom} annotation overwrite <strong>all</strong> generated method body with the custom code.
  * <p>
- * Some settings can be applied by marking methods with {@link Native @Native}.
+ * The {@link Default @Default} annotation makes a method
+ * not to throw an exception if it was not found from the native library.
+ * <p>
+ * The generator tries to generate <strong>static</strong> methods that invoke native functions,
+ * which has the same name or is specified by {@link Entrypoint @Entrypoint}.
  * <h3>Overload Methods</h3>
  * An overload method, marked with {@link Overload @Overload}, automatically invokes another method with the same name.
- * See {@linkplain Overload documentation} for more information.
+ * See the {@linkplain Overload documentation} for more information.
  * <p>
  * Methods without {@link Overload @Overload} marked
  * converts parameters of {@link String} and array types into {@link java.lang.foreign.MemorySegment MemorySegment}.
@@ -47,8 +53,11 @@ import java.lang.annotation.*;
  * }</pre>
  *
  * @author squid233
+ * @see Doc
+ * @see Access
  * @see Custom
- * @see Native
+ * @see Default
+ * @see Entrypoint
  * @see Overload
  * @see FixedSize
  * @see Ref

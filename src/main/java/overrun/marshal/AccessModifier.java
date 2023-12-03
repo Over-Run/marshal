@@ -17,13 +17,13 @@
 package overrun.marshal;
 
 /**
- * The marshal scope that specifies the access modifier of a method.
+ * The access modifier of a method.
  *
  * @author squid233
- * @see Native
+ * @see Access
  * @since 0.1.0
  */
-public enum MarshalScope {
+public enum AccessModifier {
     /**
      * {@code public} access
      */
@@ -43,7 +43,7 @@ public enum MarshalScope {
 
     private final String toStringValue;
 
-    MarshalScope(String toStringValue) {
+    AccessModifier(String toStringValue) {
         this.toStringValue = toStringValue;
     }
 

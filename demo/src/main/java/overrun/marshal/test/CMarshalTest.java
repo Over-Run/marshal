@@ -32,10 +32,10 @@ public interface CMarshalTest {
 
     void test();
 
-    @Native(entrypoint = "test")
+    @Entrypoint("test")
     void testWithEntrypoint();
 
-    @Native(doc = """
+    @Doc("""
         This is a test method with javadoc.
 
         @return an integer
@@ -55,13 +55,18 @@ public interface CMarshalTest {
         return testWithArgAndReturnValue(MemorySegment.NULL);""")
     MemorySegment testWithCustomBody();
 
-    @Native(scope = MarshalScope.PRIVATE)
+    @Access(AccessModifier.PRIVATE)
     int testWithPrivate(int i);
 
     void testWithArray(MemorySegment arr);
 
     @Overload
     void testWithArray(int[] arr);
+
+    void testWithOneRef(MemorySegment arr);
+
+    @Overload
+    void testWithOneRef(@Ref int[] arr);
 
     void testWithRefArray(MemorySegment arr0, MemorySegment arr1, MemorySegment arr2, MemorySegment arr3, MemorySegment arr4, MemorySegment arr5);
 
@@ -73,20 +78,35 @@ public interface CMarshalTest {
     @Overload
     void testWithString(String str);
 
-    @Native(entrypoint = "testWithReturnArray")
+    @Entrypoint("testReturnString")
+    MemorySegment ntestReturnString();
+
+    @Overload("ntestReturnString")
+    String testReturnString();
+
+    MemorySegment testStringArray(MemorySegment arr, MemorySegment refArr);
+
+    @Overload
+    String[] testStringArray(String[] arr, @Ref String[] refArr);
+
+    @Entrypoint("testWithReturnArray")
     MemorySegment ntestWithReturnArray();
 
     @Overload("ntestWithReturnArray")
     boolean[] testWithReturnArray();
 
-    @Native(doc = """
+    void testMixArrSeg(MemorySegment segment, MemorySegment arr);
+
+    @Overload
+    void testMixArrSeg(MemorySegment segment, @Ref int[] arr);
+
+    @Doc("""
         This is a test that tests all features.
 
         @param segment A memory segment
-        @return Another memory segment""",
-        entrypoint = "testAllFeatures",
-        scope = MarshalScope.PROTECTED
-    )
+        @return Another memory segment""")
+    @Access(AccessModifier.PROTECTED)
     @Default("MemorySegment.NULL")
+    @Entrypoint("testAllFeatures")
     MemorySegment testAll(MemorySegment segment);
 }

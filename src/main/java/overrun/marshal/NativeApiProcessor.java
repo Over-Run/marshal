@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.lang.foreign.MemorySegment;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +95,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
                 import overrun.marshal.Default;
                 import overrun.marshal.FixedSize;
                 import overrun.marshal.Ref;
+                import overrun.marshal.StrHelper;
 
                 import java.lang.foreign.*;
                 import java.lang.invoke.MethodHandle;
@@ -138,9 +140,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
             // check annotations
             checkParamAnnotation(type, method, parameters);
 
-            final boolean array = isArray(returnType);
-            final boolean booleanArray = array && isBooleanArray(returnType);
-            final Native annotation = method.getAnnotation(Native.class);
+            final Access accessAnnotation = method.getAnnotation(Access.class);
             final Overload overloadAnnotation = method.getAnnotation(Overload.class);
             final Custom customAnnotation = method.getAnnotation(Custom.class);
             final Default defaultAnnotation = method.getAnnotation(Default.class);
@@ -163,23 +163,24 @@ public final class NativeApiProcessor extends AbstractProcessor {
             final String javaReturnType = toTargetType(returnType, overload);
 
             // javadoc
-            appendJavadoc(sb, annotation);
+            appendJavadoc(sb, method.getAnnotation(Doc.class));
 
             // annotations
             if (defaultAnnotation != null) {
                 sb.append("    @")
                     .append(Default.class.getSimpleName());
                 if (!defaultAnnotation.value().isBlank()) {
-                    sb.append("(\"")
-                        .append(defaultAnnotation.value())
-                        .append("\")");
+                    final String indented = defaultAnnotation.value().indent(8);
+                    sb.append("(\"\"\"\n")
+                        .append(indented, 0, indented.length() - 1)
+                        .append("\"\"\")");
                 }
                 sb.append('\n');
             }
 
             sb.append("    ")
                 // access modifier
-                .append(annotation != null ? annotation.scope() : "public")
+                .append(accessAnnotation != null ? accessAnnotation.value() : "public")
                 .append(" static ")
                 // return type
                 .append(javaReturnType)
@@ -197,11 +198,9 @@ public final class NativeApiProcessor extends AbstractProcessor {
                     sb,
                     method,
                     isOverload,
-                    booleanArray,
                     parameters,
                     notVoid,
                     shouldStoreResult,
-                    array,
                     overload,
                     returnType,
                     javaReturnType);
@@ -216,17 +215,18 @@ public final class NativeApiProcessor extends AbstractProcessor {
                                   StringBuilder sb,
                                   ExecutableElement method,
                                   boolean isOverload,
-                                  boolean booleanArray,
                                   List<? extends VariableElement> parameters,
                                   boolean notVoid,
                                   boolean shouldStoreResult,
-                                  boolean array,
                                   String overload,
                                   TypeMirror returnType,
                                   String javaReturnType) {
         if (isOverload) {
+            final boolean returnArray = isArray(returnType);
+            final boolean returnBooleanArray = returnArray && isBooleanArray(returnType);
+            final boolean returnStringArray = returnArray && isString(getArrayComponentType(returnType));
             // send a warning if using any boolean array
-            if (booleanArray || parameters.stream().anyMatch(e -> {
+            if (returnBooleanArray || parameters.stream().anyMatch(e -> {
                 final TypeMirror type1 = e.asType();
                 return isArray(type1) && isBooleanArray(type1);
             })) {
@@ -254,20 +254,34 @@ public final class NativeApiProcessor extends AbstractProcessor {
             } else {
                 sb.append("        ");
             }
-            if (array && booleanArray) {
-                sb.append("BoolHelper.toArray(");
+            if (returnArray) {
+                if (returnBooleanArray) {
+                    sb.append("BoolHelper.toArray(");
+                } else if (returnStringArray) {
+                    sb.append("StrHelper.toArray(");
+                }
             }
             sb.append(overload).append('(');
+            // arguments
             appendOverloadArgs(sb, parameters);
             sb.append(')');
-            if (array) {
-                if (booleanArray) {
+            if (returnArray) {
+                if (returnBooleanArray) {
+                    sb.append(')');
+                } else if (returnStringArray) {
+                    sb.append(", ");
+                    // TODO: 2023/12/3 charset
+                    sb.append(StandardCharsets.class.getName())
+                        .append(".UTF_8");
                     sb.append(')');
                 } else {
                     sb.append(".toArray(")
                         .append(toValueLayout(returnType))
                         .append(')');
                 }
+            } else if (returnType.getKind() == TypeKind.DECLARED && isString(returnType)) {
+                sb.append(".getString(0L)");
+                // TODO: 2023/12/3 String charset
             }
             sb.append(";\n");
             appendRefArgs(sb, parameters);
@@ -295,7 +309,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
                 sb.append("return (").append(javaReturnType).append(") ");
             }
             sb.append(entrypoint).append(".invokeExact(")
-                // parameters
+                // arguments
                 .append(parameters.stream()
                     .map(VariableElement::getSimpleName)
                     .collect(Collectors.joining(", ")))
@@ -304,8 +318,9 @@ public final class NativeApiProcessor extends AbstractProcessor {
             if (isDefaulted) {
                 sb.append("            }");
                 if (notVoid) {
-                    sb.append(" else { return ")
-                        .append(defaulted.value())
+                    final String indented = defaulted.value().indent(16);
+                    sb.append(" else { return \n")
+                        .append(indented, 0, indented.length() - 1)
                         .append("; }");
                 }
                 sb.append('\n');
@@ -334,9 +349,9 @@ public final class NativeApiProcessor extends AbstractProcessor {
             .collect(Collectors.joining(", ")));
     }
 
-    private static void appendJavadoc(StringBuilder sb, Native annotation) {
+    private static void appendJavadoc(StringBuilder sb, Doc annotation) {
         if (annotation != null) {
-            final String doc = annotation.doc();
+            final String doc = annotation.value();
             if (!doc.isBlank()) {
                 sb.append("    /**\n");
                 doc.lines().map(s -> "     * " + s).forEach(s -> {
@@ -389,11 +404,11 @@ public final class NativeApiProcessor extends AbstractProcessor {
             .stream()
             .map(entry1 -> {
                 final ExecutableElement method = entry1.getValue();
-                final Native annotation = method.getAnnotation(Native.class);
+                final Access access = method.getAnnotation(Access.class);
                 final Default defaulted = method.getAnnotation(Default.class);
                 final StringBuilder sb1 = new StringBuilder(256);
                 sb1.append("    ")
-                    .append(annotation != null ? annotation.scope() : "public")
+                    .append(access != null ? access.value() : "public")
                     .append(" static final MethodHandle ")
                     .append(entry1.getKey())
                     .append(" = _LOOKUP.find(\"")
@@ -450,7 +465,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
             if (constantValue == null) return;
             final String typeStr = e.asType().toString();
             sb.append("    public static final ")
-                .append(isString(typeStr) ? "String" : typeStr)
+                .append(isString(typeStr) ? String.class.getSimpleName() : typeStr)
                 .append(' ')
                 .append(e.getSimpleName())
                 .append(" = ");
@@ -478,25 +493,36 @@ public final class NativeApiProcessor extends AbstractProcessor {
         parameters.forEach(e -> {
             final TypeMirror type = e.asType();
             final Ref ref = e.getAnnotation(Ref.class);
-            if (isArray(type) && isPrimitiveArray(type) && ref != null) {
+            if (isArray(type) && ref != null) {
                 final Name name = e.getSimpleName();
                 final TypeMirror arrayComponentType = getArrayComponentType(type);
+                final TypeKind typeKind = arrayComponentType.getKind();
                 sb.append("        ")
                     .append(MemorySegment.class.getSimpleName())
                     .append(" _")
                     .append(name)
                     .append(" = ");
                 if (ref.nullable()) sb.append(name).append(" != null ? ");
-                if (arrayComponentType.getKind() == TypeKind.BOOLEAN) {
+                if (typeKind == TypeKind.BOOLEAN) {
                     sb.append("BoolHelper.of(_segmentAllocator, ")
                         .append(name)
                         .append(')');
-                } else {
+                } else if (typeKind.isPrimitive()) {
                     sb.append("_segmentAllocator.allocateFrom(")
                         .append(toValueLayout(arrayComponentType))
                         .append(", ")
                         .append(name)
                         .append(')');
+                } else if (typeKind == TypeKind.DECLARED) {
+                    if (isString(arrayComponentType)) {
+                        sb.append("StrHelper.of(_segmentAllocator, ")
+                            .append(name)
+                            .append(", ")
+                            .append(StandardCharsets.class.getName())
+                            .append(".UTF_8")
+                            .append(')');
+                        // TODO: 2023/12/3 charset
+                    }
                 }
                 if (ref.nullable()) sb.append(" : MemorySegment.NULL");
                 sb.append(";\n");
@@ -517,6 +543,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
                         // TODO: 2023/12/2 Add support to struct
                         if (isMemorySegment(type)) yield e.getSimpleName();
                         if (isString(type)) yield "_segmentAllocator.allocateFrom(" + e.getSimpleName() + ")";
+                        // TODO: 2023/12/3 String charset
                         throw invalidType(type);
                     }
                     case ARRAY -> {
@@ -527,6 +554,11 @@ public final class NativeApiProcessor extends AbstractProcessor {
                         final TypeMirror arrayComponentType = getArrayComponentType(type);
                         if (arrayComponentType.getKind() == TypeKind.BOOLEAN) {
                             yield "BoolHelper.of(_segmentAllocator, " + e.getSimpleName() + ")";
+                        }
+                        if (arrayComponentType.getKind() == TypeKind.DECLARED &&
+                            isString(arrayComponentType)) {
+                            yield "StrHelper.of(_segmentAllocator, " + e.getSimpleName() + ", " + StandardCharsets.class.getName() + ".UTF_8" + ")";
+                            // TODO: 2023/12/3 charset
                         }
                         yield "_segmentAllocator.allocateFrom(" + toValueLayout(arrayComponentType) + ", " + e.getSimpleName() + ")";
                     }
@@ -542,13 +574,14 @@ public final class NativeApiProcessor extends AbstractProcessor {
             if (ref != null) {
                 final boolean nullable = ref.nullable();
                 final Name name = e.getSimpleName();
+                final TypeMirror type = e.asType();
                 sb.append("        ");
                 if (nullable) {
                     sb.append("if (")
                         .append(name)
                         .append(" != null) { ");
                 }
-                if (isBooleanArray(e.asType())) {
+                if (isBooleanArray(type)) {
                     sb.append("BoolHelper.copy(")
                         .append("_")
                         .append(name)
@@ -556,16 +589,31 @@ public final class NativeApiProcessor extends AbstractProcessor {
                         .append(name)
                         .append(')');
                 } else {
-                    sb.append("MemorySegment.copy(")
-                        .append("_")
-                        .append(name)
-                        .append(", ")
-                        .append(toValueLayout(getArrayComponentType(e.asType())))
-                        .append(", 0L, ")
-                        .append(name)
-                        .append(", 0, ")
-                        .append(name)
-                        .append(".length)");
+                    final TypeMirror arrayComponentType = getArrayComponentType(type);
+                    if (isPrimitiveArray(type)) {
+                        sb.append("MemorySegment.copy(")
+                            .append("_")
+                            .append(name)
+                            .append(", ")
+                            .append(toValueLayout(arrayComponentType))
+                            .append(", 0L, ")
+                            .append(name)
+                            .append(", 0, ")
+                            .append(name)
+                            .append(".length)");
+                    } else if (arrayComponentType.getKind() == TypeKind.DECLARED &&
+                               isString(arrayComponentType)) {
+                        sb.append("StrHelper.copy(")
+                            .append("_")
+                            .append(name)
+                            .append(", ")
+                            .append(name)
+                            .append(", ");
+                        sb.append(StandardCharsets.class.getName())
+                            .append(".UTF_8");
+                        // TODO: 2023/12/3 charset
+                        sb.append(')');
+                    }
                 }
                 sb.append(';');
                 if (nullable) {
@@ -577,9 +625,9 @@ public final class NativeApiProcessor extends AbstractProcessor {
     }
 
     private static String methodEntrypoint(ExecutableElement method) {
-        final Native annotation = method.getAnnotation(Native.class);
+        final Entrypoint annotation = method.getAnnotation(Entrypoint.class);
         if (annotation != null) {
-            final String entrypoint = annotation.entrypoint();
+            final String entrypoint = annotation.value();
             if (!entrypoint.isBlank()) {
                 return entrypoint;
             }
@@ -605,10 +653,11 @@ public final class NativeApiProcessor extends AbstractProcessor {
                 throw invalidType(typeMirror);
             }
             case ARRAY -> {
-                if (!isPrimitiveArray(typeMirror)) {
-                    throw invalidType(typeMirror);
+                final boolean string = isString(getArrayComponentType(typeMirror));
+                if (isPrimitiveArray(typeMirror) || string) {
+                    yield overload == null ? MemorySegment.class.getSimpleName() : (string ? String.class.getSimpleName() + "[]" : typeMirror.toString());
                 }
-                yield overload == null ? MemorySegment.class.getSimpleName() : typeMirror.toString();
+                throw invalidType(typeMirror);
             }
             default -> throw invalidType(typeMirror);
         };
