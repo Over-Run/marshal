@@ -27,6 +27,10 @@ import java.lang.foreign.ValueLayout;
  * @since 0.1.0
  */
 public final class BoolHelper {
+    private BoolHelper() {
+        //no instance
+    }
+
     public static MemorySegment of(SegmentAllocator allocator, boolean[] arr) {
         final MemorySegment segment = allocator.allocate(ValueLayout.JAVA_BOOLEAN, arr.length);
         for (int i = 0; i < arr.length; i++) {

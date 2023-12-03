@@ -51,6 +51,8 @@ public interface CMarshalTest {
 
     MemorySegment testWithArgAndReturnValue(MemorySegment segment);
 
+    MemorySegment testWithCustomBody();
+
     @Native(scope = MarshalScope.PRIVATE)
     int testWithPrivate(int i);
 
@@ -59,10 +61,10 @@ public interface CMarshalTest {
     @Overload
     void testWithArray(int[] arr);
 
-    void testWithRefArray(MemorySegment arr0, MemorySegment arr1, MemorySegment arr2, MemorySegment arr3, MemorySegment arr4);
+    void testWithRefArray(MemorySegment arr0, MemorySegment arr1, MemorySegment arr2, MemorySegment arr3, MemorySegment arr4, MemorySegment arr5);
 
     @Overload
-    void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2, boolean[] arr3, @Ref boolean[] arr4);
+    void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2, boolean[] arr3, @Ref boolean[] arr4, int[] arr5);
 
     void testWithString(MemorySegment str);
 
