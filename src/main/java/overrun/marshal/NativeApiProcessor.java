@@ -16,10 +16,7 @@
 
 package overrun.marshal;
 
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.RoundEnvironment;
-import javax.annotation.processing.SupportedAnnotationTypes;
-import javax.annotation.processing.SupportedSourceVersion;
+import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.lang.model.type.ArrayType;
@@ -48,6 +45,30 @@ import java.util.stream.Collectors;
 @SupportedAnnotationTypes("overrun.marshal.NativeApi")
 @SupportedSourceVersion(SourceVersion.RELEASE_22)
 public final class NativeApiProcessor extends AbstractProcessor {
+    private boolean disableBoolArrayWarn = false;
+
+    /**
+     * constructor
+     */
+    public NativeApiProcessor() {
+    }
+
+    @Override
+    public synchronized void init(ProcessingEnvironment processingEnv) {
+        super.init(processingEnv);
+        disableBoolArrayWarn = Boolean.parseBoolean(processingEnv.getOptions().get("overrun.marshal.disableBoolArrayWarn"));
+    }
+
+    @Override
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        try {
+            processClasses(roundEnv);
+        } catch (Exception e) {
+            printStackTrace(e);
+        }
+        return false;
+    }
+
     private void processClasses(RoundEnvironment roundEnv) {
         final Set<? extends Element> marshalApis = roundEnv.getElementsAnnotatedWith(NativeApi.class);
         final Set<TypeElement> types = ElementFilter.typesIn(marshalApis);
@@ -226,11 +247,13 @@ public final class NativeApiProcessor extends AbstractProcessor {
             final boolean returnBooleanArray = returnArray && isBooleanArray(returnType);
             final boolean returnStringArray = returnArray && isString(getArrayComponentType(returnType));
             // send a warning if using any boolean array
-            if (returnBooleanArray || parameters.stream().anyMatch(e -> {
-                final TypeMirror type1 = e.asType();
-                return isArray(type1) && isBooleanArray(type1);
-            })) {
-                processingEnv.getMessager().printWarning(type + "::" + method + ": Marshalling boolean array");
+            if (!disableBoolArrayWarn) {
+                if (returnBooleanArray || parameters.stream().anyMatch(e -> {
+                    final TypeMirror type1 = e.asType();
+                    return isArray(type1) && isBooleanArray(type1);
+                })) {
+                    processingEnv.getMessager().printWarning(type + "::" + method + ": Marshalling boolean array");
+                }
             }
             // check array size
             parameters.stream()
@@ -477,16 +500,6 @@ public final class NativeApiProcessor extends AbstractProcessor {
             sb.append(";\n");
         });
         sb.append('\n');
-    }
-
-    @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        try {
-            processClasses(roundEnv);
-        } catch (Exception e) {
-            printStackTrace(e);
-        }
-        return false;
     }
 
     private static void prependOverloadArgs(StringBuilder sb, List<? extends VariableElement> parameters) {

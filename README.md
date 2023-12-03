@@ -65,3 +65,8 @@ dependencies {
     implementation("io.github.over-run:marshal:$marshalVersion")
 }
 ```
+
+## Compiler Arguments
+
+You can disable the warning of marshalling boolean arrays
+by using the compiler argument `-Aoverrun.marshal.disableBoolArrayWarn=true`.

@@ -51,6 +51,7 @@ public final class Checks {
     /**
      * A check entry
      *
+     * @param <T> the type of the value
      * @author squid233
      * @since 0.1.0
      */
