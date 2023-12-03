@@ -39,12 +39,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
+ * The annotation processor
+ *
  * @author squid233
  * @since 0.1.0
  */
 @SupportedAnnotationTypes("overrun.marshal.NativeApi")
 @SupportedSourceVersion(SourceVersion.RELEASE_22)
-public class NativeApiProcessor extends AbstractProcessor {
+public final class NativeApiProcessor extends AbstractProcessor {
     private void processClasses(RoundEnvironment roundEnv) {
         final Set<? extends Element> marshalApis = roundEnv.getElementsAnnotatedWith(NativeApi.class);
         final Set<TypeElement> types = ElementFilter.typesIn(marshalApis);
@@ -89,6 +91,7 @@ public class NativeApiProcessor extends AbstractProcessor {
             sb.append("""
                 import overrun.marshal.BoolHelper;
                 import overrun.marshal.Checks;
+                import overrun.marshal.Default;
                 import overrun.marshal.FixedSize;
                 import overrun.marshal.Ref;
 
@@ -132,7 +135,7 @@ public class NativeApiProcessor extends AbstractProcessor {
             final TypeMirror returnType = method.getReturnType();
             final TypeKind returnTypeKind = returnType.getKind();
             final var parameters = method.getParameters();
-            // check @Ref and @FixedSize
+            // check annotations
             checkParamAnnotation(type, method, parameters);
 
             final boolean array = isArray(returnType);
@@ -140,10 +143,10 @@ public class NativeApiProcessor extends AbstractProcessor {
             final Native annotation = method.getAnnotation(Native.class);
             final Overload overloadAnnotation = method.getAnnotation(Overload.class);
             final Custom customAnnotation = method.getAnnotation(Custom.class);
+            final Default defaultAnnotation = method.getAnnotation(Default.class);
             final boolean shouldInsertAllocator = parameters.stream().anyMatch(e -> {
                 final TypeMirror type1 = e.asType();
-                final TypeKind kind = type1.getKind();
-                return kind == TypeKind.ARRAY || (kind == TypeKind.DECLARED && isString(type1));
+                return isArray(type1) || (type1.getKind() == TypeKind.DECLARED && isString(type1));
                 // TODO: 2023/12/2 Struct
             });
             final boolean notVoid = returnTypeKind != TypeKind.VOID;
@@ -161,6 +164,18 @@ public class NativeApiProcessor extends AbstractProcessor {
 
             // javadoc
             appendJavadoc(sb, annotation);
+
+            // annotations
+            if (defaultAnnotation != null) {
+                sb.append("    @")
+                    .append(Default.class.getSimpleName());
+                if (!defaultAnnotation.value().isBlank()) {
+                    sb.append("(\"")
+                        .append(defaultAnnotation.value())
+                        .append("\")");
+                }
+                sb.append('\n');
+            }
 
             sb.append("    ")
                 // access modifier
@@ -260,16 +275,43 @@ public class NativeApiProcessor extends AbstractProcessor {
                 sb.append("        return $_marshalResult;\n");
             }
         } else {
+            final Default defaulted = method.getAnnotation(Default.class);
+            final boolean isDefaulted = defaulted != null;
+            if (isDefaulted && notVoid && defaulted.value().isBlank()) {
+                printError(type + "::" + method + ": Default non-void method must have a default return value");
+                return;
+            }
+            final String entrypoint = methodEntrypoint(method);
+
             sb.append("        try {\n            ");
+
+            if (isDefaulted) {
+                sb.append("if (")
+                    .append(entrypoint)
+                    .append(" != null) {\n                ");
+            }
+
             if (notVoid) {
                 sb.append("return (").append(javaReturnType).append(") ");
             }
-            sb.append(methodEntrypoint(method)).append(".invokeExact(");
-            // parameters
-            sb.append(parameters.stream()
-                .map(VariableElement::getSimpleName)
-                .collect(Collectors.joining(", ")));
-            sb.append(");\n        } catch (Throwable e) { throw new AssertionError(\"should not reach here\", e); }\n");
+            sb.append(entrypoint).append(".invokeExact(")
+                // parameters
+                .append(parameters.stream()
+                    .map(VariableElement::getSimpleName)
+                    .collect(Collectors.joining(", ")))
+                .append(");\n");
+
+            if (isDefaulted) {
+                sb.append("            }");
+                if (notVoid) {
+                    sb.append(" else { return ")
+                        .append(defaulted.value())
+                        .append("; }");
+                }
+                sb.append('\n');
+            }
+
+            sb.append("        } catch (Throwable e) { throw new AssertionError(\"should not reach here\", e); }\n");
         }
     }
 
@@ -281,11 +323,11 @@ public class NativeApiProcessor extends AbstractProcessor {
             .map(e -> {
                 final Ref ref = e.getAnnotation(Ref.class);
                 final String refString = ref != null ?
-                    "@Ref" + (ref.nullable() ? "(nullable = true) " : " ") :
+                    "@" + Ref.class.getSimpleName() + (ref.nullable() ? "(nullable = true) " : " ") :
                     "";
                 final FixedSize fixedSize = e.getAnnotation(FixedSize.class);
                 final String fixedSizeString = fixedSize != null ?
-                    "@FixedSize(" + fixedSize.value() + ") " :
+                    "@" + FixedSize.class.getSimpleName() + "(" + fixedSize.value() + ") " :
                     "";
                 return refString + fixedSizeString + toTargetType(e.asType(), overload) + " " + e.getSimpleName();
             })
@@ -348,6 +390,7 @@ public class NativeApiProcessor extends AbstractProcessor {
             .map(entry1 -> {
                 final ExecutableElement method = entry1.getValue();
                 final Native annotation = method.getAnnotation(Native.class);
+                final Default defaulted = method.getAnnotation(Default.class);
                 final StringBuilder sb1 = new StringBuilder(256);
                 sb1.append("    ")
                     .append(annotation != null ? annotation.scope() : "public")
@@ -367,7 +410,7 @@ public class NativeApiProcessor extends AbstractProcessor {
                     .map(e -> toValueLayout(e.asType()))
                     .collect(Collectors.joining(", ")));
                 sb1.append("))).orElse");
-                if (annotation != null && annotation.optional()) {
+                if (defaulted != null) {
                     sb1.append("(null)");
                 } else {
                     sb1.append("Throw()");

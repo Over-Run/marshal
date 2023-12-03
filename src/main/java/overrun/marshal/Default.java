@@ -19,17 +19,17 @@ package overrun.marshal;
 import java.lang.annotation.*;
 
 /**
- * Marks a method as an overload.
+ * Marks a method that has a default return value.
  * <p>
- * An overload method keeps {@link String} and array types
- * instead of converting them into {@link java.lang.foreign.MemorySegment MemorySegment}.
- * It will also invoke another method with the same name or {@linkplain #value() the specified value}.
+ * A method marked as {@code @Default} will not throw an exception or be invoked
+ * if it couldn't be found in the specified library.
  * <h2>Example</h2>
  * <pre>{@code
- * void nset(MemorySegment vec);
+ * @Default
+ * void functionThatMightBeAbsent();
  *
- * @Overload
- * void set(int[] vec);
+ * @Default("42")
+ * int anotherFunction();
  * }</pre>
  *
  * @author squid233
@@ -38,9 +38,9 @@ import java.lang.annotation.*;
 @Documented
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Overload {
+public @interface Default {
     /**
-     * {@return the name of the other method to be overloaded}
+     * {@return the default value of the method}
      */
     String value() default "";
 }

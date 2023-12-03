@@ -19,12 +19,24 @@ package overrun.marshal;
 import java.lang.annotation.*;
 
 /**
+ * Marks an array parameter as a fixed size array.
+ * <p>
+ * The generated code will try to check the size of a passing array.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * void set(@FixedSize(3) int[] vec);
+ * }</pre>
+ *
  * @author squid233
+ * @see Checks#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
 @Documented
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.SOURCE)
 public @interface FixedSize {
+    /**
+     * {@return the size of the array}
+     */
     int value();
 }

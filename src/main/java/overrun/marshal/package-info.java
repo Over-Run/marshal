@@ -14,33 +14,11 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
-
-import java.lang.annotation.*;
-
 /**
- * Marks a method as an overload.
- * <p>
- * An overload method keeps {@link String} and array types
- * instead of converting them into {@link java.lang.foreign.MemorySegment MemorySegment}.
- * It will also invoke another method with the same name or {@linkplain #value() the specified value}.
- * <h2>Example</h2>
- * <pre>{@code
- * void nset(MemorySegment vec);
- *
- * @Overload
- * void set(int[] vec);
- * }</pre>
+ * The main package of marshal.
  *
  * @author squid233
+ * @see overrun.marshal.NativeApi
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
-public @interface Overload {
-    /**
-     * {@return the name of the other method to be overloaded}
-     */
-    String value() default "";
-}
+package overrun.marshal;

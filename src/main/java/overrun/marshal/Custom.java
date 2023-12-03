@@ -19,6 +19,14 @@ package overrun.marshal;
 import java.lang.annotation.*;
 
 /**
+ * Marks a method that uses custom code instead of generated code.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Custom("""
+ *     System.out.println("Hello world");""")
+ * void myCode();
+ * }</pre>
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -26,5 +34,8 @@ import java.lang.annotation.*;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Custom {
+    /**
+     * {@return the custom code}
+     */
     String value();
 }

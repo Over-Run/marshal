@@ -19,6 +19,12 @@ package overrun.marshal;
 import java.lang.annotation.*;
 
 /**
+ * Marks a parameter of an array type that reads the result from the native code.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * void get(@Ref int[] dst);
+ * }</pre>
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -26,5 +32,8 @@ import java.lang.annotation.*;
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Ref {
+    /**
+     * {@return {@code true} if the array is nullable; {@code false} otherwise}
+     */
     boolean nullable() default false;
 }

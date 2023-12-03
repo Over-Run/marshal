@@ -31,6 +31,13 @@ public final class BoolHelper {
         //no instance
     }
 
+    /**
+     * Allocates a memory segment with the given boolean array.
+     *
+     * @param allocator the segment allocator
+     * @param arr       the boolean array
+     * @return the memory segment
+     */
     public static MemorySegment of(SegmentAllocator allocator, boolean[] arr) {
         final MemorySegment segment = allocator.allocate(ValueLayout.JAVA_BOOLEAN, arr.length);
         for (int i = 0; i < arr.length; i++) {
@@ -39,6 +46,12 @@ public final class BoolHelper {
         return segment;
     }
 
+    /**
+     * Copies data from the given source memory segment into a boolean array.
+     *
+     * @param src the source
+     * @param dst the destination
+     */
     public static void copy(MemorySegment src, boolean[] dst) {
         final int length = checkArraySize(Math.min(src.byteSize(), dst.length));
         for (int i = 0; i < length; i++) {
@@ -46,6 +59,12 @@ public final class BoolHelper {
         }
     }
 
+    /**
+     * Converts a memory segment into a boolean array.
+     *
+     * @param segment the memory segment
+     * @return the boolean array
+     */
     public static boolean[] toArray(MemorySegment segment) {
         boolean[] b = new boolean[checkArraySize(segment.byteSize())];
         for (int i = 0; i < b.length; i++) {

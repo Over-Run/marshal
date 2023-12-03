@@ -44,7 +44,7 @@ public interface CMarshalTest {
 
     int testWithReturnValue();
 
-    @Native(optional = true)
+    @Default
     void testWithOptional();
 
     void testWithArgument(int i, MemorySegment holder);
@@ -85,8 +85,8 @@ public interface CMarshalTest {
         @param segment A memory segment
         @return Another memory segment""",
         entrypoint = "testAllFeatures",
-        scope = MarshalScope.PROTECTED,
-        optional = true
+        scope = MarshalScope.PROTECTED
     )
+    @Default("MemorySegment.NULL")
     MemorySegment testAll(MemorySegment segment);
 }

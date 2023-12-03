@@ -17,7 +17,10 @@
 package overrun.marshal;
 
 /**
+ * A library selector.
+ *
  * @author squid233
+ * @see NativeApi
  * @since 0.1.0
  */
 public interface LibrarySelector {

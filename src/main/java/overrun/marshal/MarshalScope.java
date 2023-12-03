@@ -17,13 +17,28 @@
 package overrun.marshal;
 
 /**
+ * The marshal scope that specifies the access modifier of a method.
+ *
  * @author squid233
+ * @see Native
  * @since 0.1.0
  */
 public enum MarshalScope {
+    /**
+     * {@code public} access
+     */
     PUBLIC("public"),
+    /**
+     * {@code protected} access
+     */
     PROTECTED("protected"),
+    /**
+     * package-private access
+     */
     PACKAGE_PRIVATE(""),
+    /**
+     * {@code private} access
+     */
     PRIVATE("private");
 
     private final String toStringValue;

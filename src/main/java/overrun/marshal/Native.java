@@ -19,6 +19,20 @@ package overrun.marshal;
 import java.lang.annotation.*;
 
 /**
+ * Applies additional settings to a method.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Native(doc = """
+ *     The documentation
+ *
+ *     @param dst the destination
+ *     @return 1 if success; 0 otherwise""",
+ *     entrypoint = "getStatus",
+ *     scope = MarshalScope.PROTECTED
+ * )
+ * int ngetStatus(MemorySegment dst);
+ * }</pre>
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -26,11 +40,20 @@ import java.lang.annotation.*;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Native {
+    /**
+     * {@return the javadoc of the method}
+     */
     String doc() default "";
 
+    /**
+     * Uses the specified entrypoint (the native name of the function), instead of the method name.
+     *
+     * @return the entrypoint name of the method
+     */
     String entrypoint() default "";
 
+    /**
+     * {@return the access modifier of the method}
+     */
     MarshalScope scope() default MarshalScope.PUBLIC;
-
-    boolean optional() default false;
 }

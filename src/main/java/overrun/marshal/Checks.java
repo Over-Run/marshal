@@ -19,16 +19,29 @@ package overrun.marshal;
 import java.util.function.Supplier;
 
 /**
+ * Checks
+ *
  * @author squid233
  * @since 0.1.0
  */
 public final class Checks {
+    /**
+     * Check size of a fixed size array argument. Default value: {@code true}
+     *
+     * @see FixedSize
+     */
     public static final Entry<Boolean> CHECK_ARRAY_SIZE = new Entry<>(() -> true);
 
     private Checks() {
         //no instance
     }
 
+    /**
+     * Checks the array size.
+     *
+     * @param expected the expected size
+     * @param got      the got size
+     */
     public static void checkArraySize(int expected, int got) {
         if (CHECK_ARRAY_SIZE.get() && expected != got) {
             throw new IllegalArgumentException("Expected array of size " + expected + ", got " + got);
@@ -36,6 +49,8 @@ public final class Checks {
     }
 
     /**
+     * A check entry
+     *
      * @author squid233
      * @since 0.1.0
      */
@@ -43,10 +58,13 @@ public final class Checks {
         private final Supplier<T> supplier;
         private T value;
 
-        public Entry(Supplier<T> supplier) {
+        private Entry(Supplier<T> supplier) {
             this.supplier = supplier;
         }
 
+        /**
+         * {@return the value of this entry}
+         */
         public T get() {
             if (value == null) {
                 value = supplier.get();

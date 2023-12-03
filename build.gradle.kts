@@ -106,30 +106,6 @@ allprojects {
         if (JavaVersion.current() < javaVersion) {
             toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
         }
-        if (hasJavadocJar.toBoolean()) withJavadocJar()
-        if (hasSourcesJar.toBoolean()) withSourcesJar()
-    }
-
-    tasks.withType<Javadoc> {
-        isFailOnError = false
-        options {
-            encoding = "UTF-8"
-            locale = "en_US"
-            windowTitle = "$projName $projVersion Javadoc"
-            if (this is StandardJavadocDocletOptions) {
-                charSet = "UTF-8"
-                isAuthor = true
-                if (jdkEarlyAccessDoc == null) {
-                    links("https://docs.oracle.com/en/java/javase/$jdkVersion/docs/api/")
-                } else {
-                    links("https://download.java.net/java/early_access/$jdkEarlyAccessDoc/docs/api/")
-                }
-                if (jdkEnablePreview.toBoolean()) {
-                    addBooleanOption("-enable-preview", true)
-                    addStringOption("source", jdkVersion)
-                }
-            }
-        }
     }
 
 //application {
@@ -151,23 +127,6 @@ allprojects {
         )
     }
 
-    if (hasSourcesJar.toBoolean()) {
-        tasks.named<Jar>("sourcesJar") {
-            dependsOn(tasks["classes"])
-            archiveClassifier = "sources"
-            from(sourceSets["main"].allSource)
-        }
-    }
-
-    if (hasJavadocJar.toBoolean()) {
-        tasks.named<Jar>("javadocJar") {
-            val javadoc by tasks
-            dependsOn(javadoc)
-            archiveClassifier = "javadoc"
-            from(javadoc)
-        }
-    }
-
     tasks.withType<Jar> {
         archiveBaseName = projArtifactId
         from(rootProject.file(projLicenseFileName)).rename(
@@ -179,6 +138,50 @@ allprojects {
 
 tasks.withType<JavaCompile> {
     options.compilerArgs.add("-proc:none")
+}
+
+java {
+    if (hasJavadocJar.toBoolean()) withJavadocJar()
+    if (hasSourcesJar.toBoolean()) withSourcesJar()
+}
+
+tasks.withType<Javadoc> {
+    isFailOnError = false
+    options {
+        encoding = "UTF-8"
+        locale = "en_US"
+        windowTitle = "$projName $projVersion Javadoc"
+        if (this is StandardJavadocDocletOptions) {
+            charSet = "UTF-8"
+            isAuthor = true
+            if (jdkEarlyAccessDoc == null) {
+                links("https://docs.oracle.com/en/java/javase/$jdkVersion/docs/api/")
+            } else {
+                links("https://download.java.net/java/early_access/$jdkEarlyAccessDoc/docs/api/")
+            }
+            if (jdkEnablePreview.toBoolean()) {
+                addBooleanOption("-enable-preview", true)
+                addStringOption("source", jdkVersion)
+            }
+        }
+    }
+}
+
+if (hasSourcesJar.toBoolean()) {
+    tasks.named<Jar>("sourcesJar") {
+        dependsOn(tasks["classes"])
+        archiveClassifier = "sources"
+        from(sourceSets["main"].allSource)
+    }
+}
+
+if (hasJavadocJar.toBoolean()) {
+    tasks.named<Jar>("javadocJar") {
+        val javadoc by tasks
+        dependsOn(javadoc)
+        archiveClassifier = "javadoc"
+        from(javadoc)
+    }
 }
 
 if (hasPublication.toBoolean() && publicationRepo != null) {
