@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
+ * Class spec
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -33,26 +35,57 @@ public final class ClassSpec implements Spec {
     private boolean isFinal = false;
     private final List<FieldSpec> fieldSpecs = new ArrayList<>();
 
+    /**
+     * Constructor
+     *
+     * @param className class name
+     */
     public ClassSpec(String className) {
         this.className = className;
     }
 
+    /**
+     * Set document
+     *
+     * @param document document
+     */
     public void setDocument(String document) {
         this.document = document;
     }
 
+    /**
+     * Set access modifier
+     *
+     * @param accessModifier access modifier
+     */
     public void setAccessModifier(AccessModifier accessModifier) {
         this.accessModifier = accessModifier;
     }
 
+    /**
+     * Set final
+     *
+     * @param beFinal final
+     */
     public void setFinal(boolean beFinal) {
         this.isFinal = beFinal;
     }
 
+    /**
+     * Add a field
+     *
+     * @param fieldSpec field
+     */
     public void addField(FieldSpec fieldSpec) {
         fieldSpecs.add(fieldSpec);
     }
 
+    /**
+     * Add a field and perform the action
+     *
+     * @param fieldSpec field
+     * @param consumer  action
+     */
     public void addField(FieldSpec fieldSpec, Consumer<FieldSpec> consumer) {
         consumer.accept(fieldSpec);
         addField(fieldSpec);
@@ -73,6 +106,6 @@ public final class ClassSpec implements Spec {
         fieldSpecs.forEach(fieldSpec -> fieldSpec.append(builder, indent + 4));
         builder.append('\n');
         // end
-        builder.append(isFinal).append("}\n");
+        builder.append("}\n");
     }
 }

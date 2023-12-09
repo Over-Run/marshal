@@ -40,6 +40,7 @@ import java.lang.annotation.*;
 @Documented
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE})
 @Retention(RetentionPolicy.SOURCE)
+@Deprecated(since = "0.1.0-alpha.1", forRemoval = true)
 public @interface Doc {
     /**
      * {@return the javadoc of the method}

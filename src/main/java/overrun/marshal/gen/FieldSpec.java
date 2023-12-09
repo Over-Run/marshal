@@ -19,6 +19,8 @@ package overrun.marshal.gen;
 import overrun.marshal.AccessModifier;
 
 /**
+ * Field spec
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -29,16 +31,33 @@ public final class FieldSpec implements Spec {
     private String document = null;
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
 
+    /**
+     * Constructor
+     *
+     * @param type  type
+     * @param name  name
+     * @param value value
+     */
     public FieldSpec(String type, String name, String value) {
         this.type = type;
         this.name = name;
         this.value = value;
     }
 
+    /**
+     * Set document
+     *
+     * @param document document
+     */
     public void setDocument(String document) {
         this.document = document;
     }
 
+    /**
+     * Set access modifier
+     *
+     * @param accessModifier access modifier
+     */
     public void setAccessModifier(AccessModifier accessModifier) {
         this.accessModifier = accessModifier;
     }

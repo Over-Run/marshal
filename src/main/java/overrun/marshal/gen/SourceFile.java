@@ -22,6 +22,8 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /**
+ * Source file
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -30,20 +32,42 @@ public final class SourceFile {
     private final String packageName;
     private final Set<String> imports = new LinkedHashSet<>();
 
+    /**
+     * Constructor
+     *
+     * @param packageName package name
+     */
     public SourceFile(String packageName) {
         this.packageName = packageName;
     }
 
+    /**
+     * Add imports
+     *
+     * @param names class names
+     */
     public void addImports(String... names) {
         imports.addAll(Arrays.asList(names));
     }
 
+    /**
+     * Add a class and perform the action
+     *
+     * @param className class name
+     * @param consumer  action
+     */
     public void addClass(String className, Consumer<ClassSpec> consumer) {
         final ClassSpec spec = new ClassSpec(className);
         consumer.accept(spec);
         classSpecs.add(spec);
     }
 
+    /**
+     * Write to the writer
+     *
+     * @param writer the writer
+     * @throws IOException If an I/O error occurs
+     */
     public void write(Writer writer) throws IOException {
         final StringBuilder sb = new StringBuilder(16384);
         // header

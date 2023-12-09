@@ -28,8 +28,9 @@ import java.lang.foreign.MemorySegment;
 public interface CMarshalTest {
     int CONST_VALUE = 42;
     boolean BOOL_VALUE = true;
-    @Doc("""
-        A string value""")
+    /**
+     * A string value
+     */
     String STR_VALUE = "Hello world";
 
     void test();
@@ -37,11 +38,11 @@ public interface CMarshalTest {
     @Entrypoint("test")
     void testWithEntrypoint();
 
-    @Doc("""
-        This is a test method with javadoc.
-
-        @return an integer
-        """)
+    /**
+     * This is a test method with javadoc.
+     *
+     * @return an integer
+     */
     int testWithDocAndReturnValue();
 
     int testWithReturnValue();
@@ -102,11 +103,12 @@ public interface CMarshalTest {
     @Overload
     void testMixArrSeg(MemorySegment segment, @Ref int[] arr);
 
-    @Doc("""
-        This is a test that tests all features.
-
-        @param segment A memory segment
-        @return Another memory segment""")
+    /**
+     * This is a test that tests all features.
+     *
+     * @param segment A memory segment
+     * @return Another memory segment
+     */
     @Access(AccessModifier.PROTECTED)
     @Default("MemorySegment.NULL")
     @Entrypoint("testAllFeatures")

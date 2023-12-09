@@ -18,9 +18,9 @@ package overrun.marshal.gen;
 
 import overrun.marshal.AccessModifier;
 
-import java.util.List;
-
 /**
+ * Method spec
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -30,15 +30,31 @@ public final class MethodSpec implements Spec {
     private String document = null;
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
 
+    /**
+     * Constructor
+     *
+     * @param returnType return type
+     * @param name       name
+     */
     public MethodSpec(String returnType, String name) {
         this.returnType = returnType;
         this.name = name;
     }
 
+    /**
+     * Set document
+     *
+     * @param document document
+     */
     public void setDocument(String document) {
         this.document = document;
     }
 
+    /**
+     * Set access modifier
+     *
+     * @param accessModifier access modifier
+     */
     public void setAccessModifier(AccessModifier accessModifier) {
         this.accessModifier = accessModifier;
     }

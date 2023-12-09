@@ -17,21 +17,42 @@
 package overrun.marshal.gen;
 
 /**
+ * Spec
+ *
  * @author squid233
  * @since 0.1.0
  */
 public interface Spec {
+    /**
+     * Get the indent string
+     *
+     * @param indent indent count
+     * @return the string
+     */
     static String indentString(int indent) {
         return " ".repeat(indent);
     }
 
+    /**
+     * Append document to the string builder
+     *
+     * @param builder   the string builder
+     * @param document  the document
+     * @param indentStr the indent string
+     */
     static void appendDocument(StringBuilder builder, String document, String indentStr) {
         if (document != null) {
             builder.append(indentStr).append("/**\n");
-            document.lines().forEach(s -> builder.append(indentStr).append(" * ").append(s).append('\n'));
+            document.lines().forEach(s -> builder.append(indentStr).append(" *").append(s).append('\n'));
             builder.append(indentStr).append(" */\n");
         }
     }
 
+    /**
+     * Append to the string builder
+     *
+     * @param builder the string builder
+     * @param indent  the indent
+     */
     void append(StringBuilder builder, int indent);
 }

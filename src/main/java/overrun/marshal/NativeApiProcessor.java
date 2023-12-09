@@ -169,12 +169,8 @@ public final class NativeApiProcessor extends AbstractProcessor {
                                 return e1;
                             }
                             // compare function descriptor
-                            final List<String> p1 = Stream.concat(
-                                Stream.of(e1.getReturnType()), e1.getParameters().stream().map(VariableElement::asType)
-                            ).map(NativeApiProcessor::toValueLayout).toList();
-                            final List<String> p2 = Stream.concat(
-                                Stream.of(e2.getReturnType()), e2.getParameters().stream().map(VariableElement::asType)
-                            ).map(NativeApiProcessor::toValueLayout).toList();
+                            final List<String> p1 = collectConflictedMethodSignature(e1);
+                            final List<String> p2 = collectConflictedMethodSignature(e2);
                             if (!p1.equals(p2)) {
                                 printError("Overload not supported between " + type + "::" + e1 + " and ::" + e2);
                             }
@@ -231,9 +227,8 @@ public final class NativeApiProcessor extends AbstractProcessor {
         }
     }
 
-    private static String getDocument(Element element) {
-        final Doc doc = element.getAnnotation(Doc.class);
-        return doc != null ? doc.value() : null;
+    private String getDocument(Element element) {
+        return processingEnv.getElementUtils().getDocComment(element);
     }
 
     private static String toTypeName(String rawClassName) {
@@ -244,6 +239,19 @@ public final class NativeApiProcessor extends AbstractProcessor {
             return MemorySegment.class.getSimpleName();
         }
         return rawClassName;
+    }
+
+    private static List<String> collectConflictedMethodSignature(ExecutableElement e) {
+        return Stream.concat(Stream.of(e.getReturnType()), e.getParameters().stream().map(VariableElement::asType)).map(t -> {
+            if (t.getKind() == TypeKind.VOID) {
+                return ".VOID";
+            }
+            try {
+                return toValueLayout(t);
+            } catch (Exception ex) {
+                return t.toString();
+            }
+        }).toList();
     }
 
     private void writeFile(
