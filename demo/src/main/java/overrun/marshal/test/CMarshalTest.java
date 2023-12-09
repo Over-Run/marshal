@@ -21,6 +21,8 @@ import overrun.marshal.*;
 import java.lang.foreign.MemorySegment;
 
 /**
+ * Test basic features
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -111,6 +113,9 @@ public interface CMarshalTest {
      */
     @Access(AccessModifier.PROTECTED)
     @Default("MemorySegment.NULL")
+//    @Default("""
+//        MemorySegment.
+//        NULL""")
     @Entrypoint("testAllFeatures")
     MemorySegment testAll(MemorySegment segment);
 }

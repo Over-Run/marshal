@@ -14,19 +14,19 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
-
-import overrun.marshal.NativeApi;
-
-import java.lang.foreign.MemorySegment;
+package overrun.marshal.gen;
 
 /**
- * Test with selector
+ * Statement block
  *
  * @author squid233
  * @since 0.1.0
  */
-@NativeApi(libname = "NativeLib", name = "MarshalTestWithSelector", selector = NativeLibSelector.class)
-public interface CMarshalTestWithSelector {
-    MemorySegment testWithArgAndReturnValue(MemorySegment segment);
+public interface StatementBlock {
+    /**
+     * Add a statement
+     *
+     * @param spec statement
+     */
+    void addStatement(Spec spec);
 }

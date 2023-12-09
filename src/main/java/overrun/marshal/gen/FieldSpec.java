@@ -27,7 +27,7 @@ import overrun.marshal.AccessModifier;
 public final class FieldSpec implements Spec {
     private final String type;
     private final String name;
-    private final String value;
+    private final Spec value;
     private String document = null;
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
 
@@ -38,7 +38,7 @@ public final class FieldSpec implements Spec {
      * @param name  name
      * @param value value
      */
-    public FieldSpec(String type, String name, String value) {
+    public FieldSpec(String type, String name, Spec value) {
         this.type = type;
         this.name = name;
         this.value = value;
@@ -48,18 +48,22 @@ public final class FieldSpec implements Spec {
      * Set document
      *
      * @param document document
+     * @return this
      */
-    public void setDocument(String document) {
+    public FieldSpec setDocument(String document) {
         this.document = document;
+        return this;
     }
 
     /**
      * Set access modifier
      *
      * @param accessModifier access modifier
+     * @return this
      */
-    public void setAccessModifier(AccessModifier accessModifier) {
+    public FieldSpec setAccessModifier(AccessModifier accessModifier) {
         this.accessModifier = accessModifier;
+        return this;
     }
 
     @Override
@@ -68,8 +72,8 @@ public final class FieldSpec implements Spec {
         Spec.appendDocument(builder, document, indentString);
         builder.append(indentString)
             .append(accessModifier).append(" static final ").append(type).append(' ').append(name)
-            .append(" = ")
-            .append(value)
-            .append(";\n");
+            .append(" = ");
+        value.append(builder, indent);
+        builder.append(";\n");
     }
 }

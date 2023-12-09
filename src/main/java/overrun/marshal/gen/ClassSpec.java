@@ -34,6 +34,7 @@ public final class ClassSpec implements Spec {
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
     private boolean isFinal = false;
     private final List<FieldSpec> fieldSpecs = new ArrayList<>();
+    private final List<MethodSpec> methodSpecs = new ArrayList<>();
 
     /**
      * Constructor
@@ -91,6 +92,17 @@ public final class ClassSpec implements Spec {
         addField(fieldSpec);
     }
 
+    /**
+     * Add a method and perform the action
+     *
+     * @param methodSpec method
+     * @param consumer   action
+     */
+    public void addMethod(MethodSpec methodSpec, Consumer<MethodSpec> consumer) {
+        consumer.accept(methodSpec);
+        methodSpecs.add(methodSpec);
+    }
+
     @Override
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);
@@ -105,7 +117,8 @@ public final class ClassSpec implements Spec {
         // body
         fieldSpecs.forEach(fieldSpec -> fieldSpec.append(builder, indent + 4));
         builder.append('\n');
+        methodSpecs.forEach(methodSpec -> methodSpec.append(builder, indent + 4));
         // end
-        builder.append("}\n");
+        builder.append(indentString).append("}\n");
     }
 }

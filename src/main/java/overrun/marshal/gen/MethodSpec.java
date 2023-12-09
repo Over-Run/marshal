@@ -18,17 +18,25 @@ package overrun.marshal.gen;
 
 import overrun.marshal.AccessModifier;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * Method spec
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class MethodSpec implements Spec {
+public final class MethodSpec implements Spec, StatementBlock {
     private final String returnType;
     private final String name;
     private String document = null;
+    private final List<AnnotationSpec> annotations = new ArrayList<>();
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
+    private final List<Map.Entry<String, String>> parameters = new ArrayList<>();
+    private final List<Spec> statements = new ArrayList<>();
 
     /**
      * Constructor
@@ -51,6 +59,15 @@ public final class MethodSpec implements Spec {
     }
 
     /**
+     * Add an annotation
+     *
+     * @param annotationSpec annotation
+     */
+    public void addAnnotation(AnnotationSpec annotationSpec) {
+        annotations.add(annotationSpec);
+    }
+
+    /**
      * Set access modifier
      *
      * @param accessModifier access modifier
@@ -59,9 +76,39 @@ public final class MethodSpec implements Spec {
         this.accessModifier = accessModifier;
     }
 
+    /**
+     * Add parameter
+     *
+     * @param type type
+     * @param name name
+     */
+    public void addParameter(String type, String name) {
+        parameters.add(Map.entry(type, name));
+    }
+
+    /**
+     * Add a statement
+     *
+     * @param spec statement
+     */
+    @Override
+    public void addStatement(Spec spec) {
+        statements.add(spec);
+    }
+
     @Override
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);
         Spec.appendDocument(builder, document, indentString);
+        annotations.forEach(annotationSpec -> {
+            builder.append(indentString);
+            annotationSpec.append(builder, indent);
+            builder.append('\n');
+        });
+        builder.append(indentString).append(accessModifier).append(" static ").append(returnType).append(' ').append(name).append('(').append(
+            parameters.stream().map(e -> e.getKey() + ' ' + e.getValue()).collect(Collectors.joining(", "))
+        ).append(") {\n");
+        statements.forEach(spec -> spec.append(builder, indent + 4));
+        builder.append(indentString).append("}\n\n");
     }
 }

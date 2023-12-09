@@ -16,8 +16,7 @@
 
 package overrun.marshal;
 
-import overrun.marshal.gen.FieldSpec;
-import overrun.marshal.gen.SourceFile;
+import overrun.marshal.gen.*;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -124,9 +123,9 @@ public final class NativeApiProcessor extends AbstractProcessor {
                     return;
                 }
                 classSpec.addField(new FieldSpec(toTypeName(e.asType().toString()),
-                        e.getSimpleName().toString(),
-                        processingEnv.getElementUtils().getConstantExpression(constantValue)),
-                    fieldSpec -> fieldSpec.setDocument(getDocument(e)));
+                    e.getSimpleName().toString(),
+                    Spec.literal(getConstExp(constantValue)))
+                    .setDocument(getDocument(e)));
             });
             if (!methods.isEmpty()) {
                 // loader
@@ -142,14 +141,15 @@ public final class NativeApiProcessor extends AbstractProcessor {
                 final String libname = nativeApi.libname();
                 classSpec.addField(new FieldSpec("SymbolLookup",
                     "_LOOKUP",
-                    "SymbolLookup.libraryLookup(" + (
-                        selector == null ?
-                            ("\"" + libname + "\"" + ", Arena.global()") :
-                            ("new " + selector + "().select(\"" + libname + "\"), Arena.global()")
-                    ) + ")"), fieldSpec -> fieldSpec.setAccessModifier(AccessModifier.PRIVATE));
+                    new InvokeSpec("SymbolLookup", "libraryLookup")
+                        .addArgument(selector == null ?
+                            Spec.literal(getConstExp(libname)) :
+                            new InvokeSpec(new ConstructSpec(selector), "select").addArgument(getConstExp(libname)))
+                        .addArgument(new InvokeSpec("Arena", "global"))
+                ).setAccessModifier(AccessModifier.PRIVATE));
                 classSpec.addField(new FieldSpec("Linker",
                     "_LINKER",
-                    "Linker.nativeLinker()"), fieldSpec -> fieldSpec.setAccessModifier(AccessModifier.PRIVATE));
+                    new InvokeSpec("Linker", "nativeLinker")).setAccessModifier(AccessModifier.PRIVATE));
                 // method handles
                 methods.stream().collect(Collectors.toMap(NativeApiProcessor::methodEntrypoint, Function.identity(), (e1, e2) -> {
                     final Overload o1 = e1.getAnnotation(Overload.class);
@@ -187,28 +187,26 @@ public final class NativeApiProcessor extends AbstractProcessor {
                     // overwrite it.
                     return e2;
                 }, LinkedHashMap::new)).forEach((k, v) -> {
-                    final StringBuilder sb = new StringBuilder(256);
                     final TypeMirror returnType = v.getReturnType();
-                    final Default defaulted = v.getAnnotation(Default.class);
-                    sb.append("_LOOKUP.find(\"").append(k).append("\").map(_s -> _LINKER.downcallHandle(_s, FunctionDescriptor.of");
-                    if (returnType.getKind() == TypeKind.VOID) {
-                        sb.append("Void(");
-                    } else {
-                        sb.append('(').append(toValueLayout(returnType));
-                        if (!v.getParameters().isEmpty()) {
-                            sb.append(", ");
-                        }
-                    }
-                    sb.append(v.getParameters().stream()
-                        .map(e -> toValueLayout(e.asType()))
-                        .collect(Collectors.joining(", ")));
-                    sb.append("))).orElse");
-                    if (defaulted != null) {
-                        sb.append("(null)");
-                    } else {
-                        sb.append("Throw()");
-                    }
-                    classSpec.addField(new FieldSpec("MethodHandle", k, sb.toString()), fieldSpec -> {
+                    final boolean defaulted = v.getAnnotation(Default.class) != null;
+                    classSpec.addField(new FieldSpec("MethodHandle", k,
+                        new InvokeSpec(new InvokeSpec(
+                            new InvokeSpec("_LOOKUP", "find").addArgument(getConstExp(k)),
+                            "map"
+                        ).addArgument(new LambdaSpec("_s")
+                            .addStatementThis(new InvokeSpec("_LINKER", "downcallHandle")
+                                .addArgument("_s")
+                                .addArgument(new InvokeSpec("FunctionDescriptor",
+                                    returnType.getKind() == TypeKind.VOID ? "ofVoid" : "of").also(invokeSpec -> {
+                                    if (returnType.getKind() != TypeKind.VOID) {
+                                        invokeSpec.addArgument(toValueLayout(returnType));
+                                    }
+                                    v.getParameters().forEach(e -> invokeSpec.addArgument(toValueLayout(e.asType())));
+                                })))), defaulted ? "orElse" : "orElseThrow").also(invokeSpec -> {
+                            if (defaulted) {
+                                invokeSpec.addArgument("null");
+                            }
+                        })), fieldSpec -> {
                         final Access access = v.getAnnotation(Access.class);
                         if (access != null) {
                             fieldSpec.setAccessModifier(access.value());
@@ -217,11 +215,79 @@ public final class NativeApiProcessor extends AbstractProcessor {
                 });
                 // method declarations
                 methods.forEach(e -> {
+                    final TypeMirror returnType = e.getReturnType();
+                    final Overload overload = e.getAnnotation(Overload.class);
+                    final String overloadValue = overload != null ? overload.value() : null;
+                    final String javaReturnType = toTargetType(returnType, overloadValue);
+
+                    classSpec.addMethod(new MethodSpec(javaReturnType, e.getSimpleName().toString()), methodSpec -> {
+                        final var parameters = e.getParameters();
+                        final boolean shouldInsertAllocator = parameters.stream().anyMatch(p -> {
+                            final TypeMirror t = p.asType();
+                            return isArray(t) || (t.getKind() == TypeKind.DECLARED && isString(t));
+                            // TODO: 2023/12/9 Struct
+                        });
+                        final Access access = e.getAnnotation(Access.class);
+                        final Custom custom = e.getAnnotation(Custom.class);
+                        final Default defaultAnnotation = e.getAnnotation(Default.class);
+                        final boolean isDefaulted = defaultAnnotation != null;
+
+                        methodSpec.setDocument(getDocument(e));
+                        if (isDefaulted) {
+                            methodSpec.addAnnotation(new AnnotationSpec(Default.class.getSimpleName()).also(annotationSpec -> {
+                                if (!defaultAnnotation.value().isBlank()) {
+                                    annotationSpec.addArgument("value", getConstExp(defaultAnnotation.value()));
+                                }
+                            }));
+                        }
+                        if (access != null) {
+                            methodSpec.setAccessModifier(access.value());
+                        }
+                        if (shouldInsertAllocator) {
+                            methodSpec.addParameter("SegmentAllocator", "_segmentAllocator");
+                        }
+                        parameters.forEach(p -> methodSpec.addParameter(toTargetType(p.asType(), overloadValue), p.getSimpleName().toString()));
+
+                        if (custom != null) {
+                            methodSpec.addStatement(Spec.indented(custom.value()));
+                            return;
+                        }
+                        if (overload == null) {
+                            final boolean notVoid = returnType.getKind() != TypeKind.VOID;
+                            if (isDefaulted && notVoid && defaultAnnotation.value().isBlank()) {
+                                printError(type + "::" + e + ": Default non-void method must have a default return value");
+                            }
+                            final String entrypoint = methodEntrypoint(e);
+                            methodSpec.addStatement(new TryCatchStatement().also(tryCatchStatement -> {
+                                StatementBlock targetStatement = tryCatchStatement;
+                                if (isDefaulted) {
+                                    final IfStatement ifStatement = new IfStatement(ConditionSpec.notNull(entrypoint));
+                                    if (notVoid) {
+                                        ifStatement.addElseClause(ElseClause.of(), elseClause ->
+                                            elseClause.addStatement(Spec.returnStatement(Spec.indentedExceptFirstLine(defaultAnnotation.value())))
+                                        );
+                                    }
+                                    targetStatement = ifStatement;
+                                    tryCatchStatement.addStatement(ifStatement);
+                                }
+                                final InvokeSpec invokeExact = new InvokeSpec(entrypoint, "invokeExact")
+                                    .addArguments(e.getParameters().stream()
+                                        .map(p -> Spec.literal(p.getSimpleName().toString()))
+                                        .collect(Collectors.toList()));
+                                targetStatement.addStatement(notVoid ? Spec.returnStatement(Spec.cast(javaReturnType, invokeExact)) : Spec.statement(invokeExact));
+                                tryCatchStatement.addCatchClause(new CatchClause("Throwable", "_ex"), catchClause ->
+                                    catchClause.addStatement(Spec.literalStatement("throw new AssertionError(\"should not reach here\", " + catchClause.name() + ')'))
+                                );
+                            }));
+                            return;
+                        }
+                        ;
+                    });
                 });
             }
         });
 
-        final JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(packageName + "." + simpleClassName);
+        final JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(packageName + '.' + simpleClassName);
         try (PrintWriter out = new PrintWriter(sourceFile.openWriter())) {
             file.write(out);
         }
@@ -229,6 +295,10 @@ public final class NativeApiProcessor extends AbstractProcessor {
 
     private String getDocument(Element element) {
         return processingEnv.getElementUtils().getDocComment(element);
+    }
+
+    private String getConstExp(Object value) {
+        return processingEnv.getElementUtils().getConstantExpression(value);
     }
 
     private static String toTypeName(String rawClassName) {

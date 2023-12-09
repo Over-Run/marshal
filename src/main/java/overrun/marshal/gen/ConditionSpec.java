@@ -14,19 +14,42 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
-
-import overrun.marshal.NativeApi;
-
-import java.lang.foreign.MemorySegment;
+package overrun.marshal.gen;
 
 /**
- * Test with selector
+ * Condition
  *
  * @author squid233
  * @since 0.1.0
  */
-@NativeApi(libname = "NativeLib", name = "MarshalTestWithSelector", selector = NativeLibSelector.class)
-public interface CMarshalTestWithSelector {
-    MemorySegment testWithArgAndReturnValue(MemorySegment segment);
+public final class ConditionSpec implements Spec {
+    private final Spec value;
+
+    private ConditionSpec(Spec value) {
+        this.value = value;
+    }
+
+    /**
+     * Literal condition
+     *
+     * @param s condition
+     * @return spec
+     */
+    public static ConditionSpec of(String s) {
+        return new ConditionSpec(Spec.literal(s));
+    }
+
+    /**
+     * not null condition
+     * @param value value
+     * @return spec
+     */
+    public static ConditionSpec notNull(String value) {
+        return of(value + " != null");
+    }
+
+    @Override
+    public void append(StringBuilder builder, int indent) {
+        value.append(builder, indent);
+    }
 }

@@ -16,6 +16,8 @@
 
 package overrun.marshal.gen;
 
+import java.util.stream.Collectors;
+
 /**
  * Spec
  *
@@ -23,6 +25,97 @@ package overrun.marshal.gen;
  * @since 0.1.0
  */
 public interface Spec {
+    /**
+     * Create a return statement
+     *
+     * @param value return value
+     * @return statement
+     */
+    static Spec returnStatement(Spec value) {
+        return (builder, indent) -> {
+            builder.append(indentString(indent)).append("return ");
+            value.append(builder, indent);
+            builder.append(";\n");
+        };
+    }
+
+    /**
+     * Create an expression casting
+     *
+     * @param type type
+     * @param exp  expression
+     * @return cast
+     */
+    static Spec cast(String type, Spec exp) {
+        return (builder, indent) -> {
+            builder.append('(').append(type).append(") ");
+            exp.append(builder, indent);
+        };
+    }
+
+    /**
+     * Create a literal statement
+     *
+     * @param code the code
+     * @return the statement
+     */
+    static Spec literalStatement(String code) {
+        return (builder, indent) -> builder.append(indentString(indent)).append(code).append(";\n");
+    }
+
+    /**
+     * Create a statement
+     *
+     * @param spec the code
+     * @return the statement
+     */
+    static Spec statement(Spec spec) {
+        return (builder, indent) -> {
+            builder.append(indentString(indent));
+            spec.append(builder, indent);
+            builder.append(";\n");
+        };
+    }
+
+    /**
+     * Create a literal string
+     *
+     * @param s the string
+     * @return the spec
+     */
+    static Spec literal(String s) {
+        return (builder, indent) -> builder.append(s);
+    }
+
+    /**
+     * Create an indented literal string
+     *
+     * @param s the string
+     * @return the spec
+     */
+    static Spec indented(String s) {
+        return (builder, indent) -> builder.append(s.indent(indent));
+    }
+
+    /**
+     * Create an indented literal string
+     *
+     * @param s the string
+     * @return the spec
+     */
+    static Spec indentedExceptFirstLine(String s) {
+        return (builder, indent) -> {
+            final String indentString = indentString(indent);
+            s.lines().findFirst().ifPresentOrElse(s1 -> {
+                builder.append(s1);
+                if (s.lines().count() > 1) {
+                    builder.append(s.lines().skip(1).map(s2 -> indentString + s2).collect(Collectors.joining("\n", "\n", "")));
+                }
+            }, () -> {
+            });
+        };
+    }
+
     /**
      * Get the indent string
      *
