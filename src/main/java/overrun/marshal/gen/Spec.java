@@ -14,35 +14,24 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
-
-import java.lang.annotation.*;
+package overrun.marshal.gen;
 
 /**
- * Gives documentation to a method.
- * <h2>Example</h2>
- * <pre>{@code
- * @Doc("""
- *     A const value""")
- * int CONST_VALUE = 42;
- *
- * @Doc("""
- *     The documentation
- *
- *     @param p the parameter
- *     @return 1 if success; 0 otherwise""")
- * int myFunction(int p);
- * }</pre>
- *
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE})
-@Retention(RetentionPolicy.SOURCE)
-public @interface Doc {
-    /**
-     * {@return the javadoc of the method}
-     */
-    String value();
+public interface Spec {
+    static String indentString(int indent) {
+        return " ".repeat(indent);
+    }
+
+    static void appendDocument(StringBuilder builder, String document, String indentStr) {
+        if (document != null) {
+            builder.append(indentStr).append("/**\n");
+            document.lines().forEach(s -> builder.append(indentStr).append(" * ").append(s).append('\n'));
+            builder.append(indentStr).append(" */\n");
+        }
+    }
+
+    void append(StringBuilder builder, int indent);
 }

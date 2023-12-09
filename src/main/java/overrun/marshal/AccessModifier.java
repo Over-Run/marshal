@@ -17,7 +17,7 @@
 package overrun.marshal;
 
 /**
- * The access modifier of a method.
+ * The access modifier.
  *
  * @author squid233
  * @see Access

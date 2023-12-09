@@ -6,6 +6,8 @@ Marshal allows you to conveniently create native library bindings with [FFM API]
 
 See [wiki](https://github.com/Over-Run/marshal/wiki) for more information.
 
+This library requires JDK 22 or newer.
+
 ## Overview
 
 ```java
