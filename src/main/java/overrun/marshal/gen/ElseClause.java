@@ -26,10 +26,10 @@ import java.util.List;
  * @since 0.1.0
  */
 public final class ElseClause implements Spec, StatementBlock {
-    private final ConditionSpec condition;
+    private final Spec condition;
     private final List<Spec> statements = new ArrayList<>();
 
-    private ElseClause(ConditionSpec condition) {
+    private ElseClause(Spec condition) {
         this.condition = condition;
     }
 
@@ -48,7 +48,7 @@ public final class ElseClause implements Spec, StatementBlock {
      * @param condition condition
      * @return else clause
      */
-    public static ElseClause ofIf(ConditionSpec condition) {
+    public static ElseClause ofIf(Spec condition) {
         return new ElseClause(condition);
     }
 

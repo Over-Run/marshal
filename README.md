@@ -15,44 +15,67 @@ import overrun.marshal.*;
 
 import java.lang.foreign.MemorySegment;
 
+/**
+ * GLFW constants and functions
+ * <p>
+ * The documentation will be automatically copied
+ * into the generated file
+ */
 @NativeApi(libname = "libglfw.so", name = "GLFW")
 interface CGLFW {
-    @Doc("""
-        A field""")
+    /**
+     * A field
+     */
     int GLFW_KEY_A = 65;
 
-    @Doc("""
-        Sets swap interval.
-        <p>
-        You can set the access modifier.
-                
-        @param interval the interval""")
+    /**
+     * Sets the swap interval.
+     * <p> 
+     * You can set the access modifier.
+     *
+     * @param interval the interval
+     */
     @Access(AccessModifier.PROTECTED)
     void glfwSwapInterval(int interval);
 
-    @Doc("""
-        Custom method body""")
+    /**
+     * Custom method body
+     */
     @Custom("""
         glfwSwapInterval(1);""")
     void glfwEnableVSync();
 
-    @Doc("""
-        {@return default value if the function was not found}""")
+    /**
+     * {@return default value if the function was not found}
+     */
     @Default("0")
     @Entrypoint("glfwGetTime")
     double getTime();
 
-    @Doc("""
-        Fixed size array.
-        Note: this method doesn't exist in GLFW""")
+    /**
+     * Fixed size array.
+     * Note: this method doesn't exist in GLFW
+     *
+     * @param arr The array
+     */
     void fixedSizeArray(@FixedSize(2) int[] arr);
 
-    @Doc("""
-        A simple method""")
+    /**
+     * A simple method
+     *
+     * @param window the window
+     * @param posX the position x
+     * @param posY the position y
+     */
     void glfwSetWindowPos(MemorySegment window, MemorySegment posX, MemorySegment posY);
 
-    @Doc("""
-        Overload""")
+    /**
+     * Overload
+     *
+     * @param window the window
+     * @param posX the array where to store the position x
+     * @param posY the array where to store the position y
+     */
     @Overload
     void glfwSetWindowPos(MemorySegment window, @Ref int[] posX, @Ref int[] posY);
 }

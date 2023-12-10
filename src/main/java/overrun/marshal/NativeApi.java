@@ -24,7 +24,7 @@ import java.lang.annotation.*;
  * The generated file will include constants of primitive
  * (boolean, byte, short, int, long, float, double) and String types in the marked class or interface.
  * <h2>Methods</h2>
- * The {@link Doc @Doc} gives documentation to a method.
+ * The javadoc of the original method will be copied.
  * <p>
  * The access modifier of the method can be changed by marking methods with {@link Access @Access}.
  * <p>
@@ -53,7 +53,6 @@ import java.lang.annotation.*;
  * }</pre>
  *
  * @author squid233
- * @see Doc
  * @see Access
  * @see Custom
  * @see Default

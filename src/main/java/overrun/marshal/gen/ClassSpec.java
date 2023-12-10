@@ -33,7 +33,7 @@ public final class ClassSpec implements Spec {
     private String document = null;
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
     private boolean isFinal = false;
-    private final List<FieldSpec> fieldSpecs = new ArrayList<>();
+    private final List<VariableStatement> fieldSpecs = new ArrayList<>();
     private final List<MethodSpec> methodSpecs = new ArrayList<>();
 
     /**
@@ -77,7 +77,7 @@ public final class ClassSpec implements Spec {
      *
      * @param fieldSpec field
      */
-    public void addField(FieldSpec fieldSpec) {
+    public void addField(VariableStatement fieldSpec) {
         fieldSpecs.add(fieldSpec);
     }
 
@@ -87,7 +87,7 @@ public final class ClassSpec implements Spec {
      * @param fieldSpec field
      * @param consumer  action
      */
-    public void addField(FieldSpec fieldSpec, Consumer<FieldSpec> consumer) {
+    public void addField(VariableStatement fieldSpec, Consumer<VariableStatement> consumer) {
         consumer.accept(fieldSpec);
         addField(fieldSpec);
     }
@@ -115,7 +115,7 @@ public final class ClassSpec implements Spec {
         }
         builder.append(" class ").append(className).append(" {\n");
         // body
-        fieldSpecs.forEach(fieldSpec -> fieldSpec.append(builder, indent + 4));
+        fieldSpecs.forEach(variableStatement -> variableStatement.append(builder, indent + 4));
         builder.append('\n');
         methodSpecs.forEach(methodSpec -> methodSpec.append(builder, indent + 4));
         // end

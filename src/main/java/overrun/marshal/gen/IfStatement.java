@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  * @since 0.1.0
  */
 public final class IfStatement implements Spec, StatementBlock {
-    private final ConditionSpec condition;
+    private final Spec condition;
     private final List<Spec> statements = new ArrayList<>();
     private final List<ElseClause> elseClauses = new ArrayList<>();
 
@@ -36,7 +36,7 @@ public final class IfStatement implements Spec, StatementBlock {
      *
      * @param condition condition
      */
-    public IfStatement(ConditionSpec condition) {
+    public IfStatement(Spec condition) {
         this.condition = condition;
     }
 

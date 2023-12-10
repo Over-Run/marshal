@@ -26,17 +26,44 @@ import java.util.stream.Collectors;
  */
 public interface Spec {
     /**
-     * Create a return statement
+     * Create access spec
      *
-     * @param value return value
-     * @return statement
+     * @param object object
+     * @param member member
+     * @return spec
      */
-    static Spec returnStatement(Spec value) {
+    static Spec accessSpec(String object, String member) {
+        return literal(object + '.' + member);
+    }
+
+    /**
+     * Create ternary operator spec
+     *
+     * @param condition  condition
+     * @param trueValue  true value
+     * @param falseValue false value
+     * @return spec
+     */
+    static Spec ternaryOp(Spec condition, Spec trueValue, Spec falseValue) {
         return (builder, indent) -> {
-            builder.append(indentString(indent)).append("return ");
-            value.append(builder, indent);
-            builder.append(";\n");
+            builder.append('(');
+            condition.append(builder, indent);
+            builder.append(") ? (");
+            trueValue.append(builder, indent);
+            builder.append(") : (");
+            falseValue.append(builder, indent);
+            builder.append(')');
         };
+    }
+
+    /**
+     * Create not null spec
+     *
+     * @param value value
+     * @return spec
+     */
+    static Spec notNullSpec(String value) {
+        return literal(value + " != null");
     }
 
     /**
@@ -54,13 +81,31 @@ public interface Spec {
     }
 
     /**
-     * Create a literal statement
+     * Create a throw statement
      *
-     * @param code the code
-     * @return the statement
+     * @param exception exception
+     * @return statement
      */
-    static Spec literalStatement(String code) {
-        return (builder, indent) -> builder.append(indentString(indent)).append(code).append(";\n");
+    static Spec throwStatement(Spec exception) {
+        return (builder, indent) -> {
+            builder.append(indentString(indent)).append("throw ");
+            exception.append(builder, indent);
+            builder.append(";\n");
+        };
+    }
+
+    /**
+     * Create a return statement
+     *
+     * @param value return value
+     * @return statement
+     */
+    static Spec returnStatement(Spec value) {
+        return (builder, indent) -> {
+            builder.append(indentString(indent)).append("return ");
+            value.append(builder, indent);
+            builder.append(";\n");
+        };
     }
 
     /**

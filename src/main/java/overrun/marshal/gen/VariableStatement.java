@@ -19,17 +19,19 @@ package overrun.marshal.gen;
 import overrun.marshal.AccessModifier;
 
 /**
- * Field spec
+ * Variable statement
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class FieldSpec implements Spec {
+public final class VariableStatement implements Spec {
     private final String type;
     private final String name;
     private final Spec value;
     private String document = null;
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
+    private boolean isStatic = false;
+    private boolean isFinal = false;
 
     /**
      * Constructor
@@ -38,7 +40,7 @@ public final class FieldSpec implements Spec {
      * @param name  name
      * @param value value
      */
-    public FieldSpec(String type, String name, Spec value) {
+    public VariableStatement(String type, String name, Spec value) {
         this.type = type;
         this.name = name;
         this.value = value;
@@ -50,7 +52,7 @@ public final class FieldSpec implements Spec {
      * @param document document
      * @return this
      */
-    public FieldSpec setDocument(String document) {
+    public VariableStatement setDocument(String document) {
         this.document = document;
         return this;
     }
@@ -61,8 +63,30 @@ public final class FieldSpec implements Spec {
      * @param accessModifier access modifier
      * @return this
      */
-    public FieldSpec setAccessModifier(AccessModifier accessModifier) {
+    public VariableStatement setAccessModifier(AccessModifier accessModifier) {
         this.accessModifier = accessModifier;
+        return this;
+    }
+
+    /**
+     * Set static
+     *
+     * @param isStatic static
+     * @return this
+     */
+    public VariableStatement setStatic(boolean isStatic) {
+        this.isStatic = isStatic;
+        return this;
+    }
+
+    /**
+     * Set final
+     *
+     * @param isFinal final
+     * @return this
+     */
+    public VariableStatement setFinal(boolean isFinal) {
+        this.isFinal = isFinal;
         return this;
     }
 
@@ -70,8 +94,17 @@ public final class FieldSpec implements Spec {
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);
         Spec.appendDocument(builder, document, indentString);
-        builder.append(indentString)
-            .append(accessModifier).append(" static final ").append(type).append(' ').append(name)
+        builder.append(indentString).append(accessModifier);
+        if (accessModifier != AccessModifier.PACKAGE_PRIVATE) {
+            builder.append(' ');
+        }
+        if (isStatic) {
+            builder.append("static ");
+        }
+        if (isFinal) {
+            builder.append("final ");
+        }
+        builder.append(type).append(' ').append(name)
             .append(" = ");
         value.append(builder, indent);
         builder.append(";\n");

@@ -98,16 +98,23 @@ public final class InvokeSpec implements Spec {
 
     @Override
     public void append(StringBuilder builder, int indent) {
+        final String indentString = Spec.indentString(indent + 4);
         object.append(builder, indent);
+        if (object instanceof InvokeSpec) {
+            builder.append('\n').append(indentString);
+        }
         builder.append('.').append(method).append('(');
-        boolean first = true;
-        for (Spec spec : arguments) {
-            if (first) {
-                first = false;
-            } else {
-                builder.append(", ");
+        for (int i = 0, size = arguments.size(); i < size; i++) {
+            Spec spec = arguments.get(i);
+            if (i != 0) {
+                builder.append(",");
+                if (size >= 5) {
+                    builder.append('\n').append(indentString);
+                } else {
+                    builder.append(' ');
+                }
             }
-            spec.append(builder, indent);
+            spec.append(builder, indent + 4);
         }
         builder.append(')');
     }

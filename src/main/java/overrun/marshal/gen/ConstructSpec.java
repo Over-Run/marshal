@@ -52,11 +52,9 @@ public final class ConstructSpec implements Spec {
     @Override
     public void append(StringBuilder builder, int indent) {
         builder.append("new ").append(object).append('(');
-        boolean first = true;
-        for (Spec spec : arguments) {
-            if (first) {
-                first = false;
-            } else {
+        for (int i = 0; i < arguments.size(); i++) {
+            Spec spec = arguments.get(i);
+            if (i != 0) {
                 builder.append(", ");
             }
             spec.append(builder, indent);

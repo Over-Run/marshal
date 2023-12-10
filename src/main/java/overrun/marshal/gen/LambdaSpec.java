@@ -61,7 +61,6 @@ public final class LambdaSpec implements Spec, StatementBlock {
 
     @Override
     public void append(StringBuilder builder, int indent) {
-        final String indentString = Spec.indentString(indent);
         final boolean multi = statements.size() > 1;
         builder.append(switch (parameters.length) {
             case 0 -> "()";
@@ -71,9 +70,9 @@ public final class LambdaSpec implements Spec, StatementBlock {
         if (multi) {
             builder.append("{\n");
         }
-        statements.forEach(spec -> spec.append(builder, multi ? indent + 4 : 0));
+        statements.forEach(spec -> spec.append(builder, multi ? indent + 4 : indent));
         if (multi) {
-            builder.append(indentString).append('}');
+            builder.append(Spec.indentString(indent)).append('}');
         }
     }
 }

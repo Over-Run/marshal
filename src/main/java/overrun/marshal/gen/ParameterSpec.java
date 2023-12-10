@@ -16,40 +16,39 @@
 
 package overrun.marshal.gen;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
- * Annotation
+ * Method parameter
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class AnnotationSpec implements Spec {
+public final class ParameterSpec implements Spec {
     private final String type;
-    private final Map<String, String> arguments = new LinkedHashMap<>();
+    private final String name;
+    private final List<AnnotationSpec> annotations = new ArrayList<>();
 
     /**
      * Constructor
      *
      * @param type type
+     * @param name name
      */
-    public AnnotationSpec(String type) {
+    public ParameterSpec(String type, String name) {
         this.type = type;
+        this.name = name;
     }
 
     /**
-     * Add a argument
+     * Add an annotation
      *
-     * @param name  name
-     * @param value value
-     * @return this
+     * @param annotationSpec annotation
      */
-    public AnnotationSpec addArgument(String name, String value) {
-        arguments.put(name, value);
-        return this;
+    public void addAnnotation(AnnotationSpec annotationSpec) {
+        annotations.add(annotationSpec);
     }
 
     /**
@@ -58,24 +57,17 @@ public final class AnnotationSpec implements Spec {
      * @param consumer the action
      * @return this
      */
-    public AnnotationSpec also(Consumer<AnnotationSpec> consumer) {
+    public ParameterSpec also(Consumer<ParameterSpec> consumer) {
         consumer.accept(this);
         return this;
     }
 
     @Override
     public void append(StringBuilder builder, int indent) {
-        builder.append('@').append(type);
-        if (!arguments.isEmpty()) {
-            builder.append('(');
-            if (arguments.size() == 1 && "value".equals(arguments.keySet().stream().findFirst().orElse(null))) {
-                builder.append(arguments.get("value"));
-            } else {
-                builder.append(arguments.entrySet().stream()
-                    .map(e -> e.getKey() + " = " + e.getValue())
-                    .collect(Collectors.joining(", ")));
-            }
-            builder.append(')');
-        }
+        annotations.forEach(annotationSpec -> {
+            annotationSpec.append(builder, indent);
+            builder.append(' ');
+        });
+        builder.append(type).append(' ').append(name);
     }
 }

@@ -31,6 +31,12 @@ public final class TryCatchStatement implements Spec, StatementBlock {
     private final List<CatchClause> catchClauses = new ArrayList<>();
 
     /**
+     * Constructor
+     */
+    public TryCatchStatement() {
+    }
+
+    /**
      * Add a statement
      *
      * @param spec statement
