@@ -116,7 +116,7 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    def marshalVersion = "0.1.0-alpha.0"
+    def marshalVersion = "0.1.0-alpha.1"
     annotationProcessor("io.github.over-run:marshal:$marshalVersion")
     implementation("io.github.over-run:marshal:$marshalVersion")
 }
