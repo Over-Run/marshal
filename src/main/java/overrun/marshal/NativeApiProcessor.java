@@ -253,8 +253,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
                                     invokeSpec = new InvokeSpec(StrHelper.class.getSimpleName(), "of")
                                         .addArgument("_segmentAllocator")
                                         .addArgument(nameString)
-                                        .addArgument(createCharset("UTF-8"));
-                                    // TODO: 2023/12/10 charset
+                                        .addArgument(createCharset(file, getCustomCharset(p)));
                                 } else {
                                     invokeSpec = Spec.literal(nameString);
                                 }
@@ -280,12 +279,13 @@ public final class NativeApiProcessor extends AbstractProcessor {
                         if (pTypeKind.isPrimitive()) {
                             invocation.addArgument(getConstExp(nameString));
                         } else {
+                            final String pCustomCharset = getCustomCharset(p);
                             switch (pTypeKind) {
                                 case DECLARED -> {
                                     if (isString(pType)) {
                                         invocation.addArgument(new InvokeSpec("_segmentAllocator", "allocateFrom")
-                                            .addArgument(nameString));
-                                        // TODO: 2023/12/10 String charset
+                                            .addArgument(nameString)
+                                            .addArgument(createCharset(file, pCustomCharset)));
                                     } else {
                                         invocation.addArgument(nameString);
                                         // TODO: 2023/12/10 Struct
@@ -305,8 +305,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
                                             invocation.addArgument(new InvokeSpec(StrHelper.class.getSimpleName(), "of")
                                                 .addArgument("_segmentAllocator")
                                                 .addArgument(nameString)
-                                                .addArgument(createCharset("UTF-8")));
-                                            // TODO: 2023/12/10 charset
+                                                .addArgument(createCharset(file, pCustomCharset)));
                                         } else {
                                             invocation.addArgument(new InvokeSpec("_segmentAllocator", "allocateFrom")
                                                 .addArgument(toValueLayout(arrayComponentType))
@@ -318,6 +317,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
                             }
                         }
                     });
+                    final String customCharset = getCustomCharset(e);
                     if (returnArray) {
                         if (returnBooleanArray) {
                             finalInvocation = new InvokeSpec(BoolHelper.class.getSimpleName(), "toArray")
@@ -325,16 +325,15 @@ public final class NativeApiProcessor extends AbstractProcessor {
                         } else if (returnStringArray) {
                             finalInvocation = new InvokeSpec(StrHelper.class.getSimpleName(), "toArray")
                                 .addArgument(invocation)
-                                .addArgument(createCharset("UTF-8"));
-                            // TODO: 2023/12/10 charset
+                                .addArgument(createCharset(file, customCharset));
                         } else {
                             finalInvocation = new InvokeSpec(invocation, "toArray")
                                 .addArgument(toValueLayout(returnType));
                         }
                     } else if (returnType.getKind() == TypeKind.DECLARED && isString(returnType)) {
                         finalInvocation = new InvokeSpec(invocation, "getString")
-                            .addArgument("0L");
-                        // TODO: 2023/12/10 String charset
+                            .addArgument("0L")
+                            .addArgument(createCharset(file, customCharset));
                     }
                     Spec finalSpec;
                     if (notVoid) {
@@ -379,8 +378,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
                                         spec = Spec.statement(new InvokeSpec(StrHelper.class.getSimpleName(), "copy")
                                             .addArgument('_' + nameString)
                                             .addArgument(nameString)
-                                            .addArgument(createCharset("UTF-8")));
-                                        // TODO: 2023/12/3 charset
+                                            .addArgument(createCharset(file, getCustomCharset(p))));
                                     } else {
                                         spec = null;
                                     }
@@ -531,8 +529,14 @@ public final class NativeApiProcessor extends AbstractProcessor {
         return processingEnv.getElementUtils().getConstantExpression(value);
     }
 
-    private InvokeSpec createCharset(String name) {
-        return new InvokeSpec(Charset.class.getName(), "forName").addArgument(getConstExp(name));
+    private InvokeSpec createCharset(SourceFile file, String name) {
+        file.addImport(Charset.class.getName());
+        return new InvokeSpec(Charset.class.getSimpleName(), "forName").addArgument(getConstExp(name));
+    }
+
+    private static String getCustomCharset(Element e) {
+        final SetCharset setCharset = e.getAnnotation(SetCharset.class);
+        return setCharset != null ? setCharset.value() : "UTF-8";
     }
 
     private static String toTypeName(String rawClassName) {

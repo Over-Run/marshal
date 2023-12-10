@@ -68,7 +68,7 @@ public interface CMarshalTest {
     @Overload
     void testWithArray(int[] arr);
 
-    void testWithOneRef(MemorySegment arr);
+    void testWithOneRef(@Ref MemorySegment arr);
 
     @Overload
     void testWithOneRef(@Ref int[] arr);
@@ -78,16 +78,23 @@ public interface CMarshalTest {
     @Overload
     void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2, boolean[] arr3, @Ref boolean[] arr4, @FixedSize(3) int[] arr5);
 
-    void testWithString(MemorySegment str);
+    void testWithString(MemorySegment str1, MemorySegment str2);
 
     @Overload
-    void testWithString(String str);
+    void testWithString(String str1, @SetCharset("UTF-16") String str2);
 
     @Entrypoint("testReturnString")
     MemorySegment ntestReturnString();
 
     @Overload("ntestReturnString")
     String testReturnString();
+
+    @Entrypoint("testReturnStringUTF16")
+    MemorySegment ntestReturnStringUTF16();
+
+    @Overload("ntestReturnStringUTF16")
+    @SetCharset("UTF-16")
+    String testReturnStringUTF16();
 
     MemorySegment testStringArray(MemorySegment arr, MemorySegment refArr);
 

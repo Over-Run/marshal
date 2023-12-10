@@ -51,6 +51,15 @@ public final class SourceFile {
     }
 
     /**
+     * Add import
+     *
+     * @param name class name
+     */
+    public void addImport(String name) {
+        imports.add(name);
+    }
+
+    /**
      * Add a class and perform the action
      *
      * @param className class name

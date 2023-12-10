@@ -62,15 +62,18 @@ interface CGLFW {
 
     /**
      * A simple method
+     * <p>
+     * Note: annotation Ref in this method is unnecessary;
+     * however, you can use it to mark
      *
      * @param window the window
      * @param posX the position x
      * @param posY the position y
      */
-    void glfwSetWindowPos(MemorySegment window, MemorySegment posX, MemorySegment posY);
+    void glfwSetWindowPos(MemorySegment window, @Ref MemorySegment posX, @Ref MemorySegment posY);
 
     /**
-     * Overload
+     * Overload another method with the same name
      *
      * @param window the window
      * @param posX the array where to store the position x
@@ -78,6 +81,32 @@ interface CGLFW {
      */
     @Overload
     void glfwSetWindowPos(MemorySegment window, @Ref int[] posX, @Ref int[] posY);
+
+    /**
+     * {@return a UTF-16 string}
+     */
+    @SetCharset("UTF-16")
+    String returnString();
+}
+
+class Main {
+    public static void main(String[] args) {
+        int key = GLFW.GLFW_KEY_A;
+        GLFW.glfwSwapInterval(1);
+        GLFW.glfwEnableVSync();
+        double time = GLFW.getTime();
+        GLFW.fixedSizeArray(new int[]{4, 2});
+        MemorySegment windowHandle = /*...*/createWindow();
+        try (MemoryStack stack = /*...*/stackPush()) {
+            MemorySegment bufX1 = stack.callocInt(1);
+            MemorySegment bufY1 = stack.callocInt(1);
+            int[] bufX2 = {0};
+            int[] bufY2 = {0};
+            GLFW.glfwSetWindowPos(windowHandle, bufX1, bufY1);
+            GLFW.glfwSetWindowPos(windowHandle, bufX2, bufY2);
+        }
+        String s = GLFW.returnString();
+    }
 }
 ```
 
@@ -92,8 +121,3 @@ dependencies {
     implementation("io.github.over-run:marshal:$marshalVersion")
 }
 ```
-
-## Compiler Arguments
-
-You can disable the warning of marshalling boolean arrays
-by using the compiler argument `-Aoverrun.marshal.disableBoolArrayWarn=true`.
