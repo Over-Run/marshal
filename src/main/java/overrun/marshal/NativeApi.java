@@ -70,7 +70,7 @@ public @interface NativeApi {
      * {@return the name of the native library}
      * <p>
      * Might be a filename with an extension
-     * or the basename of {@linkplain #selector() the library selector}.
+     * or the basename of {@linkplain #loader() the library loader}.
      */
     String libname();
 
@@ -80,9 +80,9 @@ public @interface NativeApi {
     String name();
 
     /**
-     * {@return the {@linkplain LibrarySelector library selector}}
+     * {@return the {@linkplain LibraryLoader library loader}}
      */
-    Class<? extends LibrarySelector> selector() default LibrarySelector.class;
+    Class<? extends LibraryLoader> loader() default LibraryLoader.class;
 
     /**
      * {@return {@code true} if the generated class should be {@code final}; {@code false} otherwise}

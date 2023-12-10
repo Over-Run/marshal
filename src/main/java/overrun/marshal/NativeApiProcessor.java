@@ -427,24 +427,21 @@ public final class NativeApiProcessor extends AbstractProcessor {
 
     private void addLoader(TypeElement type, ClassSpec classSpec) {
         final NativeApi nativeApi = type.getAnnotation(NativeApi.class);
-        final String selector = type.getAnnotationMirrors().stream()
+        final String loader = type.getAnnotationMirrors().stream()
             .filter(m -> NativeApi.class.getName().equals(m.getAnnotationType().toString()))
             .findFirst()
             .orElseThrow()
             .getElementValues().entrySet().stream()
-            .filter(e -> "selector()".equals(e.getKey().toString()))
+            .filter(e -> "loader()".equals(e.getKey().toString()))
             .findFirst()
             .map(e -> e.getValue().getValue().toString())
             .orElse(null);
         final String libname = nativeApi.libname();
         classSpec.addField(new VariableStatement(SymbolLookup.class.getSimpleName(),
             "_LOOKUP",
-            new InvokeSpec(SymbolLookup.class.getSimpleName(), "libraryLookup")
-                .addArgument(selector == null ?
-                    Spec.literal(getConstExp(libname)) :
-                    new InvokeSpec(new ConstructSpec(selector), "select")
-                        .addArgument(getConstExp(libname)))
-                .addArgument(new InvokeSpec(Arena.class.getSimpleName(), "global"))
+            (loader == null ?
+                new InvokeSpec(LibraryLoader.class.getName(), "loadLibrary") :
+                new InvokeSpec(new ConstructSpec(loader), "load")).addArgument(getConstExp(libname))
         ).setAccessModifier(AccessModifier.PRIVATE)
             .setStatic(true)
             .setFinal(true));

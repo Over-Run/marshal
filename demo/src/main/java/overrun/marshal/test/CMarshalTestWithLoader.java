@@ -21,12 +21,12 @@ import overrun.marshal.NativeApi;
 import java.lang.foreign.MemorySegment;
 
 /**
- * Test with selector
+ * Test with loader
  *
  * @author squid233
  * @since 0.1.0
  */
-@NativeApi(libname = "NativeLib", name = "MarshalTestWithSelector", selector = NativeLibSelector.class)
-public interface CMarshalTestWithSelector {
+@NativeApi(libname = "NativeLib", name = "MarshalTestWithLoader", loader = NativeLibLoader.class)
+public interface CMarshalTestWithLoader {
     MemorySegment testWithArgAndReturnValue(MemorySegment segment);
 }

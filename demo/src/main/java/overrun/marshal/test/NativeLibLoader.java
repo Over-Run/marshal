@@ -14,21 +14,20 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.test;
+
+import overrun.marshal.LibraryLoader;
+
+import java.lang.foreign.Arena;
+import java.lang.foreign.SymbolLookup;
 
 /**
- * A library selector.
- *
  * @author squid233
- * @see NativeApi
  * @since 0.1.0
  */
-public interface LibrarySelector {
-    /**
-     * Selects the library based on the basename and the operating system.
-     *
-     * @param basename the basename of the native library
-     * @return the final path of the library
-     */
-    String select(String basename);
+public final class NativeLibLoader implements LibraryLoader {
+    @Override
+    public SymbolLookup load(String basename) {
+        return SymbolLookup.libraryLookup(basename, Arena.ofAuto());
+    }
 }

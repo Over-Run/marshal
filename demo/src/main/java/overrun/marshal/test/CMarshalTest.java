@@ -120,9 +120,6 @@ public interface CMarshalTest {
      */
     @Access(AccessModifier.PROTECTED)
     @Default("MemorySegment.NULL")
-//    @Default("""
-//        MemorySegment.
-//        NULL""")
     @Entrypoint("testAllFeatures")
     MemorySegment testAll(MemorySegment segment);
 }
