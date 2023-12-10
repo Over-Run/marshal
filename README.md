@@ -6,6 +6,8 @@ Marshal allows you to conveniently create native library bindings with [FFM API]
 
 See [wiki](https://github.com/Over-Run/marshal/wiki) for more information.
 
+This library requires JDK 22 or newer.
+
 ## Overview
 
 ```java
@@ -13,46 +15,98 @@ import overrun.marshal.*;
 
 import java.lang.foreign.MemorySegment;
 
+/**
+ * GLFW constants and functions
+ * <p>
+ * The documentation will be automatically copied
+ * into the generated file
+ */
 @NativeApi(libname = "libglfw.so", name = "GLFW")
 interface CGLFW {
-    @Doc("""
-        A field""")
+    /**
+     * A field
+     */
     int GLFW_KEY_A = 65;
 
-    @Doc("""
-        Sets swap interval.
-        <p>
-        You can set the access modifier.
-                
-        @param interval the interval""")
+    /**
+     * Sets the swap interval.
+     * <p> 
+     * You can set the access modifier.
+     *
+     * @param interval the interval
+     */
     @Access(AccessModifier.PROTECTED)
     void glfwSwapInterval(int interval);
 
-    @Doc("""
-        Custom method body""")
+    /**
+     * Custom method body
+     */
     @Custom("""
         glfwSwapInterval(1);""")
     void glfwEnableVSync();
 
-    @Doc("""
-        {@return default value if the function was not found}""")
+    /**
+     * {@return default value if the function was not found}
+     */
     @Default("0")
     @Entrypoint("glfwGetTime")
     double getTime();
 
-    @Doc("""
-        Fixed size array.
-        Note: this method doesn't exist in GLFW""")
+    /**
+     * Fixed size array.
+     * Note: this method doesn't exist in GLFW
+     *
+     * @param arr The array
+     */
     void fixedSizeArray(@FixedSize(2) int[] arr);
 
-    @Doc("""
-        A simple method""")
-    void glfwSetWindowPos(MemorySegment window, MemorySegment posX, MemorySegment posY);
+    /**
+     * A simple method
+     * <p>
+     * Note: annotation Ref in this method is unnecessary;
+     * however, you can use it to mark
+     *
+     * @param window the window
+     * @param posX the position x
+     * @param posY the position y
+     */
+    void glfwSetWindowPos(MemorySegment window, @Ref MemorySegment posX, @Ref MemorySegment posY);
 
-    @Doc("""
-        Overload""")
+    /**
+     * Overload another method with the same name
+     *
+     * @param window the window
+     * @param posX the array where to store the position x
+     * @param posY the array where to store the position y
+     */
     @Overload
     void glfwSetWindowPos(MemorySegment window, @Ref int[] posX, @Ref int[] posY);
+
+    /**
+     * {@return a UTF-16 string}
+     */
+    @SetCharset("UTF-16")
+    String returnString();
+}
+
+class Main {
+    public static void main(String[] args) {
+        int key = GLFW.GLFW_KEY_A;
+        GLFW.glfwSwapInterval(1);
+        GLFW.glfwEnableVSync();
+        double time = GLFW.getTime();
+        GLFW.fixedSizeArray(new int[]{4, 2});
+        MemorySegment windowHandle = /*...*/createWindow();
+        try (MemoryStack stack = /*...*/stackPush()) {
+            MemorySegment bufX1 = stack.callocInt(1);
+            MemorySegment bufY1 = stack.callocInt(1);
+            int[] bufX2 = {0};
+            int[] bufY2 = {0};
+            GLFW.glfwSetWindowPos(windowHandle, bufX1, bufY1);
+            GLFW.glfwSetWindowPos(windowHandle, bufX2, bufY2);
+        }
+        String s = GLFW.returnString();
+    }
 }
 ```
 
@@ -67,8 +121,3 @@ dependencies {
     implementation("io.github.over-run:marshal:$marshalVersion")
 }
 ```
-
-## Compiler Arguments
-
-You can disable the warning of marshalling boolean arrays
-by using the compiler argument `-Aoverrun.marshal.disableBoolArrayWarn=true`.

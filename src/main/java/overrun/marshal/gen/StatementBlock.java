@@ -14,17 +14,19 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
-
-import overrun.marshal.LibrarySelector;
+package overrun.marshal.gen;
 
 /**
+ * Statement block
+ *
  * @author squid233
  * @since 0.1.0
  */
-public final class NativeLibSelector implements LibrarySelector {
-    @Override
-    public String select(String basename) {
-        return basename;
-    }
+public interface StatementBlock {
+    /**
+     * Add a statement
+     *
+     * @param spec statement
+     */
+    void addStatement(Spec spec);
 }

@@ -24,7 +24,7 @@ import java.lang.annotation.*;
  * The generated file will include constants of primitive
  * (boolean, byte, short, int, long, float, double) and String types in the marked class or interface.
  * <h2>Methods</h2>
- * The {@link Doc @Doc} gives documentation to a method.
+ * The javadoc of the original method will be copied.
  * <p>
  * The access modifier of the method can be changed by marking methods with {@link Access @Access}.
  * <p>
@@ -53,7 +53,6 @@ import java.lang.annotation.*;
  * }</pre>
  *
  * @author squid233
- * @see Doc
  * @see Access
  * @see Custom
  * @see Default
@@ -71,7 +70,7 @@ public @interface NativeApi {
      * {@return the name of the native library}
      * <p>
      * Might be a filename with an extension
-     * or the basename of {@linkplain #selector() the library selector}.
+     * or the basename of {@linkplain #loader() the library loader}.
      */
     String libname();
 
@@ -81,9 +80,9 @@ public @interface NativeApi {
     String name();
 
     /**
-     * {@return the {@linkplain LibrarySelector library selector}}
+     * {@return the {@linkplain LibraryLoader library loader}}
      */
-    Class<? extends LibrarySelector> selector() default LibrarySelector.class;
+    Class<? extends LibraryLoader> loader() default LibraryLoader.class;
 
     /**
      * {@return {@code true} if the generated class should be {@code final}; {@code false} otherwise}

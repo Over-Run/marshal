@@ -16,19 +16,26 @@
 
 package overrun.marshal;
 
+import java.lang.annotation.*;
+
 /**
- * A library selector.
+ * Sets the charset of a string type.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @SetCharset("UTF-16")
+ * String apply(@SetCharset("UTF-16") String s);
+ * }</pre>
  *
  * @author squid233
- * @see NativeApi
+ * @see java.nio.charset.Charset Charset
  * @since 0.1.0
  */
-public interface LibrarySelector {
+@Documented
+@Target({ElementType.PARAMETER, ElementType.METHOD})
+@Retention(RetentionPolicy.SOURCE)
+public @interface SetCharset {
     /**
-     * Selects the library based on the basename and the operating system.
-     *
-     * @param basename the basename of the native library
-     * @return the final path of the library
+     * {@return the charset}
      */
-    String select(String basename);
+    String value() default "UTF-8";
 }

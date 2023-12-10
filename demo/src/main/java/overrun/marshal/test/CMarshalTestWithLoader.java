@@ -14,35 +14,19 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.test;
 
-import java.lang.annotation.*;
+import overrun.marshal.NativeApi;
+
+import java.lang.foreign.MemorySegment;
 
 /**
- * Gives documentation to a method.
- * <h2>Example</h2>
- * <pre>{@code
- * @Doc("""
- *     A const value""")
- * int CONST_VALUE = 42;
- *
- * @Doc("""
- *     The documentation
- *
- *     @param p the parameter
- *     @return 1 if success; 0 otherwise""")
- * int myFunction(int p);
- * }</pre>
+ * Test with loader
  *
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target({ElementType.METHOD, ElementType.FIELD})
-@Retention(RetentionPolicy.SOURCE)
-public @interface Doc {
-    /**
-     * {@return the javadoc of the method}
-     */
-    String value();
+@NativeApi(libname = "NativeLib", name = "MarshalTestWithLoader", loader = NativeLibLoader.class)
+public interface CMarshalTestWithLoader {
+    MemorySegment testWithArgAndReturnValue(MemorySegment segment);
 }

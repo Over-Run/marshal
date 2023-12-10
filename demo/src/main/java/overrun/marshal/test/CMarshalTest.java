@@ -21,6 +21,8 @@ import overrun.marshal.*;
 import java.lang.foreign.MemorySegment;
 
 /**
+ * Test basic features
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -28,8 +30,9 @@ import java.lang.foreign.MemorySegment;
 public interface CMarshalTest {
     int CONST_VALUE = 42;
     boolean BOOL_VALUE = true;
-    @Doc("""
-        A string value""")
+    /**
+     * A string value
+     */
     String STR_VALUE = "Hello world";
 
     void test();
@@ -37,11 +40,11 @@ public interface CMarshalTest {
     @Entrypoint("test")
     void testWithEntrypoint();
 
-    @Doc("""
-        This is a test method with javadoc.
-
-        @return an integer
-        """)
+    /**
+     * This is a test method with javadoc.
+     *
+     * @return an integer
+     */
     int testWithDocAndReturnValue();
 
     int testWithReturnValue();
@@ -65,7 +68,7 @@ public interface CMarshalTest {
     @Overload
     void testWithArray(int[] arr);
 
-    void testWithOneRef(MemorySegment arr);
+    void testWithOneRef(@Ref MemorySegment arr);
 
     @Overload
     void testWithOneRef(@Ref int[] arr);
@@ -75,16 +78,23 @@ public interface CMarshalTest {
     @Overload
     void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2, boolean[] arr3, @Ref boolean[] arr4, @FixedSize(3) int[] arr5);
 
-    void testWithString(MemorySegment str);
+    void testWithString(MemorySegment str1, MemorySegment str2);
 
     @Overload
-    void testWithString(String str);
+    void testWithString(String str1, @SetCharset("UTF-16") String str2);
 
     @Entrypoint("testReturnString")
     MemorySegment ntestReturnString();
 
     @Overload("ntestReturnString")
     String testReturnString();
+
+    @Entrypoint("testReturnStringUTF16")
+    MemorySegment ntestReturnStringUTF16();
+
+    @Overload("ntestReturnStringUTF16")
+    @SetCharset("UTF-16")
+    String testReturnStringUTF16();
 
     MemorySegment testStringArray(MemorySegment arr, MemorySegment refArr);
 
@@ -102,11 +112,12 @@ public interface CMarshalTest {
     @Overload
     void testMixArrSeg(MemorySegment segment, @Ref int[] arr);
 
-    @Doc("""
-        This is a test that tests all features.
-
-        @param segment A memory segment
-        @return Another memory segment""")
+    /**
+     * This is a test that tests all features.
+     *
+     * @param segment A memory segment
+     * @return Another memory segment
+     */
     @Access(AccessModifier.PROTECTED)
     @Default("MemorySegment.NULL")
     @Entrypoint("testAllFeatures")

@@ -16,15 +16,18 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.NativeApi;
+import overrun.marshal.LibraryLoader;
 
-import java.lang.foreign.MemorySegment;
+import java.lang.foreign.Arena;
+import java.lang.foreign.SymbolLookup;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-@NativeApi(libname = "NativeLib", name = "MarshalTestWithSelector", selector = NativeLibSelector.class)
-public interface CMarshalTestWithSelector {
-    MemorySegment testWithArgAndReturnValue(MemorySegment segment);
+public final class NativeLibLoader implements LibraryLoader {
+    @Override
+    public SymbolLookup load(String basename) {
+        return SymbolLookup.libraryLookup(basename, Arena.ofAuto());
+    }
 }
