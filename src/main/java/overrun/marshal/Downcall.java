@@ -19,7 +19,7 @@ package overrun.marshal;
 import java.lang.annotation.*;
 
 /**
- * Marks a class or interface as a native API provider.
+ * Marks a class or interface as a downcall handles provider.
  * <h2>Constants</h2>
  * The generated file will include constants of primitive
  * (boolean, byte, short, int, long, float, double) and String types in the marked class or interface.
@@ -45,7 +45,7 @@ import java.lang.annotation.*;
  * See {@link FixedSize @FixedSize} and {@link Ref @Ref}.
  * <h2>Example</h2>
  * <pre>{@code
- * @NativeApi(libname = "libGL.so", name = "GL")
+ * @Downcall(libname = "libGL.so", name = "GL")
  * interface CGL {
  *     int COLOR_BUFFER_BIT = 0x00004000;
  *     void glClear(int mask);
@@ -65,7 +65,7 @@ import java.lang.annotation.*;
 @Documented
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
-public @interface NativeApi {
+public @interface Downcall {
     /**
      * {@return the name of the native library}
      * <p>

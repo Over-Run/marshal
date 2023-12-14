@@ -23,7 +23,7 @@ import java.lang.foreign.SymbolLookup;
  * A library loader.
  *
  * @author squid233
- * @see NativeApi
+ * @see Downcall
  * @since 0.1.0
  */
 public interface LibraryLoader {

@@ -18,7 +18,7 @@
  * The main package of marshal.
  *
  * @author squid233
- * @see overrun.marshal.NativeApi
+ * @see overrun.marshal.Downcall
  * @since 0.1.0
  */
 package overrun.marshal;

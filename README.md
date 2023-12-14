@@ -21,7 +21,7 @@ import java.lang.foreign.MemorySegment;
  * The documentation will be automatically copied
  * into the generated file
  */
-@NativeApi(libname = "libglfw.so", name = "GLFW")
+@Downcall(libname = "libglfw.so", name = "GLFW")
 interface CGLFW {
     /**
      * A field

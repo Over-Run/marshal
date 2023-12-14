@@ -41,16 +41,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * The annotation processor
+ * Downcall annotation processor
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class NativeApiProcessor extends AbstractProcessor {
+public final class DowncallProcessor extends AbstractProcessor {
     /**
      * constructor
      */
-    public NativeApiProcessor() {
+    public DowncallProcessor() {
     }
 
     @Override
@@ -64,7 +64,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
     }
 
     private void processClasses(RoundEnvironment roundEnv) {
-        ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(NativeApi.class)).forEach(e -> {
+        ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(Downcall.class)).forEach(e -> {
             final var enclosed = e.getEnclosedElements();
             try {
                 writeFile(e, ElementFilter.fieldsIn(enclosed), ElementFilter.methodsIn(enclosed));
@@ -79,11 +79,11 @@ public final class NativeApiProcessor extends AbstractProcessor {
         List<VariableElement> fields,
         List<ExecutableElement> methods
     ) throws IOException {
-        final NativeApi nativeApi = type.getAnnotation(NativeApi.class);
+        final Downcall downcall = type.getAnnotation(Downcall.class);
         final String className = type.getQualifiedName().toString();
         final int lastDot = className.lastIndexOf('.');
         final String packageName = lastDot > 0 ? className.substring(0, lastDot) : null;
-        final String simpleClassName = nativeApi.name();
+        final String simpleClassName = downcall.name();
 
         final SourceFile file = new SourceFile(packageName);
         file.addImports(
@@ -98,7 +98,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
         );
         file.addClass(simpleClassName, classSpec -> {
             classSpec.setDocument(getDocument(type));
-            classSpec.setFinal(nativeApi.makeFinal());
+            classSpec.setFinal(downcall.makeFinal());
 
             // fields
             addFields(fields, classSpec);
@@ -426,9 +426,9 @@ public final class NativeApiProcessor extends AbstractProcessor {
     }
 
     private void addLoader(TypeElement type, ClassSpec classSpec) {
-        final NativeApi nativeApi = type.getAnnotation(NativeApi.class);
+        final Downcall downcall = type.getAnnotation(Downcall.class);
         final String loader = type.getAnnotationMirrors().stream()
-            .filter(m -> NativeApi.class.getName().equals(m.getAnnotationType().toString()))
+            .filter(m -> Downcall.class.getName().equals(m.getAnnotationType().toString()))
             .findFirst()
             .orElseThrow()
             .getElementValues().entrySet().stream()
@@ -436,7 +436,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
             .findFirst()
             .map(e -> e.getValue().getValue().toString())
             .orElse(null);
-        final String libname = nativeApi.libname();
+        final String libname = downcall.libname();
         classSpec.addField(new VariableStatement(SymbolLookup.class.getSimpleName(),
             "_LOOKUP",
             (loader == null ?
@@ -454,7 +454,7 @@ public final class NativeApiProcessor extends AbstractProcessor {
     }
 
     private void addMethodHandles(TypeElement type, List<ExecutableElement> methods, ClassSpec classSpec) {
-        methods.stream().collect(Collectors.toMap(NativeApiProcessor::methodEntrypoint, Function.identity(), (e1, e2) -> {
+        methods.stream().collect(Collectors.toMap(DowncallProcessor::methodEntrypoint, Function.identity(), (e1, e2) -> {
             final Overload o1 = e1.getAnnotation(Overload.class);
             final Overload o2 = e2.getAnnotation(Overload.class);
             // if e1 is not an overload
@@ -690,6 +690,6 @@ public final class NativeApiProcessor extends AbstractProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return Set.of(NativeApi.class.getName());
+        return Set.of(Downcall.class.getName());
     }
 }

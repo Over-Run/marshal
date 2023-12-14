@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.NativeApi;
+import overrun.marshal.Downcall;
 
 import java.lang.foreign.MemorySegment;
 
@@ -26,7 +26,7 @@ import java.lang.foreign.MemorySegment;
  * @author squid233
  * @since 0.1.0
  */
-@NativeApi(libname = "NativeLib", name = "MarshalTestWithLoader", loader = NativeLibLoader.class)
+@Downcall(libname = "NativeLib", name = "MarshalTestWithLoader", loader = NativeLibLoader.class)
 public interface CMarshalTestWithLoader {
     MemorySegment testWithArgAndReturnValue(MemorySegment segment);
 }
