@@ -77,7 +77,7 @@ public @interface Downcall {
     /**
      * {@return the name of the generated class}
      */
-    String name();
+    String name() default "";
 
     /**
      * {@return the {@linkplain LibraryLoader library loader}}

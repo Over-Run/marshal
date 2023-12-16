@@ -26,7 +26,7 @@ import java.lang.foreign.MemorySegment;
  * @author squid233
  * @since 0.1.0
  */
-@Downcall(libname = "NativeLib.dll", name = "DowncallTest", makeFinal = false)
+@Downcall(libname = "NativeLib.dll", makeFinal = false)
 interface CDowncallTest {
     int CONST_VALUE = 42;
     boolean BOOL_VALUE = true;
@@ -70,6 +70,11 @@ interface CDowncallTest {
 
     void testWithOneRef(@Ref MemorySegment arr);
 
+    /**
+     * Test with ref
+     *
+     * @param arr arr
+     */
     @Overload
     void testWithOneRef(@Ref int[] arr);
 

@@ -19,7 +19,7 @@ package overrun.marshal;
 import java.lang.annotation.*;
 
 /**
- * Marks a parameter of an array type that reads the result from the native code.
+ * Marks a parameter as an array type that reads the result from the native code.
  * <h2>Example</h2>
  * <pre>{@code
  * void get(@Ref int[] dst);
