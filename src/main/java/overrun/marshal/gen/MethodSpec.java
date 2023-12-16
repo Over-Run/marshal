@@ -92,6 +92,16 @@ public final class MethodSpec implements Spec, StatementBlock {
      * @param type type
      * @param name name
      */
+    public void addParameter(Class<?> type, String name) {
+        addParameter(type.getSimpleName(), name);
+    }
+
+    /**
+     * Add a parameter
+     *
+     * @param type type
+     * @param name name
+     */
     public void addParameter(String type, String name) {
         addParameter(new ParameterSpec(type, name));
     }
@@ -155,7 +165,10 @@ public final class MethodSpec implements Spec, StatementBlock {
         if (isDefault) {
             builder.append("default ");
         }
-        builder.append(returnType).append(' ').append(name).append('(');
+        if (returnType != null) {
+            builder.append(returnType).append(' ');
+        }
+        builder.append(name).append('(');
         if (separateLine) {
             builder.append('\n').append(indentString4);
         }

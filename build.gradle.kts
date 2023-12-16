@@ -126,14 +126,14 @@ allprojects {
             //"Main-Class" to "org.example.Main"
         )
     }
+}
 
-    tasks.withType<Jar> {
-        archiveBaseName = projArtifactId
-        from(rootProject.file(projLicenseFileName)).rename(
-            projLicenseFileName,
-            "${projLicenseFileName}_$projArtifactId"
-        )
-    }
+tasks.withType<Jar> {
+    archiveBaseName = projArtifactId
+    from(rootProject.file(projLicenseFileName)).rename(
+        projLicenseFileName,
+        "${projLicenseFileName}_$projArtifactId"
+    )
 }
 
 tasks.withType<JavaCompile> {

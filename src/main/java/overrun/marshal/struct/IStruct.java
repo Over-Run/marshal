@@ -14,15 +14,30 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.struct;
+
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.StructLayout;
+
 /**
- * The core module
+ * A struct provider.
  *
  * @author squid233
  * @since 0.1.0
  */
-module io.github.overrun.marshal {
-    exports overrun.marshal;
-    exports overrun.marshal.struct;
+public interface IStruct {
+    /**
+     * {@return the memory segment of this struct}
+     */
+    MemorySegment segment();
 
-    requires java.compiler;
+    /**
+     * {@return the layout of this struct}
+     */
+    StructLayout layout();
+
+    /**
+     * {@return the element count of this struct}
+     */
+    long elementCount();
 }

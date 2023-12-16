@@ -14,15 +14,24 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.test;
+
+import overrun.marshal.struct.Padding;
+import overrun.marshal.struct.Struct;
+
+import java.lang.foreign.MemorySegment;
+
 /**
- * The core module
- *
  * @author squid233
  * @since 0.1.0
  */
-module io.github.overrun.marshal {
-    exports overrun.marshal;
-    exports overrun.marshal.struct;
-
-    requires java.compiler;
+@Struct
+final class CStructTest {
+    int x, y;
+    long stamp;
+    byte b;
+    @Padding(7)
+    int padding;
+    MemorySegment segment;
+    String name;
 }

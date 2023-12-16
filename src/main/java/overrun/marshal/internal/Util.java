@@ -33,6 +33,22 @@ public final class Util {
     }
 
     /**
+     * capitalize
+     *
+     * @param str str
+     * @return capitalize
+     */
+    public static String capitalize(String str) {
+        final int len = str == null ? 0 : str.length();
+        if (len == 0) return str;
+        final int codePoint0 = str.codePointAt(0);
+        final int titleCase = Character.toTitleCase(codePoint0);
+        if (codePoint0 == titleCase) return str;
+        if (len > 1) return (char) titleCase + str.substring(1);
+        return String.valueOf((char) titleCase);
+    }
+
+    /**
      * Invalid type
      *
      * @param typeMirror typeMirror
@@ -139,18 +155,29 @@ public final class Util {
     }
 
     /**
-     * isSupportedType
+     * canConvertToAddress
      *
      * @param typeMirror typeMirror
-     * @return isSupportedType
+     * @return canConvertToAddress
      */
-    public static boolean isSupportedType(TypeMirror typeMirror) {
+    public static boolean canConvertToAddress(TypeMirror typeMirror) {
+        return switch (typeMirror.getKind()) {
+            case ARRAY -> isPrimitiveArray(typeMirror);
+            case DECLARED -> isMemorySegment(typeMirror) || isString(typeMirror);
+            default -> false;
+        };
+    }
+
+    /**
+     * isValueType
+     *
+     * @param typeMirror typeMirror
+     * @return isValueType
+     */
+    public static boolean isValueType(TypeMirror typeMirror) {
         return switch (typeMirror.getKind()) {
             case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE -> true;
-            case ARRAY -> isPrimitiveArray(typeMirror);
-            case DECLARED -> // TODO: 2023/12/15 Add support to struct
-                isMemorySegment(typeMirror) || isString(typeMirror);
-            default -> false;
+            default -> canConvertToAddress(typeMirror);
         };
     }
 
@@ -170,16 +197,10 @@ public final class Util {
             case CHAR -> "ValueLayout.JAVA_CHAR";
             case FLOAT -> "ValueLayout.JAVA_FLOAT";
             case DOUBLE -> "ValueLayout.JAVA_DOUBLE";
-            case ARRAY -> {
-                if (isPrimitiveArray(typeMirror)) yield "ValueLayout.ADDRESS";
-                else throw invalidType(typeMirror);
-            }
-            case DECLARED -> {
-                if (isMemorySegment(typeMirror) || isString(typeMirror)) yield "ValueLayout.ADDRESS";
-                // TODO: 2023/12/15 Add support to struct
+            default -> {
+                if (canConvertToAddress(typeMirror)) yield "ValueLayout.ADDRESS";
                 throw invalidType(typeMirror);
             }
-            default -> throw invalidType(typeMirror);
         };
     }
 }

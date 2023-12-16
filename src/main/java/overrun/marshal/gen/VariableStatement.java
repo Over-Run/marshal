@@ -115,9 +115,11 @@ public final class VariableStatement implements Spec {
         if (isFinal) {
             builder.append("final ");
         }
-        builder.append(type).append(' ').append(name)
-            .append(" = ");
-        value.append(builder, indent);
+        builder.append(type).append(' ').append(name);
+        if (value != null) {
+            builder.append(" = ");
+            value.append(builder, indent);
+        }
         builder.append(";\n");
     }
 }

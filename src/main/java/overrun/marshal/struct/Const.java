@@ -14,15 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.struct;
+
+import java.lang.annotation.*;
+
 /**
- * The core module
+ * Marks a struct or its member as <i>const</i>.
+ * <p>
+ * A const struct or its member does not generate setter.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Const
+ * @Struct
+ * class Vector2 {
+ *     int x, y;
+ * }
+ * }</pre>
  *
  * @author squid233
  * @since 0.1.0
  */
-module io.github.overrun.marshal {
-    exports overrun.marshal;
-    exports overrun.marshal.struct;
-
-    requires java.compiler;
+@Documented
+@Target({ElementType.TYPE,ElementType.FIELD})
+@Retention(RetentionPolicy.SOURCE)
+public @interface Const {
 }

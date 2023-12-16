@@ -14,15 +14,27 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.struct;
+
+import java.lang.annotation.*;
+
 /**
- * The core module
+ * Marks a field as padding bytes. The marked field can be of any type.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Padding(4)
+ * byte padding0;
+ * }</pre>
  *
  * @author squid233
  * @since 0.1.0
  */
-module io.github.overrun.marshal {
-    exports overrun.marshal;
-    exports overrun.marshal.struct;
-
-    requires java.compiler;
+@Documented
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Padding {
+    /**
+     * {@return the padding size (expressed in bytes)}
+     */
+    long value();
 }

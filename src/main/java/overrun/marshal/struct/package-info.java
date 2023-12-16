@@ -15,14 +15,10 @@
  */
 
 /**
- * The core module
+ * The struct package of marshal.
  *
  * @author squid233
+ * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
-module io.github.overrun.marshal {
-    exports overrun.marshal;
-    exports overrun.marshal.struct;
-
-    requires java.compiler;
-}
+package overrun.marshal.struct;

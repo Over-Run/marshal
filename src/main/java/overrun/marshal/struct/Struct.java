@@ -14,15 +14,35 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.struct;
+
+import java.lang.annotation.*;
+
 /**
- * The core module
+ * Marks a class or interface as a struct provider.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Struct
+ * class Point {
+ *     int x, y;
+ * }
+ * }</pre>
  *
  * @author squid233
+ * @see Const
  * @since 0.1.0
  */
-module io.github.overrun.marshal {
-    exports overrun.marshal;
-    exports overrun.marshal.struct;
+@Documented
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Struct {
+    /**
+     * {@return the name of the generated class}
+     */
+    String name() default "";
 
-    requires java.compiler;
+    /**
+     * {@return {@code true} if the generated class should not be {@code final}; {@code false} otherwise}
+     */
+    boolean nonFinal() default false;
 }

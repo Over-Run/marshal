@@ -26,6 +26,16 @@ import java.util.stream.Collectors;
  */
 public interface Spec {
     /**
+     * Create a literal string
+     *
+     * @param s the string
+     * @return the spec
+     */
+    static Spec literal(String s) {
+        return (builder, indent) -> builder.append(s);
+    }
+
+    /**
      * Create simple class name spec
      *
      * @param clazz class
@@ -43,6 +53,38 @@ public interface Spec {
      */
     static Spec className(Class<?> clazz) {
         return literal(clazz.getCanonicalName());
+    }
+
+    /**
+     * Create an assign statement
+     *
+     * @param left  left
+     * @param right right
+     * @return statement
+     */
+    static Spec assignStatement(Spec left, Spec right) {
+        return (builder, indent) -> {
+            builder.append(indentString(indent));
+            left.append(builder, indent);
+            builder.append(" = ");
+            right.append(builder, indent);
+            builder.append(";\n");
+        };
+    }
+
+    /**
+     * Create an assign statement
+     *
+     * @param left  left
+     * @param right right
+     * @return statement
+     */
+    static Spec assignStatement(String left, Spec right) {
+        return (builder, indent) -> {
+            builder.append(indentString(indent)).append(left).append(" = ");
+            right.append(builder, indent);
+            builder.append(";\n");
+        };
     }
 
     /**
@@ -162,16 +204,6 @@ public interface Spec {
             spec.append(builder, indent);
             builder.append(";\n");
         };
-    }
-
-    /**
-     * Create a literal string
-     *
-     * @param s the string
-     * @return the spec
-     */
-    static Spec literal(String s) {
-        return (builder, indent) -> builder.append(s);
     }
 
     /**

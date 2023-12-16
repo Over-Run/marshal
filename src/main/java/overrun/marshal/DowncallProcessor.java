@@ -91,9 +91,9 @@ public final class DowncallProcessor extends Processor {
                 printError("""
                     Class name must start with C if the name is not specified. Current name: %s
                          Possible solutions:
-                         1) Add C as a prefix. For example: %s
-                         2) Specify name in @Downcall and rename this file. For example: @Downcall(%1$s)"""
-                    .formatted(string, 'C' + string));
+                         1) Add C as a prefix. For example: C%1$s
+                         2) Specify name in @Downcall and rename this file. For example: @Downcall(name = "%1$s")"""
+                    .formatted(string));
                 return;
             }
         } else {
@@ -197,7 +197,7 @@ public final class DowncallProcessor extends Processor {
                     }
                     if (shouldInsertArena || shouldInsertAllocator) {
                         methodSpec.addParameter(
-                            shouldInsertArena ? Arena.class.getSimpleName() : SegmentAllocator.class.getSimpleName(),
+                            shouldInsertArena ? Arena.class : SegmentAllocator.class,
                             allocatorParamName
                         );
                     }
@@ -390,7 +390,7 @@ public final class DowncallProcessor extends Processor {
                                 .filter(method -> method.getAnnotation(Upcall.Wrapper.class) != null)
                                 .filter(method -> {
                                     final var list = method.getParameters();
-                                    return list.size() == 1 && isMemorySegment(list.get(0).asType());
+                                    return list.size() == 1 && isMemorySegment(list.getFirst().asType());
                                 })
                                 .findFirst();
                             if (wrapMethod.isPresent()) {
@@ -607,7 +607,7 @@ public final class DowncallProcessor extends Processor {
             if (t.getKind() == TypeKind.VOID) {
                 return ".VOID";
             }
-            if (isSupportedType(t)) {
+            if (isValueType(t)) {
                 return toValueLayout(t);
             }
             return t.toString();
