@@ -39,18 +39,30 @@ import java.util.Arrays;
  *     Type<MyCallback> TYPE = Upcall.create();
  *
  *     // The function to be invoked in C
- *     void invoke(int i, String p);
+ *     int invoke(int i, String p);
  *
  *     // The stub provider
  *     @Stub
- *     default void invoke(int i, MemorySegment p) {
- *         invoke(error, description.reinterpret(Long.MAX_VALUE).getString(0));
+ *     default int invoke(int i, MemorySegment p) {
+ *         return invoke(error, description.reinterpret(Long.MAX_VALUE).getString(0));
  *     }
  *
  *     // Create an upcall stub segment with Type
  *     @Override
  *     default MemorySegment stub(Arena arena) {
  *         return TYPE.of(arena, this);
+ *     }
+ *
+ *     // Create a wrap method
+ *     @Wrapper
+ *     static MyCallback wrap(MemorySegment stub) {
+ *         return (i, p) -> {
+ *             try {
+ *                 return TYPE.downcall(stub).invokeExact(i, p);
+ *             } catch (Throwable e) {
+ *                 throw new RuntimeException(e);
+ *             }
+ *         }
  *     }
  * }
  *
@@ -62,6 +74,7 @@ import java.util.Arrays;
  * @see #stub(Arena)
  * @see Stub
  * @see Type
+ * @see Wrapper
  * @since 0.1.0
  */
 public interface Upcall {
@@ -116,6 +129,20 @@ public interface Upcall {
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @interface Stub {
+    }
+
+    /**
+     * Marks a <strong>static</strong> method as an upcall wrapper.
+     * <p>
+     * The marked method must only contain one {@link java.lang.foreign.MemorySegment MemorySegment} parameter.
+     *
+     * @author squid233
+     * @see Upcall
+     * @since 0.1.0
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.SOURCE)
+    @interface Wrapper {
     }
 
     /**

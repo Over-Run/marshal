@@ -22,8 +22,8 @@ import java.lang.annotation.*;
  * Sets the charset of a string type.
  * <h2>Example</h2>
  * <pre>{@code
- * @SetCharset("UTF-16")
- * String apply(@SetCharset("UTF-16") String s);
+ * @StrCharset("UTF-16")
+ * String apply(@StrCharset("UTF-16") String s);
  * }</pre>
  *
  * @author squid233
@@ -33,7 +33,7 @@ import java.lang.annotation.*;
 @Documented
 @Target({ElementType.PARAMETER, ElementType.METHOD})
 @Retention(RetentionPolicy.SOURCE)
-public @interface SetCharset {
+public @interface StrCharset {
     /**
      * {@return the charset}
      */

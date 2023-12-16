@@ -99,16 +99,6 @@ public final class Util {
     }
 
     /**
-     * getArrayComponentType
-     *
-     * @param typeMirror typeMirror
-     * @return getArrayComponentType
-     */
-    public static TypeMirror getArrayComponentType(TypeMirror typeMirror) {
-        return ((ArrayType) typeMirror).getComponentType();
-    }
-
-    /**
      * isArray
      *
      * @param typeMirror typeMirror
@@ -136,6 +126,16 @@ public final class Util {
      */
     public static boolean isPrimitiveArray(TypeMirror typeMirror) {
         return getArrayComponentType(typeMirror).getKind().isPrimitive();
+    }
+
+    /**
+     * getArrayComponentType
+     *
+     * @param typeMirror typeMirror
+     * @return getArrayComponentType
+     */
+    public static TypeMirror getArrayComponentType(TypeMirror typeMirror) {
+        return ((ArrayType) typeMirror).getComponentType();
     }
 
     /**

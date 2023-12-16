@@ -26,7 +26,7 @@ import java.lang.foreign.MemorySegment;
  * @author squid233
  * @since 0.1.0
  */
-@Downcall(libname = "NativeLib.dll", makeFinal = false)
+@Downcall(libname = "NativeLib.dll", nonFinal = true)
 interface CDowncallTest {
     int CONST_VALUE = 42;
     boolean BOOL_VALUE = true;
@@ -86,7 +86,7 @@ interface CDowncallTest {
     void testWithString(MemorySegment str1, MemorySegment str2);
 
     @Overload
-    void testWithString(String str1, @SetCharset("UTF-16") String str2);
+    void testWithString(String str1, @StrCharset("UTF-16") String str2);
 
     @Entrypoint("testReturnString")
     MemorySegment ntestReturnString();
@@ -98,7 +98,7 @@ interface CDowncallTest {
     MemorySegment ntestReturnStringUTF16();
 
     @Overload("ntestReturnStringUTF16")
-    @SetCharset("UTF-16")
+    @StrCharset("UTF-16")
     String testReturnStringUTF16();
 
     MemorySegment testStringArray(MemorySegment arr, MemorySegment refArr);
@@ -122,6 +122,17 @@ interface CDowncallTest {
 
     @Critical(allowHeapAccess = false)
     void testCriticalFalse();
+
+    void testUpcall(MemorySegment cb);
+
+    @Overload
+    void testUpcall(GLFWErrorCallback cb);
+
+    @Entrypoint("testReturnUpcall")
+    MemorySegment ntestReturnUpcall();
+
+    @Overload("ntestReturnUpcall")
+    GLFWErrorCallback testReturnUpcall();
 
     /**
      * This is a test that tests all features.

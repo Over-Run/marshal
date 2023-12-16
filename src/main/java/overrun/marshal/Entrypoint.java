@@ -16,6 +16,8 @@
 
 package overrun.marshal;
 
+import java.lang.annotation.*;
+
 /**
  * Specifies the entrypoint of a method.
  * <h2>Example</h2>
@@ -27,6 +29,9 @@ package overrun.marshal;
  * @author squid233
  * @since 0.1.0
  */
+@Documented
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
 public @interface Entrypoint {
     /**
      * Uses the specified entrypoint (the native name of the function), instead of the method name.

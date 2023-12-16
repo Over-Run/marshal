@@ -91,7 +91,7 @@ interface CGLFW {
     /**
      * {@return a UTF-16 string}
      */
-    @SetCharset("UTF-16")
+    @StrCharset("UTF-16")
     String returnString();
 }
 
