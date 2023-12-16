@@ -102,6 +102,7 @@ public final class DowncallProcessor extends Processor {
         file.addImports(
             BoolHelper.class,
             Checks.class,
+            Critical.class,
             Default.class,
             FixedSize.class,
             Ref.class,
@@ -154,12 +155,18 @@ public final class DowncallProcessor extends Processor {
                     final boolean shouldStoreResult = notVoid &&
                                                       parameters.stream().anyMatch(p -> p.getAnnotation(Ref.class) != null);
                     final Access access = e.getAnnotation(Access.class);
+                    final Critical critical = e.getAnnotation(Critical.class);
                     final Custom custom = e.getAnnotation(Custom.class);
                     final Default defaultAnnotation = e.getAnnotation(Default.class);
                     final boolean isDefaulted = defaultAnnotation != null;
 
                     methodSpec.setDocument(getDocument(e));
                     methodSpec.setStatic(true);
+
+                    if (critical != null) {
+                        methodSpec.addAnnotation(new AnnotationSpec(Critical.class)
+                            .addArgument("allowHeapAccess", getConstExp(critical.allowHeapAccess())));
+                    }
                     if (isDefaulted) {
                         methodSpec.addAnnotation(new AnnotationSpec(Default.class).also(annotationSpec -> {
                             if (!defaultAnnotation.value().isBlank()) {
@@ -167,6 +174,7 @@ public final class DowncallProcessor extends Processor {
                             }
                         }));
                     }
+
                     if (access != null) {
                         methodSpec.setAccessModifier(access.value());
                     }
@@ -502,6 +510,7 @@ public final class DowncallProcessor extends Processor {
             return e2;
         }, LinkedHashMap::new)).forEach((k, v) -> {
             final TypeMirror returnType = v.getReturnType();
+            final Critical critical = v.getAnnotation(Critical.class);
             final boolean defaulted = v.getAnnotation(Default.class) != null;
             classSpec.addField(new VariableStatement(MethodHandle.class, k,
                 new InvokeSpec(new InvokeSpec(
@@ -516,7 +525,12 @@ public final class DowncallProcessor extends Processor {
                                 invokeSpec.addArgument(toValueLayout(returnType));
                             }
                             v.getParameters().forEach(e -> invokeSpec.addArgument(toValueLayout(e.asType())));
-                        })))), defaulted ? "orElse" : "orElseThrow").also(invokeSpec -> {
+                        })).also(invokeSpec -> {
+                            if (critical != null) {
+                                invokeSpec.addArgument(new InvokeSpec(Spec.accessSpec(Linker.class, Linker.Option.class), "critical")
+                                    .addArgument(getConstExp(critical.allowHeapAccess())));
+                            }
+                        }))), defaulted ? "orElse" : "orElseThrow").also(invokeSpec -> {
                     if (defaulted) {
                         invokeSpec.addArgument("null");
                     }

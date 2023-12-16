@@ -112,6 +112,12 @@ interface CDowncallTest {
     @Overload
     void testMixArrSeg(MemorySegment segment, @Ref int[] arr);
 
+    @Critical(allowHeapAccess = true)
+    void testCriticalTrue();
+
+    @Critical(allowHeapAccess = false)
+    void testCriticalFalse();
+
     /**
      * This is a test that tests all features.
      *

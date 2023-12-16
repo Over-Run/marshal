@@ -63,6 +63,17 @@ public interface Spec {
      * @param member member
      * @return spec
      */
+    static Spec accessSpec(Class<?> object, Class<?> member) {
+        return literal(object.getSimpleName() + '.' + member.getSimpleName());
+    }
+
+    /**
+     * Create access spec
+     *
+     * @param object object
+     * @param member member
+     * @return spec
+     */
     static Spec accessSpec(String object, String member) {
         return literal(object + '.' + member);
     }
