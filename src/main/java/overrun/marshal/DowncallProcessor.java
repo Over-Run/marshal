@@ -27,10 +27,7 @@ import javax.lang.model.util.ElementFilter;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
@@ -160,7 +157,13 @@ public final class DowncallProcessor extends Processor {
                     final Default defaultAnnotation = e.getAnnotation(Default.class);
                     final boolean isDefaulted = defaultAnnotation != null;
 
-                    methodSpec.setDocument(getDocument(e));
+                    final String allocatorParamName = "_segmentAllocator";
+
+                    String document = getDocument(e);
+                    if (document != null && shouldInsertAllocator) {
+                        document += " @param " + allocatorParamName + " a segment allocator that allocates arguments";
+                    }
+                    methodSpec.setDocument(document);
                     methodSpec.setStatic(true);
 
                     if (critical != null) {
@@ -179,7 +182,7 @@ public final class DowncallProcessor extends Processor {
                         methodSpec.setAccessModifier(access.value());
                     }
                     if (shouldInsertAllocator) {
-                        methodSpec.addParameter("SegmentAllocator", "_segmentAllocator");
+                        methodSpec.addParameter(SegmentAllocator.class.getSimpleName(), allocatorParamName);
                     }
 
                     final Function<TypeMirror, String> parameterTypeFunction;
@@ -263,16 +266,16 @@ public final class DowncallProcessor extends Processor {
                             final Spec invokeSpec;
                             if (typeKind == TypeKind.BOOLEAN) {
                                 invokeSpec = new InvokeSpec(BoolHelper.class, "of")
-                                    .addArgument("_segmentAllocator")
+                                    .addArgument(allocatorParamName)
                                     .addArgument(nameString);
                             } else if (typeKind.isPrimitive()) {
-                                invokeSpec = new InvokeSpec("_segmentAllocator", "allocateFrom")
+                                invokeSpec = new InvokeSpec(allocatorParamName, "allocateFrom")
                                     .addArgument(toValueLayout(arrayComponentType))
                                     .addArgument(nameString);
                             } else if (typeKind == TypeKind.DECLARED) {
                                 if (isString(arrayComponentType)) {
                                     invokeSpec = new InvokeSpec(StrHelper.class, "of")
-                                        .addArgument("_segmentAllocator")
+                                        .addArgument(allocatorParamName)
                                         .addArgument(nameString)
                                         .addArgument(createCharset(file, getCustomCharset(p)));
                                 } else {
@@ -304,7 +307,7 @@ public final class DowncallProcessor extends Processor {
                             switch (pTypeKind) {
                                 case DECLARED -> {
                                     if (isString(pType)) {
-                                        invocation.addArgument(new InvokeSpec("_segmentAllocator", "allocateFrom")
+                                        invocation.addArgument(new InvokeSpec(allocatorParamName, "allocateFrom")
                                             .addArgument(nameString)
                                             .addArgument(createCharset(file, pCustomCharset)));
                                     } else {
@@ -319,16 +322,16 @@ public final class DowncallProcessor extends Processor {
                                         final TypeMirror arrayComponentType = getArrayComponentType(pType);
                                         if (arrayComponentType.getKind() == TypeKind.BOOLEAN) {
                                             invocation.addArgument(new InvokeSpec(BoolHelper.class, "of")
-                                                .addArgument("_segmentAllocator")
+                                                .addArgument(allocatorParamName)
                                                 .addArgument(nameString));
                                         } else if (arrayComponentType.getKind() == TypeKind.DECLARED &&
                                                    isString(arrayComponentType)) {
                                             invocation.addArgument(new InvokeSpec(StrHelper.class, "of")
-                                                .addArgument("_segmentAllocator")
+                                                .addArgument(allocatorParamName)
                                                 .addArgument(nameString)
                                                 .addArgument(createCharset(file, pCustomCharset)));
                                         } else {
-                                            invocation.addArgument(new InvokeSpec("_segmentAllocator", "allocateFrom")
+                                            invocation.addArgument(new InvokeSpec(allocatorParamName, "allocateFrom")
                                                 .addArgument(toValueLayout(arrayComponentType))
                                                 .addArgument(nameString));
                                         }

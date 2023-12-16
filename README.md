@@ -14,14 +14,17 @@ This library requires JDK 22 or newer.
 import overrun.marshal.*;
 
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
 
 /**
  * GLFW constants and functions
  * <p>
  * The documentation will be automatically copied
  * into the generated file
+ * <p>
+ * You don't have to specify the name if the name of the class or interface starts with 'C'
  */
-@Downcall(libname = "libglfw.so", name = "GLFW")
+@Downcall(libname = "libglfw.so")
 interface CGLFW {
     /**
      * A field
@@ -70,8 +73,8 @@ interface CGLFW {
      * however, you can use it to mark
      *
      * @param window the window
-     * @param posX the position x
-     * @param posY the position y
+     * @param posX   the position x
+     * @param posY   the position y
      */
     void glfwSetWindowPos(MemorySegment window, @Ref MemorySegment posX, @Ref MemorySegment posY);
 
@@ -79,8 +82,8 @@ interface CGLFW {
      * Overload another method with the same name
      *
      * @param window the window
-     * @param posX the array where to store the position x
-     * @param posY the array where to store the position y
+     * @param posX   the array where to store the position x
+     * @param posY   the array where to store the position y
      */
     @Overload
     void glfwSetWindowPos(MemorySegment window, @Ref int[] posX, @Ref int[] posY);
