@@ -35,6 +35,9 @@ public final class MethodSpec implements Spec, StatementBlock {
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
     private final List<ParameterSpec> parameters = new ArrayList<>();
     private final List<Spec> statements = new ArrayList<>();
+    private boolean isStatic = false;
+    private boolean hasMethodBody = true;
+    private boolean isDefault = false;
 
     /**
      * Constructor
@@ -94,6 +97,33 @@ public final class MethodSpec implements Spec, StatementBlock {
     }
 
     /**
+     * Set static
+     *
+     * @param isStatic static
+     */
+    public void setStatic(boolean isStatic) {
+        this.isStatic = isStatic;
+    }
+
+    /**
+     * Set has method body
+     *
+     * @param hasMethodBody has method body
+     */
+    public void setHasMethodBody(boolean hasMethodBody) {
+        this.hasMethodBody = hasMethodBody;
+    }
+
+    /**
+     * Set default
+     *
+     * @param isDefault default
+     */
+    public void setDefault(boolean isDefault) {
+        this.isDefault = isDefault;
+    }
+
+    /**
      * Add a statement
      *
      * @param spec statement
@@ -115,7 +145,17 @@ public final class MethodSpec implements Spec, StatementBlock {
             annotationSpec.append(builder, indent);
             builder.append('\n');
         });
-        builder.append(indentString).append(accessModifier).append(" static ").append(returnType).append(' ').append(name).append('(');
+        builder.append(indentString).append(accessModifier);
+        if (accessModifier != AccessModifier.PACKAGE_PRIVATE) {
+            builder.append(' ');
+        }
+        if (isStatic) {
+            builder.append("static ");
+        }
+        if (isDefault) {
+            builder.append("default ");
+        }
+        builder.append(returnType).append(' ').append(name).append('(');
         if (separateLine) {
             builder.append('\n').append(indentString4);
         }
@@ -134,8 +174,16 @@ public final class MethodSpec implements Spec, StatementBlock {
         if (separateLine) {
             builder.append('\n').append(indentString);
         }
-        builder.append(") {\n");
-        statements.forEach(spec -> spec.append(builder, indent + 4));
-        builder.append(indentString).append("}\n\n");
+        builder.append(')');
+        if (hasMethodBody) {
+            builder.append(" {");
+            builder.append('\n');
+            statements.forEach(spec -> spec.append(builder, indent + 4));
+            builder.append(indentString);
+            builder.append('}');
+        } else {
+            builder.append(';');
+        }
+        builder.append("\n\n");
     }
 }

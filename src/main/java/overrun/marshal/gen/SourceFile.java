@@ -60,6 +60,24 @@ public final class SourceFile {
     }
 
     /**
+     * Add imports
+     *
+     * @param names class names
+     */
+    public void addImports(Class<?>... names) {
+        Arrays.stream(names).map(Class::getCanonicalName).forEach(this::addImport);
+    }
+
+    /**
+     * Add import
+     *
+     * @param name class name
+     */
+    public void addImport(Class<?> name) {
+        addImport(name.getCanonicalName());
+    }
+
+    /**
      * Add a class and perform the action
      *
      * @param className class name

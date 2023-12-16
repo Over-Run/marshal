@@ -26,7 +26,7 @@ import java.lang.foreign.MemorySegment;
  * @author squid233
  * @since 0.1.0
  */
-@Downcall(libname = "NativeLib", name = "MarshalTestWithLoader", loader = NativeLibLoader.class)
-public interface CMarshalTestWithLoader {
+@Downcall(libname = "NativeLib", name = "DowncallTestWithLoader", loader = NativeLibLoader.class)
+interface CDowncallTestWithLoader {
     MemorySegment testWithArgAndReturnValue(MemorySegment segment);
 }

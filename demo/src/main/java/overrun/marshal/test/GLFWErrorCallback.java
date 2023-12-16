@@ -14,12 +14,32 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.test;
+
+import overrun.marshal.Upcall;
+
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+
 /**
- * The main package of marshal.
+ * Test upcall stub
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
  * @since 0.1.0
  */
-package overrun.marshal;
+@FunctionalInterface
+public interface GLFWErrorCallback extends Upcall {
+    Type<GLFWErrorCallback> TYPE = Upcall.create();
+
+    void invoke(int error, String description);
+
+    @Stub
+    default void invoke(int error, MemorySegment description) {
+        invoke(error, description.reinterpret(Long.MAX_VALUE).getString(0));
+    }
+
+    @Override
+    default MemorySegment stub(Arena arena) {
+        return TYPE.of(arena, this);
+    }
+}
