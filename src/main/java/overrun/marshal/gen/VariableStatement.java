@@ -40,6 +40,17 @@ public final class VariableStatement implements Spec {
      * @param name  name
      * @param value value
      */
+    public VariableStatement(Class<?> type, String name, Spec value) {
+        this(type.getSimpleName(), name, value);
+    }
+
+    /**
+     * Constructor
+     *
+     * @param type  type
+     * @param name  name
+     * @param value value
+     */
     public VariableStatement(String type, String name, Spec value) {
         this.type = type;
         this.name = name;

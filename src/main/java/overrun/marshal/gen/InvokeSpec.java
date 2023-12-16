@@ -38,6 +38,16 @@ public final class InvokeSpec implements Spec {
      * @param object the caller object
      * @param method the method
      */
+    public InvokeSpec(Class<?> object, String method) {
+        this(Spec.simpleClassName(object), method);
+    }
+
+    /**
+     * Constructor
+     *
+     * @param object the caller object
+     * @param method the method
+     */
     public InvokeSpec(Spec object, String method) {
         this.object = object;
         this.method = method;

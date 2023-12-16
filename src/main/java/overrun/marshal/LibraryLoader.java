@@ -60,7 +60,7 @@ public interface LibraryLoader {
 
         @Override
         public SymbolLookup load(String basename) {
-            return SymbolLookup.libraryLookup(basename, Arena.global());
+            return loadLibrary(basename);
         }
     }
 }

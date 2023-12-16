@@ -26,6 +26,37 @@ import java.util.stream.Collectors;
  */
 public interface Spec {
     /**
+     * Create simple class name spec
+     *
+     * @param clazz class
+     * @return spec
+     */
+    static Spec simpleClassName(Class<?> clazz) {
+        return literal(clazz.getSimpleName());
+    }
+
+    /**
+     * Create class name spec
+     *
+     * @param clazz class
+     * @return spec
+     */
+    static Spec className(Class<?> clazz) {
+        return literal(clazz.getCanonicalName());
+    }
+
+    /**
+     * Create access spec
+     *
+     * @param object object
+     * @param member member
+     * @return spec
+     */
+    static Spec accessSpec(Class<?> object, String member) {
+        return literal(object.getSimpleName() + '.' + member);
+    }
+
+    /**
      * Create access spec
      *
      * @param object object

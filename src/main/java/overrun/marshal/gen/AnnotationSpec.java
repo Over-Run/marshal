@@ -36,6 +36,15 @@ public final class AnnotationSpec implements Spec {
      *
      * @param type type
      */
+    public AnnotationSpec(Class<?> type) {
+        this(type.getSimpleName());
+    }
+
+    /**
+     * Constructor
+     *
+     * @param type type
+     */
     public AnnotationSpec(String type) {
         this.type = type;
     }

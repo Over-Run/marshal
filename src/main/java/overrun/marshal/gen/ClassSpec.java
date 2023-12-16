@@ -29,12 +29,23 @@ import java.util.function.Consumer;
  * @since 0.1.0
  */
 public final class ClassSpec implements Spec {
+    /**
+     * Class
+     */
+    public static final int CLASS = 1;
+    /**
+     * Interface
+     */
+    public static final int INTERFACE = 2;
     private final String className;
     private String document = null;
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
     private boolean isFinal = false;
+    private int classType = CLASS;
     private final List<VariableStatement> fieldSpecs = new ArrayList<>();
     private final List<MethodSpec> methodSpecs = new ArrayList<>();
+    private final List<AnnotationSpec> annotationSpecs = new ArrayList<>();
+    private final List<String> superclasses = new ArrayList<>();
 
     /**
      * Constructor
@@ -73,6 +84,15 @@ public final class ClassSpec implements Spec {
     }
 
     /**
+     * Set class type
+     *
+     * @param classType class type
+     */
+    public void setClassType(int classType) {
+        this.classType = classType;
+    }
+
+    /**
      * Add a field
      *
      * @param fieldSpec field
@@ -103,17 +123,58 @@ public final class ClassSpec implements Spec {
         methodSpecs.add(methodSpec);
     }
 
+    /**
+     * Add annotation
+     *
+     * @param annotationSpec annotation
+     */
+    public void addAnnotation(AnnotationSpec annotationSpec) {
+        annotationSpecs.add(annotationSpec);
+    }
+
+    /**
+     * Add superclass
+     *
+     * @param className class name
+     */
+    public void addSuperclass(String className) {
+        superclasses.add(className);
+    }
+
     @Override
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);
         // document
         Spec.appendDocument(builder, document, indentString);
+        // annotation
+        annotationSpecs.forEach(annotationSpec -> {
+            annotationSpec.append(builder, indent);
+            builder.append('\n');
+        });
         // declaration
         builder.append(indentString).append(accessModifier);
-        if (isFinal) {
+        if (isFinal && classType == CLASS) {
             builder.append(" final");
         }
-        builder.append(" class ").append(className).append(" {\n");
+        builder.append(' ')
+            .append(switch (classType) {
+                case CLASS -> "class";
+                case INTERFACE -> "interface";
+                default ->
+                    throw new IllegalStateException("Unsupported class type for " + className + ": " + classType);
+            })
+            .append(' ').append(className);
+        if (!superclasses.isEmpty()) {
+            builder.append(" extends ");
+            for (int i = 0; i < superclasses.size(); i++) {
+                final String superclass = superclasses.get(i);
+                if (i != 0) {
+                    builder.append(", ");
+                }
+                builder.append(superclass);
+            }
+        }
+        builder.append(" {\n");
         // body
         fieldSpecs.forEach(variableStatement -> variableStatement.append(builder, indent + 4));
         builder.append('\n');

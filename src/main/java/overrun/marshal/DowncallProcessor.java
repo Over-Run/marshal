@@ -17,20 +17,20 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.*;
+import overrun.marshal.internal.Processor;
 
-import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
-import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.Writer;
-import java.lang.foreign.*;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
@@ -40,13 +40,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static overrun.marshal.internal.Util.*;
+
 /**
  * Downcall annotation processor
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class DowncallProcessor extends AbstractProcessor {
+public final class DowncallProcessor extends Processor {
     /**
      * constructor
      */
@@ -83,19 +85,30 @@ public final class DowncallProcessor extends AbstractProcessor {
         final String className = type.getQualifiedName().toString();
         final int lastDot = className.lastIndexOf('.');
         final String packageName = lastDot > 0 ? className.substring(0, lastDot) : null;
-        final String simpleClassName = downcall.name();
+        final String simpleClassName;
+        if (downcall.name().isBlank()) {
+            final String string = className.substring(lastDot + 1);
+            if (string.startsWith("C")) {
+                simpleClassName = string.substring(1);
+            } else {
+                printError("Class name must start with C if the name is not specified");
+                return;
+            }
+        } else {
+            simpleClassName = downcall.name();
+        }
 
         final SourceFile file = new SourceFile(packageName);
         file.addImports(
-            "overrun.marshal.BoolHelper",
-            "overrun.marshal.Checks",
-            "overrun.marshal.Default",
-            "overrun.marshal.FixedSize",
-            "overrun.marshal.Ref",
-            "overrun.marshal.StrHelper",
-            "java.lang.foreign.*",
-            "java.lang.invoke.MethodHandle"
+            BoolHelper.class,
+            Checks.class,
+            Default.class,
+            FixedSize.class,
+            Ref.class,
+            StrHelper.class,
+            MethodHandle.class
         );
+        file.addImport("java.lang.foreign.*");
         file.addClass(simpleClassName, classSpec -> {
             classSpec.setDocument(getDocument(type));
             classSpec.setFinal(downcall.makeFinal());
@@ -146,8 +159,9 @@ public final class DowncallProcessor extends AbstractProcessor {
                     final boolean isDefaulted = defaultAnnotation != null;
 
                     methodSpec.setDocument(getDocument(e));
+                    methodSpec.setStatic(true);
                     if (isDefaulted) {
-                        methodSpec.addAnnotation(new AnnotationSpec(Default.class.getSimpleName()).also(annotationSpec -> {
+                        methodSpec.addAnnotation(new AnnotationSpec(Default.class).also(annotationSpec -> {
                             if (!defaultAnnotation.value().isBlank()) {
                                 annotationSpec.addArgument("value", getConstExp(defaultAnnotation.value()));
                             }
@@ -171,11 +185,11 @@ public final class DowncallProcessor extends AbstractProcessor {
                             final FixedSize fixedSize = p.getAnnotation(FixedSize.class);
                             final Ref ref = p.getAnnotation(Ref.class);
                             if (fixedSize != null) {
-                                parameterSpec.addAnnotation(new AnnotationSpec(FixedSize.class.getSimpleName())
+                                parameterSpec.addAnnotation(new AnnotationSpec(FixedSize.class)
                                     .addArgument("value", getConstExp(fixedSize.value())));
                             }
                             if (ref != null) {
-                                parameterSpec.addAnnotation(new AnnotationSpec(Ref.class.getSimpleName()).also(annotationSpec -> {
+                                parameterSpec.addAnnotation(new AnnotationSpec(Ref.class).also(annotationSpec -> {
                                     if (ref.nullable()) {
                                         annotationSpec.addArgument("nullable", "true");
                                     }
@@ -210,9 +224,8 @@ public final class DowncallProcessor extends AbstractProcessor {
                                     .map(p -> Spec.literal(p.getSimpleName().toString()))
                                     .collect(Collectors.toList()));
                             targetStatement.addStatement(notVoid ? Spec.returnStatement(Spec.cast(javaReturnType, invokeExact)) : Spec.statement(invokeExact));
-                            tryCatchStatement.addCatchClause(new CatchClause("Throwable", "_ex"), catchClause ->
-                                catchClause.addStatement(Spec.throwStatement(new ConstructSpec("AssertionError")
-                                    .addArgument(Spec.literal("\"should not reach here\""))
+                            tryCatchStatement.addCatchClause(new CatchClause(Throwable.class.getSimpleName(), "_ex"), catchClause ->
+                                catchClause.addStatement(Spec.throwStatement(new ConstructSpec(AssertionError.class.getSimpleName())
                                     .addArgument(Spec.literal(catchClause.name()))))
                             );
                         }));
@@ -241,7 +254,7 @@ public final class DowncallProcessor extends AbstractProcessor {
                             final Ref ref = p.getAnnotation(Ref.class);
                             final Spec invokeSpec;
                             if (typeKind == TypeKind.BOOLEAN) {
-                                invokeSpec = new InvokeSpec(BoolHelper.class.getSimpleName(), "of")
+                                invokeSpec = new InvokeSpec(BoolHelper.class, "of")
                                     .addArgument("_segmentAllocator")
                                     .addArgument(nameString);
                             } else if (typeKind.isPrimitive()) {
@@ -250,7 +263,7 @@ public final class DowncallProcessor extends AbstractProcessor {
                                     .addArgument(nameString);
                             } else if (typeKind == TypeKind.DECLARED) {
                                 if (isString(arrayComponentType)) {
-                                    invokeSpec = new InvokeSpec(StrHelper.class.getSimpleName(), "of")
+                                    invokeSpec = new InvokeSpec(StrHelper.class, "of")
                                         .addArgument("_segmentAllocator")
                                         .addArgument(nameString)
                                         .addArgument(createCharset(file, getCustomCharset(p)));
@@ -260,11 +273,11 @@ public final class DowncallProcessor extends AbstractProcessor {
                             } else {
                                 invokeSpec = Spec.literal(nameString);
                             }
-                            methodSpec.addStatement(new VariableStatement(MemorySegment.class.getSimpleName(), "_" + nameString,
+                            methodSpec.addStatement(new VariableStatement(MemorySegment.class, "_" + nameString,
                                 ref.nullable() ?
                                     Spec.ternaryOp(Spec.notNullSpec(nameString),
                                         invokeSpec,
-                                        Spec.accessSpec(MemorySegment.class.getSimpleName(), "NULL")) :
+                                        Spec.accessSpec(MemorySegment.class, "NULL")) :
                                     invokeSpec
                             ).setAccessModifier(AccessModifier.PACKAGE_PRIVATE));
                         });
@@ -297,12 +310,12 @@ public final class DowncallProcessor extends AbstractProcessor {
                                     } else {
                                         final TypeMirror arrayComponentType = getArrayComponentType(pType);
                                         if (arrayComponentType.getKind() == TypeKind.BOOLEAN) {
-                                            invocation.addArgument(new InvokeSpec(BoolHelper.class.getSimpleName(), "of")
+                                            invocation.addArgument(new InvokeSpec(BoolHelper.class, "of")
                                                 .addArgument("_segmentAllocator")
                                                 .addArgument(nameString));
                                         } else if (arrayComponentType.getKind() == TypeKind.DECLARED &&
                                                    isString(arrayComponentType)) {
-                                            invocation.addArgument(new InvokeSpec(StrHelper.class.getSimpleName(), "of")
+                                            invocation.addArgument(new InvokeSpec(StrHelper.class, "of")
                                                 .addArgument("_segmentAllocator")
                                                 .addArgument(nameString)
                                                 .addArgument(createCharset(file, pCustomCharset)));
@@ -320,10 +333,10 @@ public final class DowncallProcessor extends AbstractProcessor {
                     final String customCharset = getCustomCharset(e);
                     if (returnArray) {
                         if (returnBooleanArray) {
-                            finalInvocation = new InvokeSpec(BoolHelper.class.getSimpleName(), "toArray")
+                            finalInvocation = new InvokeSpec(BoolHelper.class, "toArray")
                                 .addArgument(invocation);
                         } else if (returnStringArray) {
-                            finalInvocation = new InvokeSpec(StrHelper.class.getSimpleName(), "toArray")
+                            finalInvocation = new InvokeSpec(StrHelper.class, "toArray")
                                 .addArgument(invocation)
                                 .addArgument(createCharset(file, customCharset));
                         } else {
@@ -360,13 +373,13 @@ public final class DowncallProcessor extends AbstractProcessor {
                             if (pType.getKind() == TypeKind.ARRAY) {
                                 final Spec spec;
                                 if (isBooleanArray(pType)) {
-                                    spec = Spec.statement(new InvokeSpec(BoolHelper.class.getSimpleName(), "copy")
+                                    spec = Spec.statement(new InvokeSpec(BoolHelper.class, "copy")
                                         .addArgument('_' + nameString)
                                         .addArgument(nameString));
                                 } else {
                                     final TypeMirror arrayComponentType = getArrayComponentType(pType);
                                     if (isPrimitiveArray(pType)) {
-                                        spec = Spec.statement(new InvokeSpec(MemorySegment.class.getSimpleName(), "copy")
+                                        spec = Spec.statement(new InvokeSpec(MemorySegment.class, "copy")
                                             .addArgument('_' + nameString)
                                             .addArgument(toValueLayout(arrayComponentType))
                                             .addArgument("0L")
@@ -375,7 +388,7 @@ public final class DowncallProcessor extends AbstractProcessor {
                                             .addArgument(Spec.accessSpec(nameString, "length")));
                                     } else if (arrayComponentType.getKind() == TypeKind.DECLARED &&
                                                isString(arrayComponentType)) {
-                                        spec = Spec.statement(new InvokeSpec(StrHelper.class.getSimpleName(), "copy")
+                                        spec = Spec.statement(new InvokeSpec(StrHelper.class, "copy")
                                             .addArgument('_' + nameString)
                                             .addArgument(nameString)
                                             .addArgument(createCharset(file, getCustomCharset(p))));
@@ -416,7 +429,7 @@ public final class DowncallProcessor extends AbstractProcessor {
             if (constantValue == null) {
                 return;
             }
-            classSpec.addField(new VariableStatement(toTypeName(e.asType().toString()),
+            classSpec.addField(new VariableStatement(simplify(e.asType().toString()),
                 e.getSimpleName().toString(),
                 Spec.literal(getConstExp(constantValue)))
                 .setDocument(getDocument(e))
@@ -428,7 +441,7 @@ public final class DowncallProcessor extends AbstractProcessor {
     private void addLoader(TypeElement type, ClassSpec classSpec) {
         final Downcall downcall = type.getAnnotation(Downcall.class);
         final String loader = type.getAnnotationMirrors().stream()
-            .filter(m -> Downcall.class.getName().equals(m.getAnnotationType().toString()))
+            .filter(m -> Downcall.class.getCanonicalName().equals(m.getAnnotationType().toString()))
             .findFirst()
             .orElseThrow()
             .getElementValues().entrySet().stream()
@@ -437,17 +450,15 @@ public final class DowncallProcessor extends AbstractProcessor {
             .map(e -> e.getValue().getValue().toString())
             .orElse(null);
         final String libname = downcall.libname();
-        classSpec.addField(new VariableStatement(SymbolLookup.class.getSimpleName(),
-            "_LOOKUP",
+        classSpec.addField(new VariableStatement(SymbolLookup.class, "_LOOKUP",
             (loader == null ?
-                new InvokeSpec(LibraryLoader.class.getName(), "loadLibrary") :
+                new InvokeSpec(Spec.className(LibraryLoader.class), "loadLibrary") :
                 new InvokeSpec(new ConstructSpec(loader), "load")).addArgument(getConstExp(libname))
         ).setAccessModifier(AccessModifier.PRIVATE)
             .setStatic(true)
             .setFinal(true));
-        classSpec.addField(new VariableStatement(Linker.class.getSimpleName(),
-            "_LINKER",
-            new InvokeSpec(Linker.class.getSimpleName(), "nativeLinker"))
+        classSpec.addField(new VariableStatement(Linker.class, "_LINKER",
+            new InvokeSpec(Linker.class, "nativeLinker"))
             .setAccessModifier(AccessModifier.PRIVATE)
             .setStatic(true)
             .setFinal(true));
@@ -492,14 +503,14 @@ public final class DowncallProcessor extends AbstractProcessor {
         }, LinkedHashMap::new)).forEach((k, v) -> {
             final TypeMirror returnType = v.getReturnType();
             final boolean defaulted = v.getAnnotation(Default.class) != null;
-            classSpec.addField(new VariableStatement(MethodHandle.class.getSimpleName(), k,
+            classSpec.addField(new VariableStatement(MethodHandle.class, k,
                 new InvokeSpec(new InvokeSpec(
                     new InvokeSpec("_LOOKUP", "find").addArgument(getConstExp(k)),
                     "map"
                 ).addArgument(new LambdaSpec("_s")
                     .addStatementThis(new InvokeSpec("_LINKER", "downcallHandle")
                         .addArgument("_s")
-                        .addArgument(new InvokeSpec(FunctionDescriptor.class.getSimpleName(),
+                        .addArgument(new InvokeSpec(FunctionDescriptor.class,
                             returnType.getKind() == TypeKind.VOID ? "ofVoid" : "of").also(invokeSpec -> {
                             if (returnType.getKind() != TypeKind.VOID) {
                                 invokeSpec.addArgument(toValueLayout(returnType));
@@ -518,17 +529,9 @@ public final class DowncallProcessor extends AbstractProcessor {
         });
     }
 
-    private String getDocument(Element element) {
-        return processingEnv.getElementUtils().getDocComment(element);
-    }
-
-    private String getConstExp(Object value) {
-        return processingEnv.getElementUtils().getConstantExpression(value);
-    }
-
     private InvokeSpec createCharset(SourceFile file, String name) {
-        file.addImport(Charset.class.getName());
-        return new InvokeSpec(Charset.class.getSimpleName(), "forName").addArgument(getConstExp(name));
+        file.addImport(Charset.class);
+        return new InvokeSpec(Charset.class, "forName").addArgument(getConstExp(name));
     }
 
     private static String getCustomCharset(Element e) {
@@ -536,26 +539,15 @@ public final class DowncallProcessor extends AbstractProcessor {
         return setCharset != null ? setCharset.value() : "UTF-8";
     }
 
-    private static String toTypeName(String rawClassName) {
-        if (rawClassName.equals(String.class.getName())) {
-            return String.class.getSimpleName();
-        }
-        if (rawClassName.equals(MemorySegment.class.getName())) {
-            return MemorySegment.class.getSimpleName();
-        }
-        return rawClassName;
-    }
-
     private static List<String> collectConflictedMethodSignature(ExecutableElement e) {
         return Stream.concat(Stream.of(e.getReturnType()), e.getParameters().stream().map(VariableElement::asType)).map(t -> {
             if (t.getKind() == TypeKind.VOID) {
                 return ".VOID";
             }
-            try {
+            if (isSupportedType(t)) {
                 return toValueLayout(t);
-            } catch (Exception ex) {
-                return t.toString();
             }
+            return t.toString();
         }).toList();
     }
 
@@ -598,98 +590,8 @@ public final class DowncallProcessor extends AbstractProcessor {
         };
     }
 
-    private static IllegalStateException invalidType(TypeMirror typeMirror) {
-        return new IllegalStateException("Invalid type: " + typeMirror);
-    }
-
-    private static boolean isMemorySegment(TypeMirror typeMirror) {
-        return MemorySegment.class.getName().equals(typeMirror.toString());
-    }
-
-    private static boolean isString(String clazzName) {
-        return String.class.getName().equals(clazzName);
-    }
-
-    private static boolean isString(TypeMirror typeMirror) {
-        return isString(typeMirror.toString());
-    }
-
-    private static TypeMirror getArrayComponentType(TypeMirror typeMirror) {
-        return ((ArrayType) typeMirror).getComponentType();
-    }
-
-    private static boolean isArray(TypeMirror typeMirror) {
-        return typeMirror.getKind() == TypeKind.ARRAY;
-    }
-
-    private static boolean isBooleanArray(TypeMirror typeMirror) {
-        return getArrayComponentType(typeMirror).getKind() == TypeKind.BOOLEAN;
-    }
-
-    private static boolean isPrimitiveArray(TypeMirror typeMirror) {
-        return getArrayComponentType(typeMirror).getKind().isPrimitive();
-    }
-
-    private static String toValueLayout(TypeMirror typeMirror) {
-        final TypeKind typeKind = typeMirror.getKind();
-        return switch (typeKind) {
-            case BOOLEAN -> "ValueLayout.JAVA_BOOLEAN";
-            case BYTE -> "ValueLayout.JAVA_BYTE";
-            case SHORT -> "ValueLayout.JAVA_SHORT";
-            case INT -> "ValueLayout.JAVA_INT";
-            case LONG -> "ValueLayout.JAVA_LONG";
-            case CHAR -> "ValueLayout.JAVA_CHAR";
-            case FLOAT -> "ValueLayout.JAVA_FLOAT";
-            case DOUBLE -> "ValueLayout.JAVA_DOUBLE";
-            case ARRAY -> {
-                if (isPrimitiveArray(typeMirror)) yield "ValueLayout.ADDRESS";
-                else throw invalidType(typeMirror);
-            }
-            case DECLARED -> {
-                if (isMemorySegment(typeMirror) || isString(typeMirror)) yield "ValueLayout.ADDRESS";
-                // TODO: 2023/12/2 Add support to struct
-                throw invalidType(typeMirror);
-            }
-            default -> throw invalidType(typeMirror);
-        };
-    }
-
-    private void printError(String msg) {
-        processingEnv.getMessager().printError(msg);
-    }
-
-    private void printStackTrace(Throwable t) {
-        try (PrintWriter writer = new PrintWriter(Writer.nullWriter()) {
-            private final StringBuffer sb = new StringBuffer(2048);
-
-            @Override
-            public void println(String x) {
-                sb.append(x);
-                sb.append('\n');
-            }
-
-            @Override
-            public void println(Object x) {
-                sb.append(x);
-                sb.append('\n');
-            }
-
-            @Override
-            public void close() {
-                printError(sb.toString());
-            }
-        }) {
-            t.printStackTrace(writer);
-        }
-    }
-
-    @Override
-    public SourceVersion getSupportedSourceVersion() {
-        return SourceVersion.RELEASE_22;
-    }
-
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return Set.of(Downcall.class.getName());
+        return Set.of(Downcall.class.getCanonicalName());
     }
 }

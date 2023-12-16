@@ -26,8 +26,8 @@ import java.lang.foreign.MemorySegment;
  * @author squid233
  * @since 0.1.0
  */
-@Downcall(libname = "NativeLib.dll", name = "MarshalTest", makeFinal = false)
-public interface CMarshalTest {
+@Downcall(libname = "NativeLib.dll", name = "DowncallTest", makeFinal = false)
+interface CDowncallTest {
     int CONST_VALUE = 42;
     boolean BOOL_VALUE = true;
     /**
