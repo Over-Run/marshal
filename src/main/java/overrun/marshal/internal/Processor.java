@@ -30,6 +30,12 @@ import java.io.Writer;
  */
 public abstract class Processor extends AbstractProcessor {
     /**
+     * constructor
+     */
+    protected Processor() {
+    }
+
+    /**
      * Print error
      *
      * @param msg message
