@@ -42,4 +42,15 @@ public interface GLFWErrorCallback extends Upcall {
     default MemorySegment stub(Arena arena) {
         return TYPE.of(arena, this);
     }
+
+    @Wrapper
+    static GLFWErrorCallback wrap(MemorySegment stub) {
+        return (error, description) -> {
+            try {
+                TYPE.downcall(stub).invokeExact(error, description);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
 }

@@ -85,7 +85,7 @@ public @interface Downcall {
     Class<? extends LibraryLoader> loader() default LibraryLoader.class;
 
     /**
-     * {@return {@code true} if the generated class should be {@code final}; {@code false} otherwise}
+     * {@return {@code true} if the generated class should not be {@code final}; {@code false} otherwise}
      */
-    boolean makeFinal() default true;
+    boolean nonFinal() default false;
 }

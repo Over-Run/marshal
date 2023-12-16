@@ -16,9 +16,13 @@
 
 package overrun.marshal.internal;
 
+import overrun.marshal.Upcall;
+
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.type.TypeMirror;
 import java.io.PrintWriter;
 import java.io.Writer;
 
@@ -30,9 +34,20 @@ import java.io.Writer;
  */
 public abstract class Processor extends AbstractProcessor {
     /**
+     * upcallTypeMirror
+     */
+    protected TypeMirror upcallTypeMirror;
+
+    /**
      * constructor
      */
     protected Processor() {
+    }
+
+    @Override
+    public synchronized void init(ProcessingEnvironment processingEnv) {
+        super.init(processingEnv);
+        upcallTypeMirror = processingEnv.getElementUtils().getTypeElement(Upcall.class.getCanonicalName()).asType();
     }
 
     /**
@@ -92,6 +107,16 @@ public abstract class Processor extends AbstractProcessor {
      */
     protected String getConstExp(Object value) {
         return processingEnv.getElementUtils().getConstantExpression(value);
+    }
+
+    /**
+     * isUpcall
+     *
+     * @param typeMirror typeMirror
+     * @return isUpcall
+     */
+    public boolean isUpcall(TypeMirror typeMirror) {
+        return processingEnv.getTypeUtils().isAssignable(typeMirror, upcallTypeMirror);
     }
 
     @Override

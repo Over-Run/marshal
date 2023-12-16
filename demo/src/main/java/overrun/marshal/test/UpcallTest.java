@@ -17,21 +17,20 @@
 package overrun.marshal.test;
 
 import java.lang.foreign.Arena;
-import java.lang.invoke.MethodHandle;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
 public final class UpcallTest {
-    private static void glfwSetErrorCallback(Arena arena, GLFWErrorCallback callback) throws Throwable {
+    private static void glfwSetErrorCallback(Arena arena, GLFWErrorCallback callback) {
         // simulates native code
-        final MethodHandle mhTest1 = GLFWErrorCallback.TYPE.downcall(callback.stub(arena));
-        mhTest1.invokeExact(0x0, arena.allocateFrom("No error"));
-        mhTest1.invokeExact(0xffff, arena.allocateFrom("Some error"));
+        final var mhTest1 = GLFWErrorCallback.wrap(callback.stub(arena));
+        mhTest1.invoke(0x0, arena.allocateFrom("No error"));
+        mhTest1.invoke(0xffff, arena.allocateFrom("Some error"));
     }
 
-    public static void main(String[] args) throws Throwable {
+    public static void main(String[] args) {
         final Arena arena = Arena.ofAuto();
 
         glfwSetErrorCallback(arena, (error, description) ->
