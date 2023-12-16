@@ -123,7 +123,7 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    def marshalVersion = "0.1.0-alpha.2"
+    def marshalVersion = "0.1.0-alpha.3"
     annotationProcessor("io.github.over-run:marshal:$marshalVersion")
     implementation("io.github.over-run:marshal:$marshalVersion")
 }
