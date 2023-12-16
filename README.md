@@ -55,9 +55,12 @@ interface CGLFW {
     /**
      * Fixed size array.
      * Note: this method doesn't exist in GLFW
+     * <p>
+     * You can mark methods with Critical
      *
      * @param arr The array
      */
+    @Critical(allowHeapAccess = true)
     void fixedSizeArray(@FixedSize(2) int[] arr);
 
     /**
@@ -97,6 +100,7 @@ class Main {
         double time = GLFW.getTime();
         GLFW.fixedSizeArray(new int[]{4, 2});
         MemorySegment windowHandle = /*...*/createWindow();
+        // MemoryStack is a placeholder type
         try (MemoryStack stack = /*...*/stackPush()) {
             MemorySegment bufX1 = stack.callocInt(1);
             MemorySegment bufY1 = stack.callocInt(1);
