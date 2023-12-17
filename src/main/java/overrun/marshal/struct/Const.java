@@ -26,8 +26,7 @@ import java.lang.annotation.*;
  * <pre>{@code
  * @Const
  * @Struct
- * class Vector2 {
- *     int x, y;
+ * record Vector2(int x, int y) {
  * }
  * }</pre>
  *

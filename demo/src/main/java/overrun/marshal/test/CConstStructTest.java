@@ -25,6 +25,5 @@ import overrun.marshal.struct.Struct;
  */
 @Const
 @Struct
-public class CConstStructTest {
-    int x, y, z;
+public record CConstStructTest(int x, int y, int z) {
 }

@@ -261,6 +261,23 @@ public final class StructProcessor extends Processor {
                     .addArgument(Spec.literal("count"))));
             });
 
+            // slice
+            classSpec.addMethod(new MethodSpec(simpleClassName, "get"), methodSpec -> {
+                methodSpec.setDocument("""
+                     {@return a slice of this struct}
+
+                     @param index the index of the slice\
+                    """);
+                methodSpec.addParameter(long.class, "index");
+                methodSpec.addStatement(Spec.returnStatement(new ConstructSpec(simpleClassName)
+                    .addArgument(new InvokeSpec("this._memorySegment", "asSlice")
+                        .addArgument(Spec.operatorSpec("*",
+                            Spec.literal("index"),
+                            new InvokeSpec("_LAYOUT", "byteSize")))
+                        .addArgument("_LAYOUT"))
+                    .addArgument(Spec.literal("1L"))));
+            });
+
             // member
             forEach(fields, false, e -> {
                 final TypeMirror eType = e.asType();
@@ -278,7 +295,9 @@ public final class StructProcessor extends Processor {
                     // getter
                     final Spec castSpec = Spec.cast(returnType,
                         new InvokeSpec(Spec.accessSpec("this", nameString), "get")
-                            .addArgument("_memorySegment"));
+                            .addArgument("this._memorySegment")
+                            .addArgument("0L")
+                            .addArgument("index"));
                     addGetterAt(classSpec, e, generateN ? "nget" : "get", returnType,
                         (isMemorySegment && longSized != null || isArray && sized != null) ?
                             new InvokeSpec(Spec.parentheses(castSpec), "reinterpret")
@@ -323,15 +342,38 @@ public final class StructProcessor extends Processor {
 
                     // setter
                     if (!typeConst && e.getAnnotation(Const.class) == null) {
+                        addSetterAt(classSpec, e, generateN ? "nset" : "set", returnType,
+                            Spec.statement(new InvokeSpec(Spec.accessSpec("this", nameString), "set")
+                                .addArgument("this._memorySegment")
+                                .addArgument("0L")
+                                .addArgument("index")
+                                .addArgument("value")));
+                        if (generateN) {
+                            final InvokeSpec invokeSpec = new InvokeSpec("this", "nset" + capitalized + "At");
+                            if (isString(eType)) {
+                                final StrCharset strCharset = e.getAnnotation(StrCharset.class);
+                                final InvokeSpec alloc = new InvokeSpec("_segmentAllocator", "allocateFrom")
+                                    .addArgument("value");
+                                if (strCharset != null) {
+                                    alloc.addArgument(createCharset(file, strCharset.value()));
+                                }
+                                invokeSpec.addArgument(alloc);
+                            } else if (isArray) {
+                            } else {
+                                invokeSpec.addArgument("value");
+                            }
+                            invokeSpec.addArgument("index");
+                            addSetterAt(classSpec, e, "set", simplify(eType.toString()), Spec.statement(invokeSpec));
+                        }
                     }
                 }
                 // TODO: 2023/12/17 squid233: struct, upcall
             });
 
             // override
-            addIStructImpl(classSpec, MemorySegment.class, "segment", Spec.literal("_memorySegment"));
+            addIStructImpl(classSpec, MemorySegment.class, "segment", Spec.literal("this._memorySegment"));
             addIStructImpl(classSpec, StructLayout.class, "layout", Spec.literal("_LAYOUT"));
-            addIStructImpl(classSpec, long.class, "elementCount", new InvokeSpec("_sequenceLayout", "elementCount"));
+            addIStructImpl(classSpec, long.class, "elementCount", new InvokeSpec("this._sequenceLayout", "elementCount"));
         });
 
         final JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(packageName + '.' + simpleClassName);
@@ -340,11 +382,57 @@ public final class StructProcessor extends Processor {
         }
     }
 
+    private void addSetterAt(ClassSpec classSpec, VariableElement e, String setType, String valueType, Spec setter) {
+        final String member = e.getSimpleName().toString();
+        final TypeMirror eType = e.asType();
+        final boolean insertAllocator = "set".equals(setType) && (isString(eType) || isArray(eType));
+        classSpec.addMethod(new MethodSpec("void", setType + capitalize(member) + "At"), methodSpec -> {
+            final String eDoc = getDocument(e);
+            methodSpec.setDocument("""
+                 Sets %s at the given index.
+
+                 %s@param value the value
+                 @param index the index\
+                """.formatted(eDoc != null ? eDoc : "{@code " + e.getSimpleName() + '}', insertAllocator ? "@param _segmentAllocator the allocator\n " : ""));
+            if (insertAllocator) {
+                methodSpec.addParameter(SegmentAllocator.class, "_segmentAllocator");
+            }
+            methodSpec.addParameter(valueType, "value");
+            methodSpec.addParameter(long.class, "index");
+            methodSpec.addStatement(setter);
+        });
+        addSetter(classSpec, e, setType, valueType, insertAllocator);
+    }
+
+    private void addSetter(ClassSpec classSpec, VariableElement e, String setType, String valueType, boolean insertAllocator) {
+        final String name = setType + capitalize(e.getSimpleName().toString());
+        classSpec.addMethod(new MethodSpec("void", name), methodSpec -> {
+            final String eDoc = getDocument(e);
+            methodSpec.setDocument("""
+                 Sets the first %s.
+
+                 %s@param value the value\
+                """.formatted(eDoc != null ? eDoc : "{@code " + e.getSimpleName() + '}', insertAllocator ? "@param _allocator the allocator\n " : ""));
+            if (insertAllocator) {
+                methodSpec.addParameter(SegmentAllocator.class, "_segmentAllocator");
+            }
+            methodSpec.addParameter(valueType, "value");
+            methodSpec.addStatement(Spec.statement(new InvokeSpec("this", name + "At")
+                .also(invokeSpec -> {
+                    if (insertAllocator) {
+                        invokeSpec.addArgument("_segmentAllocator");
+                    }
+                })
+                .addArgument("value")
+                .addArgument("0L")));
+        });
+    }
+
     private void addGetterAt(ClassSpec classSpec, VariableElement e, String getType, String returnType, Spec returnValue) {
+        final Sized sized = e.getAnnotation(Sized.class);
+        final boolean insertCount = "get".equals(getType) && sized == null && isArray(e.asType());
         classSpec.addMethod(new MethodSpec(returnType, getType + capitalize(e.getSimpleName().toString()) + "At"), methodSpec -> {
             final LongSized longSized = e.getAnnotation(LongSized.class);
-            final Sized sized = e.getAnnotation(Sized.class);
-            final boolean insertCount = "get".equals(getType) && sized == null && isArray(e.asType());
             final String eDoc = getDocument(e);
             methodSpec.setDocument("""
                  Gets %s at the given index.
@@ -359,6 +447,33 @@ public final class StructProcessor extends Processor {
             }
             methodSpec.addParameter(long.class, "index");
             methodSpec.addStatement(Spec.returnStatement(returnValue));
+        });
+        addGetter(classSpec, e, getType, returnType, insertCount);
+    }
+
+    private void addGetter(ClassSpec classSpec, VariableElement e, String getType, String returnType, boolean insertCount) {
+        final String name = getType + capitalize(e.getSimpleName().toString());
+        classSpec.addMethod(new MethodSpec(returnType, name), methodSpec -> {
+            final LongSized longSized = e.getAnnotation(LongSized.class);
+            final Sized sized = e.getAnnotation(Sized.class);
+            final String eDoc = getDocument(e);
+            methodSpec.setDocument("""
+                 Gets the first %s.
+
+                 %s@return %1$s\
+                """.formatted(eDoc != null ? eDoc : "{@code " + e.getSimpleName() + '}', insertCount ? "@param count the length of the array\n " : ""));
+            addAnnotationValue(methodSpec, longSized, LongSized.class, LongSized::value);
+            addAnnotationValue(methodSpec, sized, Sized.class, Sized::value);
+            if (insertCount) {
+                methodSpec.addParameter(int.class, "count");
+            }
+            methodSpec.addStatement(Spec.returnStatement(new InvokeSpec("this", name + "At")
+                .also(invokeSpec -> {
+                    if (insertCount) {
+                        invokeSpec.addArgument("count");
+                    }
+                })
+                .addArgument("0L")));
         });
     }
 
