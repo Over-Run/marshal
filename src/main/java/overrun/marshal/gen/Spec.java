@@ -32,7 +32,37 @@ public interface Spec {
      * @return the spec
      */
     static Spec literal(String s) {
-        return (builder, indent) -> builder.append(s);
+        return (builder, _) -> builder.append(s);
+    }
+
+    /**
+     * Create parentheses spec
+     *
+     * @param spec spec
+     * @return spec
+     */
+    static Spec parentheses(Spec spec) {
+        return (builder, indent) -> {
+            builder.append('(');
+            spec.append(builder, indent);
+            builder.append(')');
+        };
+    }
+
+    /**
+     * Create operator spec
+     *
+     * @param operator operator
+     * @param a        a
+     * @param b        b
+     * @return spec
+     */
+    static Spec operatorSpec(String operator, Spec a, Spec b) {
+        return (builder, indent) -> {
+            a.append(builder, indent);
+            builder.append(' ').append(operator).append(' ');
+            b.append(builder, indent);
+        };
     }
 
     /**

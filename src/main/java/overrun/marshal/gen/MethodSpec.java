@@ -27,7 +27,7 @@ import java.util.List;
  * @author squid233
  * @since 0.1.0
  */
-public final class MethodSpec implements Spec, StatementBlock {
+public final class MethodSpec implements Annotatable, Spec, StatementBlock {
     private final String returnType;
     private final String name;
     private String document = null;
@@ -64,6 +64,7 @@ public final class MethodSpec implements Spec, StatementBlock {
      *
      * @param annotationSpec annotation
      */
+    @Override
     public void addAnnotation(AnnotationSpec annotationSpec) {
         annotations.add(annotationSpec);
     }

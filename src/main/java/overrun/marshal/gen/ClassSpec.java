@@ -28,7 +28,7 @@ import java.util.function.Consumer;
  * @author squid233
  * @since 0.1.0
  */
-public final class ClassSpec implements Spec {
+public final class ClassSpec implements Annotatable, Spec {
     /**
      * Class
      */
@@ -129,6 +129,7 @@ public final class ClassSpec implements Spec {
      *
      * @param annotationSpec annotation
      */
+    @Override
     public void addAnnotation(AnnotationSpec annotationSpec) {
         annotationSpecs.add(annotationSpec);
     }

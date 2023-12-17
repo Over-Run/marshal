@@ -28,7 +28,7 @@ public final class Checks {
     /**
      * Check size of a fixed size array argument. Default value: {@code true}
      *
-     * @see FixedSize
+     * @see Sized
      */
     public static final Entry<Boolean> CHECK_ARRAY_SIZE = new Entry<>(() -> true);
 

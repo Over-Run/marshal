@@ -14,28 +14,30 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.struct;
+package overrun.marshal;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a struct or its member as <i>const</i>.
+ * Just like {@link Sized} with long size.
  * <p>
- * A const struct or its member does not generate setter.
+ * The generated code will try to check the size of a passing array.
  * <h2>Example</h2>
  * <pre>{@code
- * @Const
- * @Struct
- * class Vector2 {
- *     int x, y;
- * }
+ * @LongSized(0x7FFFFFFFFFFFFFFFL)
+ * MemorySegment segment;
  * }</pre>
  *
  * @author squid233
+ * @see Checks#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.FIELD, ElementType.TYPE})
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.SOURCE)
-public @interface Const {
+public @interface LongSized {
+    /**
+     * {@return the size of the memory segment}
+     */
+    long value();
 }

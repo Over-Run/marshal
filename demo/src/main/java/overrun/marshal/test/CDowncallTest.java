@@ -81,7 +81,7 @@ interface CDowncallTest {
     void testWithRefArray(MemorySegment arr0, MemorySegment arr1, MemorySegment arr2, MemorySegment arr3, MemorySegment arr4, MemorySegment arr5);
 
     @Overload
-    void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2, boolean[] arr3, @Ref boolean[] arr4, @FixedSize(3) int[] arr5);
+    void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2, boolean[] arr3, @Ref boolean[] arr4, @Sized(3) int[] arr5);
 
     void testWithString(MemorySegment str1, MemorySegment str2);
 
@@ -122,6 +122,16 @@ interface CDowncallTest {
 
     @Critical(allowHeapAccess = false)
     void testCriticalFalse();
+
+    @Entrypoint("testReturnSizedArr")
+    MemorySegment ntestReturnSizedArr();
+
+    @Overload("ntestReturnSizedArr")
+    @Sized(4)
+    int[] testReturnSizedArr();
+
+    @LongSized(4L)
+    MemorySegment testReturnLongSizedSeg();
 
     void testUpcall(MemorySegment cb);
 

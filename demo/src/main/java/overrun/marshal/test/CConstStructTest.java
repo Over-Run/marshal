@@ -16,45 +16,15 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.LongSized;
-import overrun.marshal.Sized;
-import overrun.marshal.Skip;
-import overrun.marshal.StrCharset;
 import overrun.marshal.struct.Const;
-import overrun.marshal.struct.Padding;
 import overrun.marshal.struct.Struct;
 
-import java.lang.foreign.MemorySegment;
-
 /**
- * {@linkplain #_LAYOUT Layout}
- *
  * @author squid233
  * @since 0.1.0
  */
+@Const
 @Struct
-final class CStructTest {
-    @Skip
-    int _LAYOUT;
-    int x;
-    @Const
-    int y;
-    /**
-     * the timestamp
-     */
-    long stamp;
-    byte b;
-    @Padding(7)
-    int padding;
-    MemorySegment segment;
-    @LongSized(16L)
-    MemorySegment longSizedSegment;
-    String name;
-    @StrCharset("UTF-16")
-    String utf16Name;
-    int[] arr;
-    @Sized(4)
-    int[] sizedArr;
-    boolean[] boolArr;
-    String[] strArr;
+public class CConstStructTest {
+    int x, y, z;
 }

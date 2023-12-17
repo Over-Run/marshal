@@ -75,6 +75,16 @@ public final class Util {
     }
 
     /**
+     * isDeclared
+     *
+     * @param typeMirror typeMirror
+     * @return isDeclared
+     */
+    public static boolean isDeclared(TypeMirror typeMirror) {
+        return typeMirror.getKind() == TypeKind.DECLARED;
+    }
+
+    /**
      * isMemorySegment
      *
      * @param clazzName clazzName
@@ -91,7 +101,8 @@ public final class Util {
      * @return isMemorySegment
      */
     public static boolean isMemorySegment(TypeMirror typeMirror) {
-        return isMemorySegment(typeMirror.toString());
+        return isDeclared(typeMirror) &&
+               isMemorySegment(typeMirror.toString());
     }
 
     /**
@@ -111,7 +122,8 @@ public final class Util {
      * @return isString
      */
     public static boolean isString(TypeMirror typeMirror) {
-        return isString(typeMirror.toString());
+        return isDeclared(typeMirror) &&
+               isString(typeMirror.toString());
     }
 
     /**
@@ -131,7 +143,8 @@ public final class Util {
      * @return isBooleanArray
      */
     public static boolean isBooleanArray(TypeMirror typeMirror) {
-        return getArrayComponentType(typeMirror).getKind() == TypeKind.BOOLEAN;
+        return isArray(typeMirror) &&
+               getArrayComponentType(typeMirror).getKind() == TypeKind.BOOLEAN;
     }
 
     /**
@@ -141,7 +154,18 @@ public final class Util {
      * @return isPrimitiveArray
      */
     public static boolean isPrimitiveArray(TypeMirror typeMirror) {
-        return getArrayComponentType(typeMirror).getKind().isPrimitive();
+        return isArray(typeMirror) &&
+               getArrayComponentType(typeMirror).getKind().isPrimitive();
+    }
+
+    /**
+     * isStringArray
+     *
+     * @param typeMirror typeMirror
+     * @return isStringArray
+     */
+    public static boolean isStringArray(TypeMirror typeMirror) {
+        return isArray(typeMirror) && isString(getArrayComponentType(typeMirror));
     }
 
     /**
@@ -162,7 +186,7 @@ public final class Util {
      */
     public static boolean canConvertToAddress(TypeMirror typeMirror) {
         return switch (typeMirror.getKind()) {
-            case ARRAY -> isPrimitiveArray(typeMirror);
+            case ARRAY -> isPrimitiveArray(typeMirror) || isBooleanArray(typeMirror) || isStringArray(typeMirror);
             case DECLARED -> isMemorySegment(typeMirror) || isString(typeMirror);
             default -> false;
         };
@@ -175,10 +199,10 @@ public final class Util {
      * @return isValueType
      */
     public static boolean isValueType(TypeMirror typeMirror) {
-        return switch (typeMirror.getKind()) {
-            case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE -> true;
-            default -> canConvertToAddress(typeMirror);
-        };
+        if (typeMirror.getKind().isPrimitive()) {
+            return true;
+        }
+        return canConvertToAddress(typeMirror);
     }
 
     /**

@@ -31,7 +31,7 @@ import java.lang.annotation.*;
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.PARAMETER, ElementType.METHOD})
+@Target({ElementType.PARAMETER, ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.SOURCE)
 public @interface StrCharset {
     /**

@@ -14,28 +14,23 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.struct;
+package overrun.marshal;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a struct or its member as <i>const</i>.
- * <p>
- * A const struct or its member does not generate setter.
+ * Skips generating a marked field in {@linkplain overrun.marshal.struct.Struct struct}.
  * <h2>Example</h2>
  * <pre>{@code
- * @Const
- * @Struct
- * class Vector2 {
- *     int x, y;
- * }
+ * @Skip
+ * int LAYOUT;
  * }</pre>
  *
  * @author squid233
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.FIELD, ElementType.TYPE})
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Const {
+public @interface Skip {
 }

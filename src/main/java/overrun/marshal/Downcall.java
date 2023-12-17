@@ -42,7 +42,7 @@ import java.lang.annotation.*;
  * Methods without {@link Overload @Overload} marked
  * converts parameters of {@link String} and array types into {@link java.lang.foreign.MemorySegment MemorySegment}.
  * <h3>Parameter Annotations</h3>
- * See {@link FixedSize @FixedSize} and {@link Ref @Ref}.
+ * See {@link Sized @Sized} and {@link Ref @Ref}.
  * <h2>Example</h2>
  * <pre>{@code
  * @Downcall(libname = "libGL.so", name = "GL")
@@ -58,7 +58,7 @@ import java.lang.annotation.*;
  * @see Default
  * @see Entrypoint
  * @see Overload
- * @see FixedSize
+ * @see Sized
  * @see Ref
  * @since 0.1.0
  */

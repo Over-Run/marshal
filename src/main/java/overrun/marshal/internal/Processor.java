@@ -16,7 +16,9 @@
 
 package overrun.marshal.internal;
 
+import overrun.marshal.StrCharset;
 import overrun.marshal.Upcall;
+import overrun.marshal.gen.*;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -25,6 +27,11 @@ import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.lang.annotation.Annotation;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.function.Function;
 
 /**
  * Annotation processor
@@ -115,8 +122,55 @@ public abstract class Processor extends AbstractProcessor {
      * @param typeMirror typeMirror
      * @return isUpcall
      */
-    public boolean isUpcall(TypeMirror typeMirror) {
-        return processingEnv.getTypeUtils().isAssignable(typeMirror, upcallTypeMirror);
+    protected boolean isUpcall(TypeMirror typeMirror) {
+        return Util.isDeclared(typeMirror) &&
+               processingEnv.getTypeUtils().isAssignable(typeMirror, upcallTypeMirror);
+    }
+
+    /**
+     * Add an annotation
+     *
+     * @param annotation annotation
+     */
+    protected <T extends Annotation, R> void addAnnotationValue(Annotatable annotatable, T annotation, Class<T> tClass, Function<T, R> function) {
+        if (annotation != null) {
+            annotatable.addAnnotation(new AnnotationSpec(tClass)
+                .addArgument("value", getConstExp(function.apply(annotation))));
+        }
+    }
+
+    /**
+     * getCustomCharset
+     *
+     * @param e element
+     * @return getCustomCharset
+     */
+    protected static String getCustomCharset(Element e) {
+        final StrCharset strCharset = e.getAnnotation(StrCharset.class);
+        return strCharset != null ? strCharset.value() : "UTF-8";
+    }
+
+    /**
+     * Create charset
+     *
+     * @param file file
+     * @param name name
+     * @return charset
+     */
+    protected Spec createCharset(SourceFile file, String name) {
+        final String upperCase = name.toUpperCase(Locale.ROOT);
+        return switch (upperCase) {
+            case "UTF-8", "ISO-8859-1", "US-ASCII",
+                "UTF-16", "UTF-16BE", "UTF-16LE",
+                "UTF-32", "UTF-32BE", "UTF-32LE" -> {
+                file.addImport(StandardCharsets.class);
+                yield Spec.accessSpec(StandardCharsets.class, upperCase.replace('-', '_'));
+            }
+            default -> {
+                file.addImport(Charset.class);
+                yield new InvokeSpec(Charset.class, "forName").addArgument(getConstExp(name));
+            }
+        };
     }
 
     @Override

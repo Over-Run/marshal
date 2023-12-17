@@ -24,7 +24,7 @@ import java.lang.annotation.*;
  * The generated code will try to check the size of a passing array.
  * <h2>Example</h2>
  * <pre>{@code
- * void set(@FixedSize(3) int[] vec);
+ * void set(@Sized(3) int[] vec);
  * }</pre>
  *
  * @author squid233
@@ -32,9 +32,9 @@ import java.lang.annotation.*;
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.PARAMETER)
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.SOURCE)
-public @interface FixedSize {
+public @interface Sized {
     /**
      * {@return the size of the array}
      */
