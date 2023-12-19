@@ -181,6 +181,21 @@ public interface Spec {
     }
 
     /**
+     * Create non-equal spec
+     *
+     * @param left  left
+     * @param right right
+     * @return spec
+     */
+    static Spec neqSpec(Spec left, Spec right) {
+        return (builder, indent) -> {
+            left.append(builder, indent);
+            builder.append(" != ");
+            right.append(builder, indent);
+        };
+    }
+
+    /**
      * Create an expression casting
      *
      * @param type type

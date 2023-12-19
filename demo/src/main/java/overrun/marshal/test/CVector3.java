@@ -14,30 +14,16 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.test;
 
-import java.lang.annotation.*;
+import overrun.marshal.struct.Const;
+import overrun.marshal.struct.Struct;
 
 /**
- * Just like {@link Sized} with long size.
- * <p>
- * The generated code will try to check the size of a passing array.
- * <h2>Example</h2>
- * <pre>{@code
- * @LongSized(0x7FFFFFFFFFFFFFFFL)
- * MemorySegment segment;
- * }</pre>
- *
  * @author squid233
- * @see Checks#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
-@Documented
-@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.SOURCE)
-public @interface LongSized {
-    /**
-     * {@return the size of the memory segment}
-     */
-    long value();
+@Const
+@Struct
+public record CVector3(int x, int y, int z) {
 }

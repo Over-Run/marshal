@@ -20,6 +20,7 @@ import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 
 /**
  * Util
@@ -211,7 +212,30 @@ public final class Util {
      * @param typeMirror typeMirror
      * @return toValueLayout
      */
-    public static String toValueLayout(TypeMirror typeMirror) {
+    public static ValueLayout toValueLayout(TypeMirror typeMirror) {
+        return switch (typeMirror.getKind()) {
+            case BOOLEAN -> ValueLayout.JAVA_BOOLEAN;
+            case BYTE -> ValueLayout.JAVA_BYTE;
+            case SHORT -> ValueLayout.JAVA_SHORT;
+            case INT -> ValueLayout.JAVA_INT;
+            case LONG -> ValueLayout.JAVA_LONG;
+            case CHAR -> ValueLayout.JAVA_CHAR;
+            case FLOAT -> ValueLayout.JAVA_FLOAT;
+            case DOUBLE -> ValueLayout.JAVA_DOUBLE;
+            default -> {
+                if (canConvertToAddress(typeMirror)) yield ValueLayout.ADDRESS;
+                throw invalidType(typeMirror);
+            }
+        };
+    }
+
+    /**
+     * toValueLayoutStr
+     *
+     * @param typeMirror typeMirror
+     * @return toValueLayoutStr
+     */
+    public static String toValueLayoutStr(TypeMirror typeMirror) {
         return switch (typeMirror.getKind()) {
             case BOOLEAN -> "ValueLayout.JAVA_BOOLEAN";
             case BYTE -> "ValueLayout.JAVA_BYTE";

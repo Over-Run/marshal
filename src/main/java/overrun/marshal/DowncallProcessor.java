@@ -143,13 +143,16 @@ public final class DowncallProcessor extends Processor {
                     });
                     final boolean notVoid = returnType.getKind() != TypeKind.VOID;
                     final boolean shouldStoreResult = notVoid &&
-                                                      parameters.stream().anyMatch(p -> p.getAnnotation(Ref.class) != null);
+                                                      (isArray(returnType) ||
+                                                       isString(returnType) ||
+                                                       isUpcall(returnType) ||
+                                                       parameters.stream().anyMatch(p -> p.getAnnotation(Ref.class) != null));
                     final Access access = e.getAnnotation(Access.class);
                     final Critical critical = e.getAnnotation(Critical.class);
                     final Custom custom = e.getAnnotation(Custom.class);
                     final Default defaultAnnotation = e.getAnnotation(Default.class);
                     final boolean isDefaulted = defaultAnnotation != null;
-                    final LongSized eLongSized = e.getAnnotation(LongSized.class);
+                    final SizedSeg eSizedSeg = e.getAnnotation(SizedSeg.class);
                     final Sized eSized = e.getAnnotation(Sized.class);
 
                     final String allocatorParamName = shouldInsertArena ? "_arena" : "_segmentAllocator";
@@ -176,7 +179,7 @@ public final class DowncallProcessor extends Processor {
                             }
                         }));
                     }
-                    addAnnotationValue(methodSpec, eLongSized, LongSized.class, LongSized::value);
+                    addAnnotationValue(methodSpec, eSizedSeg, SizedSeg.class, SizedSeg::value);
                     addAnnotationValue(methodSpec, eSized, Sized.class, Sized::value);
 
                     if (access != null) {
@@ -197,7 +200,7 @@ public final class DowncallProcessor extends Processor {
                     }
                     parameters.forEach(p -> methodSpec.addParameter(new ParameterSpec(parameterTypeFunction.apply(p.asType()), p.getSimpleName().toString())
                         .also(parameterSpec -> {
-                            addAnnotationValue(parameterSpec, p.getAnnotation(LongSized.class), LongSized.class, LongSized::value);
+                            addAnnotationValue(parameterSpec, p.getAnnotation(SizedSeg.class), SizedSeg.class, SizedSeg::value);
                             addAnnotationValue(parameterSpec, p.getAnnotation(Sized.class), Sized.class, Sized::value);
                             final Ref ref = p.getAnnotation(Ref.class);
                             if (ref != null) {
@@ -237,9 +240,9 @@ public final class DowncallProcessor extends Processor {
                                     .collect(Collectors.toList()));
                             if (notVoid) {
                                 final Spec castSpec = Spec.cast(javaReturnType, invokeExact);
-                                if (eLongSized != null || eSized != null) {
+                                if (eSizedSeg != null || eSized != null) {
                                     targetStatement.addStatement(Spec.returnStatement(new InvokeSpec(Spec.parentheses(castSpec), "reinterpret")
-                                        .addArgument(getConstExp(eLongSized != null ? eLongSized.value() : eSized.value()))));
+                                        .addArgument(getConstExp(eSizedSeg != null ? eSizedSeg.value() : eSized.value()))));
                                 } else {
                                     targetStatement.addStatement(Spec.returnStatement(castSpec));
                                 }
@@ -283,7 +286,7 @@ public final class DowncallProcessor extends Processor {
                                     .addArgument(nameString);
                             } else if (isPrimitiveArray(pType)) {
                                 invokeSpec = new InvokeSpec(allocatorParamName, "allocateFrom")
-                                    .addArgument(toValueLayout(arrayComponentType))
+                                    .addArgument(toValueLayoutStr(arrayComponentType))
                                     .addArgument(nameString);
                             } else if (isStringArray(pType)) {
                                 invokeSpec = new InvokeSpec(StrHelper.class, "of")
@@ -304,7 +307,6 @@ public final class DowncallProcessor extends Processor {
 
                     // invoke
                     final InvokeSpec invocation = new InvokeSpec(simpleClassName, overloadValue);
-                    InvokeSpec finalInvocation = invocation;
                     // add argument to overload invocation
                     parameters.forEach(p -> {
                         final TypeMirror pType = p.asType();
@@ -346,7 +348,7 @@ public final class DowncallProcessor extends Processor {
                                                 .addArgument(createCharset(file, getCustomCharset(p))));
                                         } else {
                                             invocation.addArgument(new InvokeSpec(allocatorParamName, "allocateFrom")
-                                                .addArgument(toValueLayout(getArrayComponentType(pType)))
+                                                .addArgument(toValueLayoutStr(getArrayComponentType(pType)))
                                                 .addArgument(nameString));
                                         }
                                     }
@@ -355,67 +357,17 @@ public final class DowncallProcessor extends Processor {
                             }
                         }
                     });
-                    // converting return value
-                    if (isArray(returnType)) {
-                        final TypeMirror arrayComponentType = getArrayComponentType(returnType);
-                        if (eSized != null) {
-                            finalInvocation = new InvokeSpec(finalInvocation, "reinterpret")
-                                .addArgument(Spec.operatorSpec("*",
-                                    Spec.literal(getConstExp(eSized.value())),
-                                    new InvokeSpec(toValueLayout(arrayComponentType), "byteSize")));
-                        }
-                        if (isBooleanArray(returnType)) {
-                            finalInvocation = new InvokeSpec(BoolHelper.class, "toArray")
-                                .addArgument(finalInvocation);
-                        } else if (isStringArray(returnType)) {
-                            finalInvocation = new InvokeSpec(StrHelper.class, "toArray")
-                                .addArgument(finalInvocation)
-                                .addArgument(createCharset(file, getCustomCharset(e)));
-                        } else {
-                            finalInvocation = new InvokeSpec(finalInvocation, "toArray")
-                                .addArgument(toValueLayout(arrayComponentType));
-                        }
-                    } else if (isDeclared(returnType)) {
-                        if (isString(returnType)) {
-                            finalInvocation = new InvokeSpec(invocation, "getString")
-                                .addArgument("0L");
-                            if (e.getAnnotation(StrCharset.class) != null) {
-                                finalInvocation.addArgument(createCharset(file, getCustomCharset(e)));
-                            }
-                        } else if (isUpcall(returnType)) {
-                            // find wrap method
-                            final var wrapMethod = ElementFilter.methodsIn(processingEnv.getTypeUtils()
-                                    .asElement(returnType)
-                                    .getEnclosedElements())
-                                .stream()
-                                .filter(method -> method.getAnnotation(Upcall.Wrapper.class) != null)
-                                .filter(method -> {
-                                    final var list = method.getParameters();
-                                    return list.size() == 1 && isMemorySegment(list.getFirst().asType());
-                                })
-                                .findFirst();
-                            if (wrapMethod.isPresent()) {
-                                finalInvocation = new InvokeSpec(returnType.toString(), wrapMethod.get().getSimpleName().toString())
-                                    .addArgument(invocation);
-                            } else {
-                                printError("""
-                                    Couldn't find any wrap method in %s while %s::%s required
-                                         Possible solution: Mark wrap method with @Upcall.Wrapper"""
-                                    .formatted(returnType, type, e));
-                                return;
-                            }
-                        }
-                    }
                     Spec finalSpec;
                     if (notVoid) {
                         if (shouldStoreResult) {
-                            finalSpec = new VariableStatement("var", "$_marshalResult", finalInvocation)
-                                .setAccessModifier(AccessModifier.PACKAGE_PRIVATE);
+                            finalSpec = new VariableStatement(MemorySegment.class, "$_marshalResult", invocation)
+                                .setAccessModifier(AccessModifier.PACKAGE_PRIVATE)
+                                .setFinal(true);
                         } else {
-                            finalSpec = Spec.returnStatement(finalInvocation);
+                            finalSpec = Spec.returnStatement(invocation);
                         }
                     } else {
-                        finalSpec = Spec.statement(finalInvocation);
+                        finalSpec = Spec.statement(invocation);
                     }
                     methodSpec.addStatement(finalSpec);
 
@@ -438,7 +390,7 @@ public final class DowncallProcessor extends Processor {
                                     if (isPrimitiveArray(pType)) {
                                         spec = Spec.statement(new InvokeSpec(MemorySegment.class, "copy")
                                             .addArgument('_' + nameString)
-                                            .addArgument(toValueLayout(getArrayComponentType(pType)))
+                                            .addArgument(toValueLayoutStr(getArrayComponentType(pType)))
                                             .addArgument("0L")
                                             .addArgument(nameString)
                                             .addArgument("0")
@@ -467,7 +419,65 @@ public final class DowncallProcessor extends Processor {
 
                     // return
                     if (shouldStoreResult) {
-                        methodSpec.addStatement(Spec.returnStatement(Spec.literal("$_marshalResult")));
+                        // converting return value
+                        Spec finalInvocation = Spec.literal("$_marshalResult");
+                        if (isArray(returnType)) {
+                            final TypeMirror arrayComponentType = getArrayComponentType(returnType);
+                            if (eSized != null) {
+                                finalInvocation = new InvokeSpec(finalInvocation, "reinterpret")
+                                    .addArgument(Spec.operatorSpec("*",
+                                        Spec.literal(getConstExp(eSized.value())),
+                                        new InvokeSpec(toValueLayoutStr(arrayComponentType), "byteSize")));
+                            }
+                            if (isBooleanArray(returnType)) {
+                                finalInvocation = new InvokeSpec(BoolHelper.class, "toArray")
+                                    .addArgument(finalInvocation);
+                            } else if (isStringArray(returnType)) {
+                                finalInvocation = new InvokeSpec(StrHelper.class, "toArray")
+                                    .addArgument(finalInvocation)
+                                    .addArgument(createCharset(file, getCustomCharset(e)));
+                            } else {
+                                finalInvocation = new InvokeSpec(finalInvocation, "toArray")
+                                    .addArgument(toValueLayoutStr(arrayComponentType));
+                            }
+                        } else if (isDeclared(returnType)) {
+                            if (isString(returnType)) {
+                                final InvokeSpec getString = new InvokeSpec(finalInvocation, "getString")
+                                    .addArgument("0L");
+                                if (e.getAnnotation(StrCharset.class) != null) {
+                                    getString.addArgument(createCharset(file, getCustomCharset(e)));
+                                }
+                                finalInvocation = getString;
+                            } else if (isUpcall(returnType)) {
+                                // find wrap method
+                                final var wrapMethod = ElementFilter.methodsIn(processingEnv.getTypeUtils()
+                                        .asElement(returnType)
+                                        .getEnclosedElements())
+                                    .stream()
+                                    .filter(method -> method.getAnnotation(Upcall.Wrapper.class) != null)
+                                    .filter(method -> {
+                                        final var list = method.getParameters();
+                                        return list.size() == 1 && isMemorySegment(list.getFirst().asType());
+                                    })
+                                    .findFirst();
+                                if (wrapMethod.isPresent()) {
+                                    finalInvocation = new InvokeSpec(returnType.toString(), wrapMethod.get().getSimpleName().toString())
+                                        .addArgument(finalInvocation);
+                                } else {
+                                    printError("""
+                                    Couldn't find any wrap method in %s while %s::%s required
+                                         Possible solution: Mark wrap method with @Upcall.Wrapper"""
+                                        .formatted(returnType, type, e));
+                                    return;
+                                }
+                            }
+                        }
+
+                        methodSpec.addStatement(Spec.returnStatement(
+                            Spec.ternaryOp(Spec.neqSpec(new InvokeSpec("$_marshalResult", "address"), Spec.literal("0L")),
+                                finalInvocation,
+                                Spec.literal("null"))
+                        ));
                     }
                 });
             });
@@ -570,9 +580,9 @@ public final class DowncallProcessor extends Processor {
                         .addArgument(new InvokeSpec(FunctionDescriptor.class,
                             returnType.getKind() == TypeKind.VOID ? "ofVoid" : "of").also(invokeSpec -> {
                             if (returnType.getKind() != TypeKind.VOID) {
-                                invokeSpec.addArgument(toValueLayout(returnType));
+                                invokeSpec.addArgument(toValueLayoutStr(returnType));
                             }
-                            v.getParameters().forEach(e -> invokeSpec.addArgument(toValueLayout(e.asType())));
+                            v.getParameters().forEach(e -> invokeSpec.addArgument(toValueLayoutStr(e.asType())));
                         })).also(invokeSpec -> {
                             if (critical != null) {
                                 invokeSpec.addArgument(new InvokeSpec(Spec.accessSpec(Linker.class, Linker.Option.class), "critical")
@@ -597,7 +607,7 @@ public final class DowncallProcessor extends Processor {
                 return ".VOID";
             }
             if (isValueType(t)) {
-                return toValueLayout(t);
+                return toValueLayoutStr(t);
             }
             return t.toString();
         }).toList();

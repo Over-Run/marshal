@@ -96,7 +96,7 @@ public final class SourceFile {
      * @throws IOException If an I/O error occurs
      */
     public void write(Writer writer) throws IOException {
-        final StringBuilder sb = new StringBuilder(16384);
+        final StringBuilder sb = new StringBuilder(32768);
         // header
         sb.append("// This file is auto-generated. DO NOT EDIT!\n");
         // package

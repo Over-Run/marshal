@@ -57,8 +57,8 @@ import java.util.Arrays;
  *     @Wrapper
  *     static MyCallback wrap(MemorySegment stub) {
  *         return (i, p) -> {
- *             try {
- *                 return TYPE.downcall(stub).invokeExact(i, p);
+ *             try (var arena = ofConfined()) {
+ *                 return TYPE.downcall(stub).invokeExact(i, arena.allocateFrom(p));
  *             } catch (Throwable e) {
  *                 throw new RuntimeException(e);
  *             }

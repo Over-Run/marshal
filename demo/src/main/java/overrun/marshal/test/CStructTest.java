@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.LongSized;
+import overrun.marshal.SizedSeg;
 import overrun.marshal.Sized;
 import overrun.marshal.Skip;
 import overrun.marshal.StrCharset;
@@ -47,8 +47,8 @@ final class CStructTest {
     @Padding(7)
     int padding;
     MemorySegment segment;
-    @LongSized(16L)
-    MemorySegment longSizedSegment;
+    @SizedSeg(16L)
+    MemorySegment sizedSegment;
     String name;
     @StrCharset("UTF-16")
     String utf16Name;

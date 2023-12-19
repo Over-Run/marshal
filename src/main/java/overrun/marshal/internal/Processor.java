@@ -147,7 +147,7 @@ public abstract class Processor extends AbstractProcessor {
      */
     protected static String getCustomCharset(Element e) {
         final StrCharset strCharset = e.getAnnotation(StrCharset.class);
-        return strCharset != null ? strCharset.value() : "UTF-8";
+        return strCharset != null && !strCharset.value().isBlank() ? strCharset.value() : "UTF-8";
     }
 
     /**

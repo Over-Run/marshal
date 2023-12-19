@@ -130,8 +130,8 @@ interface CDowncallTest {
     @Sized(4)
     int[] testReturnSizedArr();
 
-    @LongSized(4L)
-    MemorySegment testReturnLongSizedSeg();
+    @SizedSeg(4L)
+    MemorySegment testReturnSizedSeg();
 
     void testUpcall(MemorySegment cb);
 
