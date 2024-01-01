@@ -18,10 +18,7 @@ package overrun.marshal;
 
 import overrun.marshal.gen.*;
 import overrun.marshal.internal.Processor;
-import overrun.marshal.struct.Const;
-import overrun.marshal.struct.IStruct;
-import overrun.marshal.struct.Padding;
-import overrun.marshal.struct.Struct;
+import overrun.marshal.struct.*;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.TypeElement;
@@ -124,7 +121,9 @@ public final class StructProcessor extends Processor {
                         invokeSpec.addArgument(new InvokeSpec(MemoryLayout.class, "paddingLayout")
                             .addArgument(getConstExp(padding.value())));
                     } else if (isValueType(eType)) {
-                        InvokeSpec member = new InvokeSpec(toValueLayoutStr(eType), "withName")
+                        InvokeSpec member = new InvokeSpec(e.getAnnotation(StructRef.class) != null ?
+                            "ValueLayout.ADDRESS" :
+                            toValueLayoutStr(eType), "withName")
                             .addArgument(getConstExp(e.getSimpleName().toString()));
                         if (isArray(eType)) {
                             final Sized sized = e.getAnnotation(Sized.class);
@@ -146,7 +145,6 @@ public final class StructProcessor extends Processor {
                         invokeSpec.addArgument(member);
                     } else {
                         printError("Unsupported field: " + eType + ' ' + e.getSimpleName());
-                        // TODO: 2023/12/16 squid233: struct, upcall
                     }
                 })))
                 .setStatic(true)
@@ -155,8 +153,11 @@ public final class StructProcessor extends Processor {
                 final StringBuilder sb = new StringBuilder(512);
                 sb.append(" The layout of this struct.\n <pre>{@code\n struct ").append(simpleClassName).append(" {\n");
                 forEach(fields, false, e -> {
-                    final String string = e.asType().toString();
-                    final String substring = string.substring(string.lastIndexOf('.') + 1);
+                    final String eTypeString = e.asType().toString();
+                    final boolean endsWithArray = eTypeString.endsWith("[]");
+                    final String simplifiedString = simplify(endsWithArray ?
+                        eTypeString.substring(0, eTypeString.length() - 2) :
+                        eTypeString) + (endsWithArray ? "[]" : "");
                     final StrCharset strCharset = e.getAnnotation(StrCharset.class);
                     sb.append("     ");
                     if (strCharset != null) {
@@ -165,7 +166,10 @@ public final class StructProcessor extends Processor {
                     if (typeConst || e.getAnnotation(Const.class) != null) {
                         sb.append("final ");
                     }
-                    if (isMemorySegmentSimple(substring)) {
+                    final StructRef structRef = e.getAnnotation(StructRef.class);
+                    if (structRef != null) {
+                        sb.append("struct ").append(structRef.value());
+                    } else if (isMemorySegmentSimple(simplifiedString)) {
                         final SizedSeg sizedSeg = e.getAnnotation(SizedSeg.class);
                         sb.append("void");
                         if (sizedSeg != null) {
@@ -175,10 +179,10 @@ public final class StructProcessor extends Processor {
                         }
                     } else {
                         final Sized sized = e.getAnnotation(Sized.class);
-                        if (sized != null && substring.endsWith("[]")) {
-                            sb.append(substring, 0, substring.length() - 1).append(getConstExp(sized.value())).append(']');
+                        if (sized != null && simplifiedString.endsWith("[]")) {
+                            sb.append(simplifiedString, 0, simplifiedString.length() - 1).append(getConstExp(sized.value())).append(']');
                         } else {
-                            sb.append(substring);
+                            sb.append(simplifiedString);
                         }
                     }
                     sb.append(' ')
@@ -234,6 +238,19 @@ public final class StructProcessor extends Processor {
                             .addArgument("_SEQUENCE_ELEMENT")
                             .addArgument("_PE_" + name)));
                 });
+            });
+            classSpec.addMethod(new MethodSpec(null, simpleClassName), methodSpec -> {
+                methodSpec.setDocument("""
+                     Creates {@code %s} with the given segment. The count is auto-inferred.
+
+                     @param segment the segment\
+                    """.formatted(simpleClassName));
+                methodSpec.addParameter(MemorySegment.class, "segment");
+                methodSpec.addStatement(Spec.statement(InvokeSpec.invokeThis()
+                    .addArgument("segment")
+                    .addArgument(new InvokeSpec(IStruct.class.getCanonicalName(), "inferCount")
+                        .addArgument("LAYOUT")
+                        .addArgument("segment"))));
             });
 
             // allocator
@@ -294,13 +311,16 @@ public final class StructProcessor extends Processor {
                     final String eTypeString = eType.toString();
                     final SizedSeg sizedSeg = e.getAnnotation(SizedSeg.class);
                     final Sized sized = e.getAnnotation(Sized.class);
-                    final boolean canConvertToAddress = canConvertToAddress(eType);
+                    final StructRef structRef = e.getAnnotation(StructRef.class);
+                    final boolean isStruct = structRef != null;
+                    final boolean canConvertToAddress = isStruct || canConvertToAddress(eType);
                     final String returnType = canConvertToAddress ? MemorySegment.class.getSimpleName() : eTypeString;
+                    final String overloadReturnType = isStruct ? structRef.value() : simplify(eTypeString);
                     final String capitalized = capitalize(nameString);
                     final boolean isMemorySegment = isMemorySegment(eType);
                     final boolean isArray = isArray(eType);
-                    final boolean upcall = isUpcall(eType);
-                    final boolean generateN = canConvertToAddress && !isMemorySegment;
+                    final boolean isUpcall = isUpcall(eType);
+                    final boolean generateN = canConvertToAddress && (isStruct || !isMemorySegment);
 
                     // getter
                     final Spec castSpec = Spec.cast(returnType,
@@ -316,14 +336,17 @@ public final class StructProcessor extends Processor {
                                     Spec.operatorSpec("*",
                                         Spec.literal(getConstExp(sized.value())),
                                         new InvokeSpec(toValueLayoutStr(getArrayComponentType(eType)), "byteSize"))) :
-                            castSpec);
+                            (isStruct ?
+                                new InvokeSpec(Spec.parentheses(castSpec), "reinterpret")
+                                    .addArgument(new InvokeSpec(Spec.accessSpec(structRef.value(), "LAYOUT"), "byteSize")) :
+                                castSpec));
                     if (generateN) {
                         Spec storeResult = null;
                         final Spec returnValue = new InvokeSpec("this", "nget" + capitalized + "At")
                             .addArgument("index");
                         Spec finalReturnValue;
                         final boolean isString = isString(eType);
-                        if (isString || isArray) {
+                        if (isString || isArray || isUpcall || isStruct) {
                             storeResult = new VariableStatement(MemorySegment.class, "$_marshalResult", returnValue)
                                 .setAccessModifier(AccessModifier.PACKAGE_PRIVATE)
                                 .setFinal(true);
@@ -331,7 +354,10 @@ public final class StructProcessor extends Processor {
                         } else {
                             finalReturnValue = returnValue;
                         }
-                        if (isString) {
+                        if (isStruct) {
+                            finalReturnValue = new ConstructSpec(overloadReturnType)
+                                .addArgument(finalReturnValue);
+                        } else if (isString) {
                             final StrCharset strCharset = e.getAnnotation(StrCharset.class);
                             final InvokeSpec invokeSpec = new InvokeSpec(finalReturnValue, "getString")
                                 .addArgument("0");
@@ -357,7 +383,7 @@ public final class StructProcessor extends Processor {
                                 finalReturnValue = new InvokeSpec(finalReturnValue, "toArray")
                                     .addArgument(toValueLayoutStr(arrayComponentType));
                             }
-                        } else if (upcall) {
+                        } else if (isUpcall) {
                             // find wrap method
                             final var wrapMethod = findWrapperMethod(eType);
                             if (wrapMethod.isPresent()) {
@@ -376,7 +402,7 @@ public final class StructProcessor extends Processor {
                                 finalReturnValue,
                                 Spec.literal("null"));
                         }
-                        addGetterAt(classSpec, e, "get", simplify(eTypeString), storeResult, finalReturnValue);
+                        addGetterAt(classSpec, e, "get", overloadReturnType, storeResult, finalReturnValue);
                     }
 
                     // setter
@@ -417,17 +443,18 @@ public final class StructProcessor extends Processor {
                                         .addArgument(toValueLayoutStr(getArrayComponentType(eType)))
                                         .addArgument(nameString));
                                 }
-                            } else if (isUpcall(eType)) {
+                            } else if (isUpcall) {
                                 invokeSpec.addArgument(new InvokeSpec(nameString, "stub")
                                     .addArgument(convertParamArena(nameString)));
+                            } else if (isStruct) {
+                                invokeSpec.addArgument(new InvokeSpec(nameString, "segment"));
                             } else {
                                 invokeSpec.addArgument(nameString);
                             }
-                            addSetterAt(classSpec, e, "set", simplify(eTypeString), Spec.statement(invokeSpec));
+                            addSetterAt(classSpec, e, "set", overloadReturnType, Spec.statement(invokeSpec));
                         }
                     }
                 }
-                // TODO: 2023/12/17 squid233: struct
             });
 
             // override

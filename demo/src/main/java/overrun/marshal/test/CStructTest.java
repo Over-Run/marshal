@@ -23,6 +23,7 @@ import overrun.marshal.StrCharset;
 import overrun.marshal.struct.Const;
 import overrun.marshal.struct.Padding;
 import overrun.marshal.struct.Struct;
+import overrun.marshal.struct.StructRef;
 
 import java.lang.foreign.MemorySegment;
 
@@ -61,4 +62,8 @@ final class CStructTest {
     boolean[] boolArr;
     String[] strArr;
     GLFWErrorCallback upcall;
+    @StructRef("overrun.marshal.test.StructTest")
+    MemorySegment myStruct;
+    @StructRef("overrun.marshal.test.Vector3")
+    int anotherStruct;
 }

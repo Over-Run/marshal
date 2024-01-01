@@ -18,9 +18,13 @@ package overrun.marshal;
 
 import overrun.marshal.gen.*;
 import overrun.marshal.internal.Processor;
+import overrun.marshal.struct.StructRef;
 
 import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
@@ -124,6 +128,8 @@ public final class DowncallProcessor extends Processor {
                 final TypeMirror returnType = e.getReturnType();
                 final String methodName = e.getSimpleName().toString();
                 final Overload overload = e.getAnnotation(Overload.class);
+                final StructRef eStructRef = e.getAnnotation(StructRef.class);
+                final boolean eIsStruct = eStructRef != null;
                 final String overloadValue;
                 if (overload != null) {
                     final String value = overload.value();
@@ -131,7 +137,9 @@ public final class DowncallProcessor extends Processor {
                 } else {
                     overloadValue = null;
                 }
-                final String javaReturnType = toTargetType(returnType, overloadValue);
+                final String javaReturnType = (overloadValue != null && eIsStruct) ?
+                    eStructRef.value() :
+                    toTargetType(returnType, overloadValue);
 
                 classSpec.addMethod(new MethodSpec(javaReturnType, methodName), methodSpec -> {
                     final var parameters = e.getParameters();
@@ -139,13 +147,13 @@ public final class DowncallProcessor extends Processor {
                     final boolean shouldInsertAllocator = !shouldInsertArena && parameters.stream().anyMatch(p -> {
                         final TypeMirror t = p.asType();
                         return isArray(t) || isString(t);
-                        // TODO: 2023/12/9 Struct
                     });
                     final boolean notVoid = returnType.getKind() != TypeKind.VOID;
                     final boolean shouldStoreResult = notVoid &&
                                                       (isArray(returnType) ||
                                                        isString(returnType) ||
                                                        isUpcall(returnType) ||
+                                                       eIsStruct ||
                                                        parameters.stream().anyMatch(p -> p.getAnnotation(Ref.class) != null));
                     final Access access = e.getAnnotation(Access.class);
                     final Critical critical = e.getAnnotation(Critical.class);
@@ -192,13 +200,8 @@ public final class DowncallProcessor extends Processor {
                         );
                     }
 
-                    final Function<TypeMirror, String> parameterTypeFunction;
-                    if (custom != null) {
-                        parameterTypeFunction = TypeMirror::toString;
-                    } else {
-                        parameterTypeFunction = t -> toTargetType(t, overloadValue);
-                    }
-                    parameters.forEach(p -> methodSpec.addParameter(new ParameterSpec(parameterTypeFunction.apply(p.asType()), p.getSimpleName().toString())
+                    final var parameterTypeFunction = parameterTypeFunction(custom, overloadValue);
+                    parameters.forEach(p -> methodSpec.addParameter(new ParameterSpec(parameterTypeFunction.apply(p), p.getSimpleName().toString())
                         .also(parameterSpec -> {
                             addAnnotationValue(parameterSpec, p.getAnnotation(SizedSeg.class), SizedSeg.class, SizedSeg::value);
                             addAnnotationValue(parameterSpec, p.getAnnotation(Sized.class), Sized.class, Sized::value);
@@ -240,7 +243,10 @@ public final class DowncallProcessor extends Processor {
                                     .collect(Collectors.toList()));
                             if (notVoid) {
                                 final Spec castSpec = Spec.cast(javaReturnType, invokeExact);
-                                if (eSizedSeg != null || eSized != null) {
+                                if (eIsStruct) {
+                                    targetStatement.addStatement(Spec.returnStatement(new InvokeSpec(Spec.parentheses(castSpec), "reinterpret")
+                                        .addArgument(new InvokeSpec(Spec.accessSpec(eStructRef.value(), "LAYOUT"), "byteSize"))));
+                                } else if (eSizedSeg != null || eSized != null) {
                                     targetStatement.addStatement(Spec.returnStatement(new InvokeSpec(Spec.parentheses(castSpec), "reinterpret")
                                         .addArgument(getConstExp(eSizedSeg != null ? eSizedSeg.value() : eSized.value()))));
                                 } else {
@@ -312,8 +318,10 @@ public final class DowncallProcessor extends Processor {
                         final TypeMirror pType = p.asType();
                         final TypeKind pTypeKind = pType.getKind();
                         final String nameString = p.getSimpleName().toString();
-                        if (pTypeKind.isPrimitive()) {
-                            invocation.addArgument(getConstExp(nameString));
+                        if (p.getAnnotation(StructRef.class) != null) {
+                            invocation.addArgument(new InvokeSpec(nameString, "segment"));
+                        } else if (pTypeKind.isPrimitive()) {
+                            invocation.addArgument(nameString);
                         } else {
                             switch (pTypeKind) {
                                 case DECLARED -> {
@@ -330,7 +338,6 @@ public final class DowncallProcessor extends Processor {
                                             .addArgument(allocatorParamName));
                                     } else {
                                         invocation.addArgument(nameString);
-                                        // TODO: 2023/12/10 Struct
                                     }
                                 }
                                 case ARRAY -> {
@@ -421,7 +428,10 @@ public final class DowncallProcessor extends Processor {
                     if (shouldStoreResult) {
                         // converting return value
                         Spec finalInvocation = Spec.literal("$_marshalResult");
-                        if (isArray(returnType)) {
+                        if (eIsStruct) {
+                            finalInvocation = new ConstructSpec(eStructRef.value())
+                                .addArgument(finalInvocation);
+                        } else if (isArray(returnType)) {
                             final TypeMirror arrayComponentType = getArrayComponentType(returnType);
                             if (eSized != null) {
                                 finalInvocation = new InvokeSpec(finalInvocation, "reinterpret")
@@ -478,6 +488,22 @@ public final class DowncallProcessor extends Processor {
         try (PrintWriter out = new PrintWriter(sourceFile.openWriter())) {
             file.write(out);
         }
+    }
+
+    private Function<VariableElement, String> parameterTypeFunction(Custom custom, String overloadValue) {
+        if (custom != null) {
+            return p -> p.asType().toString();
+        }
+        return p -> {
+            final StructRef structRef = p.getAnnotation(StructRef.class);
+            if (structRef != null) {
+                if (overloadValue != null) {
+                    return structRef.value();
+                }
+                return MemorySegment.class.getSimpleName();
+            }
+            return toTargetType(p.asType(), overloadValue);
+        };
     }
 
     private void addFields(List<VariableElement> fields, ClassSpec classSpec) {
@@ -583,7 +609,12 @@ public final class DowncallProcessor extends Processor {
                     if (defaulted) {
                         invokeSpec.addArgument("null");
                     }
-                })).setStatic(true).setFinal(true), variableStatement -> {
+                }))
+                .setStatic(true)
+                .setFinal(true)
+                .setDocument("""
+                     The method handle of {@code %s}.\
+                    """.formatted(v.getSimpleName())), variableStatement -> {
                 final Access access = v.getAnnotation(Access.class);
                 if (access != null) {
                     variableStatement.setAccessModifier(access.value());
@@ -632,7 +663,6 @@ public final class DowncallProcessor extends Processor {
                 if (isUpcall(typeMirror)) {
                     yield overload == null ? MemorySegment.class.getSimpleName() : typeMirror.toString();
                 }
-                // TODO: 2023/12/2 Add support to struct
                 throw invalidType(typeMirror);
             }
             case ARRAY -> {

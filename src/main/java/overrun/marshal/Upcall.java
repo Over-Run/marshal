@@ -120,7 +120,6 @@ public interface Upcall {
         return new Type<>(tClass);
     }
 
-
     /**
      * Marks a method as an upcall stub provider.
      *

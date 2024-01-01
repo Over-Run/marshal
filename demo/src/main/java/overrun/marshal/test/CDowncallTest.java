@@ -17,6 +17,7 @@
 package overrun.marshal.test;
 
 import overrun.marshal.*;
+import overrun.marshal.struct.StructRef;
 
 import java.lang.foreign.MemorySegment;
 
@@ -63,10 +64,10 @@ interface CDowncallTest {
     @Access(AccessModifier.PRIVATE)
     int testWithPrivate(int i);
 
-    void testWithArray(MemorySegment arr);
+    void testWithArray(int i, MemorySegment arr);
 
     @Overload
-    void testWithArray(int[] arr);
+    void testWithArray(int i, int[] arr);
 
     void testWithOneRef(@Ref MemorySegment arr);
 
@@ -143,6 +144,19 @@ interface CDowncallTest {
 
     @Overload("ntestReturnUpcall")
     GLFWErrorCallback testReturnUpcall();
+
+    void testStruct(MemorySegment struct);
+
+    @Overload
+    void testStruct(@StructRef("overrun.marshal.test.Vector3") Object struct);
+
+    @Entrypoint("testReturnStruct")
+    @StructRef("overrun.marshal.test.StructTest")
+    MemorySegment ntestReturnStruct();
+
+    @Overload("ntestReturnStruct")
+    @StructRef("overrun.marshal.test.StructTest")
+    MemorySegment testReturnStruct();
 
     /**
      * This is a test that tests all features.

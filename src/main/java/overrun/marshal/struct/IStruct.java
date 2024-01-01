@@ -40,4 +40,15 @@ public interface IStruct {
      * {@return the element count of this struct}
      */
     long elementCount();
+
+    /**
+     * Infers how many this struct is there in the given segment.
+     *
+     * @param layout  the struct layout
+     * @param segment the segment
+     * @return the count
+     */
+    static long inferCount(StructLayout layout, MemorySegment segment) {
+        return segment.byteSize() / layout.byteSize();
+    }
 }
