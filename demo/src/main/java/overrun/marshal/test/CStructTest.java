@@ -39,6 +39,9 @@ final class CStructTest {
     int x;
     @Const
     int y;
+    int index;
+    int[] segmentAllocator;
+    GLFWErrorCallback arena;
     /**
      * the timestamp
      */
@@ -57,4 +60,5 @@ final class CStructTest {
     int[] sizedArr;
     boolean[] boolArr;
     String[] strArr;
+    GLFWErrorCallback upcall;
 }

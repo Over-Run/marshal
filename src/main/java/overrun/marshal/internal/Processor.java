@@ -24,14 +24,20 @@ import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.ElementFilter;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.lang.foreign.ValueLayout;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Function;
+
+import static overrun.marshal.internal.Util.*;
 
 /**
  * Annotation processor
@@ -171,6 +177,98 @@ public abstract class Processor extends AbstractProcessor {
                 yield new InvokeSpec(Charset.class, "forName").addArgument(getConstExp(name));
             }
         };
+    }
+
+    /**
+     * canConvertToAddress
+     *
+     * @param typeMirror typeMirror
+     * @return canConvertToAddress
+     */
+    protected boolean canConvertToAddress(TypeMirror typeMirror) {
+        return switch (typeMirror.getKind()) {
+            case ARRAY -> isPrimitiveArray(typeMirror) || isBooleanArray(typeMirror) || isStringArray(typeMirror);
+            case DECLARED -> isMemorySegment(typeMirror) || isString(typeMirror) || isUpcall(typeMirror);
+            default -> false;
+        };
+    }
+
+    /**
+     * isValueType
+     *
+     * @param typeMirror typeMirror
+     * @return isValueType
+     */
+    protected boolean isValueType(TypeMirror typeMirror) {
+        if (typeMirror.getKind().isPrimitive()) {
+            return true;
+        }
+        return canConvertToAddress(typeMirror);
+    }
+
+    /**
+     * toValueLayout
+     *
+     * @param typeMirror typeMirror
+     * @return toValueLayout
+     */
+    protected ValueLayout toValueLayout(TypeMirror typeMirror) {
+        return switch (typeMirror.getKind()) {
+            case BOOLEAN -> ValueLayout.JAVA_BOOLEAN;
+            case BYTE -> ValueLayout.JAVA_BYTE;
+            case SHORT -> ValueLayout.JAVA_SHORT;
+            case INT -> ValueLayout.JAVA_INT;
+            case LONG -> ValueLayout.JAVA_LONG;
+            case CHAR -> ValueLayout.JAVA_CHAR;
+            case FLOAT -> ValueLayout.JAVA_FLOAT;
+            case DOUBLE -> ValueLayout.JAVA_DOUBLE;
+            default -> {
+                if (canConvertToAddress(typeMirror)) yield ValueLayout.ADDRESS;
+                throw invalidType(typeMirror);
+            }
+        };
+    }
+
+    /**
+     * toValueLayoutStr
+     *
+     * @param typeMirror typeMirror
+     * @return toValueLayoutStr
+     */
+    protected String toValueLayoutStr(TypeMirror typeMirror) {
+        return switch (typeMirror.getKind()) {
+            case BOOLEAN -> "ValueLayout.JAVA_BOOLEAN";
+            case BYTE -> "ValueLayout.JAVA_BYTE";
+            case SHORT -> "ValueLayout.JAVA_SHORT";
+            case INT -> "ValueLayout.JAVA_INT";
+            case LONG -> "ValueLayout.JAVA_LONG";
+            case CHAR -> "ValueLayout.JAVA_CHAR";
+            case FLOAT -> "ValueLayout.JAVA_FLOAT";
+            case DOUBLE -> "ValueLayout.JAVA_DOUBLE";
+            default -> {
+                if (canConvertToAddress(typeMirror)) yield "ValueLayout.ADDRESS";
+                throw invalidType(typeMirror);
+            }
+        };
+    }
+
+    /**
+     * Find wrapper method
+     *
+     * @param typeMirror the type
+     * @return the wrapper method
+     */
+    protected Optional<ExecutableElement> findWrapperMethod(TypeMirror typeMirror) {
+        return ElementFilter.methodsIn(processingEnv.getTypeUtils()
+                .asElement(typeMirror)
+                .getEnclosedElements())
+            .stream()
+            .filter(method -> method.getAnnotation(Upcall.Wrapper.class) != null)
+            .filter(method -> {
+                final var list = method.getParameters();
+                return list.size() == 1 && isMemorySegment(list.getFirst().asType());
+            })
+            .findFirst();
     }
 
     @Override

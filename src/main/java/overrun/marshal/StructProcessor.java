@@ -228,8 +228,8 @@ public final class StructProcessor extends Processor {
                     .addArgument("count")
                     .addArgument("LAYOUT")));
                 forEach(fields, false, e -> {
-                    final var name = e.getSimpleName();
-                    methodSpec.addStatement(Spec.assignStatement(Spec.accessSpec("this", name.toString()),
+                    final var name = e.getSimpleName().toString();
+                    methodSpec.addStatement(Spec.assignStatement(Spec.accessSpec("this", name),
                         new InvokeSpec(Spec.literal("this._sequenceLayout"), "varHandle")
                             .addArgument("_SEQUENCE_ELEMENT")
                             .addArgument("_PE_" + name)));
@@ -291,13 +291,15 @@ public final class StructProcessor extends Processor {
                 final TypeMirror eType = e.asType();
                 final String nameString = e.getSimpleName().toString();
                 if (isValueType(eType)) {
+                    final String eTypeString = eType.toString();
                     final SizedSeg sizedSeg = e.getAnnotation(SizedSeg.class);
                     final Sized sized = e.getAnnotation(Sized.class);
                     final boolean canConvertToAddress = canConvertToAddress(eType);
-                    final String returnType = canConvertToAddress ? MemorySegment.class.getSimpleName() : eType.toString();
+                    final String returnType = canConvertToAddress ? MemorySegment.class.getSimpleName() : eTypeString;
                     final String capitalized = capitalize(nameString);
                     final boolean isMemorySegment = isMemorySegment(eType);
                     final boolean isArray = isArray(eType);
+                    final boolean upcall = isUpcall(eType);
                     final boolean generateN = canConvertToAddress && !isMemorySegment;
 
                     // getter
@@ -355,30 +357,47 @@ public final class StructProcessor extends Processor {
                                 finalReturnValue = new InvokeSpec(finalReturnValue, "toArray")
                                     .addArgument(toValueLayoutStr(arrayComponentType));
                             }
+                        } else if (upcall) {
+                            // find wrap method
+                            final var wrapMethod = findWrapperMethod(eType);
+                            if (wrapMethod.isPresent()) {
+                                finalReturnValue = new InvokeSpec(eTypeString, wrapMethod.get().getSimpleName().toString())
+                                    .addArgument(finalReturnValue);
+                            } else {
+                                printError("""
+                                    Couldn't find any wrap method in %s while %s.%s required
+                                         Possible solution: Mark the wrap method with @Upcall.Wrapper"""
+                                    .formatted(eType, type, nameString));
+                                return;
+                            }
                         }
                         if (storeResult != null) {
                             finalReturnValue = Spec.ternaryOp(Spec.neqSpec(new InvokeSpec("$_marshalResult", "address"), Spec.literal("0L")),
                                 finalReturnValue,
                                 Spec.literal("null"));
                         }
-                        addGetterAt(classSpec, e, "get", simplify(eType.toString()), storeResult, finalReturnValue);
+                        addGetterAt(classSpec, e, "get", simplify(eTypeString), storeResult, finalReturnValue);
                     }
 
                     // setter
                     if (!typeConst && e.getAnnotation(Const.class) == null) {
+                        final String paramIndex = convertParamIndex(nameString);
+                        final String paramSegmentAllocator = convertParamSegmentAllocator(nameString);
                         addSetterAt(classSpec, e, generateN ? "nset" : "set", returnType,
                             Spec.statement(new InvokeSpec(Spec.accessSpec("this", nameString), "set")
                                 .addArgument("this._memorySegment")
                                 .addArgument("0L")
-                                .addArgument("index")
-                                .addArgument("value")));
+                                .also(invokeSpec -> {
+                                    invokeSpec.addArgument(paramIndex);
+                                    invokeSpec.addArgument(nameString);
+                                })));
                         if (generateN) {
-                            final InvokeSpec invokeSpec = new InvokeSpec("this", "nset" + capitalized + "At")
-                                .addArgument("index");
+                            final InvokeSpec invokeSpec = new InvokeSpec("this", "nset" + capitalized + "At");
+                            invokeSpec.addArgument(paramIndex);
                             if (isString(eType)) {
                                 final StrCharset strCharset = e.getAnnotation(StrCharset.class);
-                                final InvokeSpec alloc = new InvokeSpec("_segmentAllocator", "allocateFrom")
-                                    .addArgument("value");
+                                final InvokeSpec alloc = new InvokeSpec(paramSegmentAllocator, "allocateFrom")
+                                    .addArgument(nameString);
                                 if (strCharset != null) {
                                     alloc.addArgument(createCharset(file, getCustomCharset(e)));
                                 }
@@ -386,26 +405,29 @@ public final class StructProcessor extends Processor {
                             } else if (isArray) {
                                 if (isBooleanArray(eType)) {
                                     invokeSpec.addArgument(new InvokeSpec(BoolHelper.class.getCanonicalName(), "of")
-                                        .addArgument("_segmentAllocator")
-                                        .addArgument("value"));
+                                        .addArgument(paramSegmentAllocator)
+                                        .addArgument(nameString));
                                 } else if (isStringArray(eType)) {
                                     invokeSpec.addArgument(new InvokeSpec(StrHelper.class.getCanonicalName(), "of")
-                                        .addArgument("_segmentAllocator")
-                                        .addArgument("value")
+                                        .addArgument(paramSegmentAllocator)
+                                        .addArgument(nameString)
                                         .addArgument(createCharset(file, getCustomCharset(e))));
                                 } else {
-                                    invokeSpec.addArgument(new InvokeSpec("_segmentAllocator", "allocateFrom")
+                                    invokeSpec.addArgument(new InvokeSpec(paramSegmentAllocator, "allocateFrom")
                                         .addArgument(toValueLayoutStr(getArrayComponentType(eType)))
-                                        .addArgument("value"));
+                                        .addArgument(nameString));
                                 }
+                            } else if (isUpcall(eType)) {
+                                invokeSpec.addArgument(new InvokeSpec(nameString, "stub")
+                                    .addArgument(convertParamArena(nameString)));
                             } else {
-                                invokeSpec.addArgument("value");
+                                invokeSpec.addArgument(nameString);
                             }
-                            addSetterAt(classSpec, e, "set", simplify(eType.toString()), Spec.statement(invokeSpec));
+                            addSetterAt(classSpec, e, "set", simplify(eTypeString), Spec.statement(invokeSpec));
                         }
                     }
                 }
-                // TODO: 2023/12/17 squid233: struct, upcall
+                // TODO: 2023/12/17 squid233: struct
             });
 
             // override
@@ -421,55 +443,78 @@ public final class StructProcessor extends Processor {
     }
 
     private void addSetterAt(ClassSpec classSpec, VariableElement e, String setType, String valueType, Spec setter) {
-        final String member = e.getSimpleName().toString();
+        final String nameString = e.getSimpleName().toString();
         final TypeMirror eType = e.asType();
-        final boolean insertAllocator = "set".equals(setType) && (isString(eType) || isArray(eType));
-        classSpec.addMethod(new MethodSpec("void", setType + capitalize(member) + "At"), methodSpec -> {
+        final boolean insertArena = "set".equals(setType) && isUpcall(eType);
+        final boolean insertAllocator = !insertArena && "set".equals(setType) && (isString(eType) || isArray(eType));
+        classSpec.addMethod(new MethodSpec("void", setType + capitalize(nameString) + "At"), methodSpec -> {
             final String eDoc = getDocument(e);
+            final String paramIndex = convertParamIndex(nameString);
+            final String paramArena = convertParamArena(nameString);
+            final String paramSegmentAllocator = convertParamSegmentAllocator(nameString);
             methodSpec.setDocument("""
                  Sets %s at the given index.
 
-                 %s@param index the index
-                 @param value the value\
-                """.formatted(eDoc != null ? eDoc : "{@code " + e.getSimpleName() + '}', insertAllocator ? "@param _segmentAllocator the allocator\n " : ""));
-            if (insertAllocator) {
-                methodSpec.addParameter(SegmentAllocator.class, "_segmentAllocator");
+                 %s@param %s the index
+                 @param %s the value\
+                """.formatted(eDoc != null ? eDoc : "{@code " + nameString + '}',
+                insertArena ?
+                    "@param " + paramArena + " the arena\n " :
+                    (insertAllocator ? "@param " + paramSegmentAllocator + " the allocator\n " : ""),
+                paramIndex,
+                nameString));
+            if (insertArena) {
+                methodSpec.addParameter(Arena.class, paramArena);
+            } else if (insertAllocator) {
+                methodSpec.addParameter(SegmentAllocator.class, paramSegmentAllocator);
             }
-            methodSpec.addParameter(long.class, "index");
+            methodSpec.addParameter(long.class, paramIndex);
             addSetterValue(e, valueType, methodSpec);
             methodSpec.addStatement(setter);
         });
-        addSetter(classSpec, e, setType, valueType, insertAllocator);
+        addSetter(classSpec, e, setType, valueType, insertArena, insertAllocator);
     }
 
-    private void addSetter(ClassSpec classSpec, VariableElement e, String setType, String valueType, boolean insertAllocator) {
-        final String name = setType + capitalize(e.getSimpleName().toString());
+    private void addSetter(ClassSpec classSpec, VariableElement e, String setType, String valueType, boolean insertArena, boolean insertAllocator) {
+        final String nameString = e.getSimpleName().toString();
+        final String name = setType + capitalize(nameString);
         classSpec.addMethod(new MethodSpec("void", name), methodSpec -> {
             final String eDoc = getDocument(e);
+            final String paramArena = convertParamArena(nameString);
+            final String paramSegmentAllocator = convertParamSegmentAllocator(nameString);
             methodSpec.setDocument("""
                  Sets the first %s.
 
-                 %s@param value the value\
-                """.formatted(eDoc != null ? eDoc : "{@code " + e.getSimpleName() + '}', insertAllocator ? "@param _allocator the allocator\n " : ""));
-            if (insertAllocator) {
-                methodSpec.addParameter(SegmentAllocator.class, "_segmentAllocator");
+                 %s@param %s the value\
+                """.formatted(eDoc != null ? eDoc : "{@code " + nameString + '}',
+                insertArena ?
+                    ("@param " + paramArena + " the arena\n ") :
+                    (insertAllocator ? ("@param " + paramSegmentAllocator + " the allocator\n ") : ""),
+                nameString));
+            if (insertArena) {
+                methodSpec.addParameter(Arena.class, paramArena);
+            } else if (insertAllocator) {
+                methodSpec.addParameter(SegmentAllocator.class, paramSegmentAllocator);
             }
             addSetterValue(e, valueType, methodSpec);
             methodSpec.addStatement(Spec.statement(new InvokeSpec("this", name + "At")
                 .also(invokeSpec -> {
-                    if (insertAllocator) {
-                        invokeSpec.addArgument("_segmentAllocator");
+                    if (insertArena) {
+                        invokeSpec.addArgument(paramArena);
+                    } else if (insertAllocator) {
+                        invokeSpec.addArgument(paramSegmentAllocator);
                     }
                 })
                 .addArgument("0L")
-                .addArgument("value")));
+                .addArgument(nameString)));
         });
     }
 
     private void addGetterAt(ClassSpec classSpec, VariableElement e, String getType, String returnType, Spec storeResult, Spec returnValue) {
+        final String nameString = e.getSimpleName().toString();
         final Sized sized = e.getAnnotation(Sized.class);
         final boolean insertCount = "get".equals(getType) && sized == null && isArray(e.asType());
-        classSpec.addMethod(new MethodSpec(returnType, getType + capitalize(e.getSimpleName().toString()) + "At"), methodSpec -> {
+        classSpec.addMethod(new MethodSpec(returnType, getType + capitalize(nameString) + "At"), methodSpec -> {
             final SizedSeg sizedSeg = e.getAnnotation(SizedSeg.class);
             final String eDoc = getDocument(e);
             methodSpec.setDocument("""
@@ -477,7 +522,7 @@ public final class StructProcessor extends Processor {
 
                  %s@param index the index
                  @return %1$s\
-                """.formatted(eDoc != null ? eDoc : "{@code " + e.getSimpleName() + '}', insertCount ? "@param count the length of the array\n " : ""));
+                """.formatted(eDoc != null ? eDoc : "{@code " + nameString + '}', insertCount ? "@param count the length of the array\n " : ""));
             addGetterAnnotation(e, returnType, methodSpec, sizedSeg, sized);
             if (insertCount) {
                 methodSpec.addParameter(int.class, "count");
@@ -492,7 +537,8 @@ public final class StructProcessor extends Processor {
     }
 
     private void addGetter(ClassSpec classSpec, VariableElement e, String getType, String returnType, boolean insertCount) {
-        final String name = getType + capitalize(e.getSimpleName().toString());
+        final String nameString = e.getSimpleName().toString();
+        final String name = getType + capitalize(nameString);
         classSpec.addMethod(new MethodSpec(returnType, name), methodSpec -> {
             final SizedSeg sizedSeg = e.getAnnotation(SizedSeg.class);
             final Sized sized = e.getAnnotation(Sized.class);
@@ -501,7 +547,7 @@ public final class StructProcessor extends Processor {
                  Gets the first %s.
 
                  %s@return %1$s\
-                """.formatted(eDoc != null ? eDoc : "{@code " + e.getSimpleName() + '}', insertCount ? "@param count the length of the array\n " : ""));
+                """.formatted(eDoc != null ? eDoc : "{@code " + nameString + '}', insertCount ? "@param count the length of the array\n " : ""));
             addGetterAnnotation(e, returnType, methodSpec, sizedSeg, sized);
             if (insertCount) {
                 methodSpec.addParameter(int.class, "count");
@@ -517,7 +563,7 @@ public final class StructProcessor extends Processor {
     }
 
     private void addSetterValue(VariableElement e, String valueType, MethodSpec methodSpec) {
-        methodSpec.addParameter(new ParameterSpec(valueType, "value").also(parameterSpec -> {
+        methodSpec.addParameter(new ParameterSpec(valueType, e.getSimpleName().toString()).also(parameterSpec -> {
             if (isMemorySegmentSimple(valueType)) {
                 final SizedSeg sizedSeg = e.getAnnotation(SizedSeg.class);
                 if (sizedSeg != null) {
@@ -548,6 +594,22 @@ public final class StructProcessor extends Processor {
         } else {
             addAnnotationValue(methodSpec, sized, Sized.class, Sized::value);
         }
+    }
+
+    private static String convertParamIndex(String nameString) {
+        return insertUnderline("index", nameString);
+    }
+
+    private static String convertParamSegmentAllocator(String nameString) {
+        return insertUnderline("segmentAllocator", nameString);
+    }
+
+    private static String convertParamArena(String nameString) {
+        return insertUnderline("arena", nameString);
+    }
+
+    private static String insertUnderline(String builtinName, String nameString) {
+        return builtinName.equals(nameString) ? "_" + builtinName : builtinName;
     }
 
     private static void addIStructImpl(ClassSpec classSpec, Class<?> aClass, String name, Spec spec) {

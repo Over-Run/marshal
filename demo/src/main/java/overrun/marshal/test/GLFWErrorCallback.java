@@ -45,12 +45,12 @@ public interface GLFWErrorCallback extends Upcall {
 
     @Wrapper
     static GLFWErrorCallback wrap(MemorySegment stub) {
-        return (error, description) -> {
-            try (Arena arena = Arena.ofConfined()) {
-                TYPE.downcall(stub).invokeExact(error, arena.allocateFrom(description));
+        return TYPE.wrap(stub, (arena, methodHandle) -> (error, description) -> {
+            try {
+                methodHandle.invokeExact(error, arena.get().allocateFrom(description));
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
-        };
+        });
     }
 }

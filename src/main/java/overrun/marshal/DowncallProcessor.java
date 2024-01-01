@@ -450,23 +450,14 @@ public final class DowncallProcessor extends Processor {
                                 finalInvocation = getString;
                             } else if (isUpcall(returnType)) {
                                 // find wrap method
-                                final var wrapMethod = ElementFilter.methodsIn(processingEnv.getTypeUtils()
-                                        .asElement(returnType)
-                                        .getEnclosedElements())
-                                    .stream()
-                                    .filter(method -> method.getAnnotation(Upcall.Wrapper.class) != null)
-                                    .filter(method -> {
-                                        final var list = method.getParameters();
-                                        return list.size() == 1 && isMemorySegment(list.getFirst().asType());
-                                    })
-                                    .findFirst();
+                                final var wrapMethod = findWrapperMethod(returnType);
                                 if (wrapMethod.isPresent()) {
                                     finalInvocation = new InvokeSpec(returnType.toString(), wrapMethod.get().getSimpleName().toString())
                                         .addArgument(finalInvocation);
                                 } else {
                                     printError("""
-                                    Couldn't find any wrap method in %s while %s::%s required
-                                         Possible solution: Mark wrap method with @Upcall.Wrapper"""
+                                        Couldn't find any wrap method in %s while %s::%s required
+                                             Possible solution: Mark the wrap method with @Upcall.Wrapper"""
                                         .formatted(returnType, type, e));
                                     return;
                                 }
@@ -601,7 +592,7 @@ public final class DowncallProcessor extends Processor {
         });
     }
 
-    private static List<String> collectConflictedMethodSignature(ExecutableElement e) {
+    private List<String> collectConflictedMethodSignature(ExecutableElement e) {
         return Stream.concat(Stream.of(e.getReturnType()), e.getParameters().stream().map(VariableElement::asType)).map(t -> {
             if (t.getKind() == TypeKind.VOID) {
                 return ".VOID";
