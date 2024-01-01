@@ -137,9 +137,12 @@ public final class DowncallProcessor extends Processor {
                 } else {
                     overloadValue = null;
                 }
-                final String javaReturnType = (overloadValue != null && eIsStruct) ?
-                    eStructRef.value() :
-                    toTargetType(returnType, overloadValue);
+                final String javaReturnType;
+                if (eIsStruct) {
+                    javaReturnType = overloadValue != null ? eStructRef.value() : MemorySegment.class.getSimpleName();
+                } else {
+                    javaReturnType = toTargetType(returnType, overloadValue);
+                }
 
                 classSpec.addMethod(new MethodSpec(javaReturnType, methodName), methodSpec -> {
                     final var parameters = e.getParameters();

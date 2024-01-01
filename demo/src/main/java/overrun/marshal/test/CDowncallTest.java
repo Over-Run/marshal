@@ -152,11 +152,11 @@ interface CDowncallTest {
 
     @Entrypoint("testReturnStruct")
     @StructRef("overrun.marshal.test.StructTest")
-    MemorySegment ntestReturnStruct();
+    long ntestReturnStruct();
 
     @Overload("ntestReturnStruct")
     @StructRef("overrun.marshal.test.StructTest")
-    MemorySegment testReturnStruct();
+    Object testReturnStruct();
 
     /**
      * This is a test that tests all features.
