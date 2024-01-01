@@ -136,7 +136,12 @@ public abstract class Processor extends AbstractProcessor {
     /**
      * Add an annotation
      *
-     * @param annotation annotation
+     * @param annotatable annotatable
+     * @param annotation  annotation
+     * @param tClass      tClass
+     * @param function    function
+     * @param <T>         annotation type
+     * @param <R>         value
      */
     protected <T extends Annotation, R> void addAnnotationValue(Annotatable annotatable, T annotation, Class<T> tClass, Function<T, R> function) {
         if (annotation != null) {
