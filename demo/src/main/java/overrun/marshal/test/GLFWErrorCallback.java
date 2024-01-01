@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,12 +45,12 @@ public interface GLFWErrorCallback extends Upcall {
 
     @Wrapper
     static GLFWErrorCallback wrap(MemorySegment stub) {
-        return (error, description) -> {
+        return TYPE.wrap(stub, (arena, methodHandle) -> (error, description) -> {
             try {
-                TYPE.downcall(stub).invokeExact(error, description);
+                methodHandle.invokeExact(error, arena.get().allocateFrom(description));
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
-        };
+        });
     }
 }

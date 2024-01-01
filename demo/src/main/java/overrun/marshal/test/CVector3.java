@@ -14,13 +14,16 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.test;
+
+import overrun.marshal.struct.Const;
+import overrun.marshal.struct.Struct;
+
 /**
- * The main package of marshal.
- *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct
  * @since 0.1.0
  */
-package overrun.marshal;
+@Const
+@Struct
+public record CVector3(int x, int y, int z) {
+}

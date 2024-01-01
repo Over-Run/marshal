@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@ import java.util.function.Consumer;
  * @author squid233
  * @since 0.1.0
  */
-public final class ClassSpec implements Spec {
+public final class ClassSpec implements Annotatable, Spec {
     /**
      * Class
      */
@@ -46,6 +46,7 @@ public final class ClassSpec implements Spec {
     private final List<MethodSpec> methodSpecs = new ArrayList<>();
     private final List<AnnotationSpec> annotationSpecs = new ArrayList<>();
     private final List<String> superclasses = new ArrayList<>();
+    private final List<String> superinterfaces = new ArrayList<>();
 
     /**
      * Constructor
@@ -128,6 +129,7 @@ public final class ClassSpec implements Spec {
      *
      * @param annotationSpec annotation
      */
+    @Override
     public void addAnnotation(AnnotationSpec annotationSpec) {
         annotationSpecs.add(annotationSpec);
     }
@@ -139,6 +141,15 @@ public final class ClassSpec implements Spec {
      */
     public void addSuperclass(String className) {
         superclasses.add(className);
+    }
+
+    /**
+     * Add superinterface
+     *
+     * @param className class name
+     */
+    public void addSuperinterface(String className) {
+        superinterfaces.add(className);
     }
 
     @Override
@@ -164,16 +175,8 @@ public final class ClassSpec implements Spec {
                     throw new IllegalStateException("Unsupported class type for " + className + ": " + classType);
             })
             .append(' ').append(className);
-        if (!superclasses.isEmpty()) {
-            builder.append(" extends ");
-            for (int i = 0; i < superclasses.size(); i++) {
-                final String superclass = superclasses.get(i);
-                if (i != 0) {
-                    builder.append(", ");
-                }
-                builder.append(superclass);
-            }
-        }
+        addAfterClass(builder, "extends", superclasses);
+        addAfterClass(builder, "implements", superinterfaces);
         builder.append(" {\n");
         // body
         fieldSpecs.forEach(variableStatement -> variableStatement.append(builder, indent + 4));
@@ -181,5 +184,18 @@ public final class ClassSpec implements Spec {
         methodSpecs.forEach(methodSpec -> methodSpec.append(builder, indent + 4));
         // end
         builder.append(indentString).append("}\n");
+    }
+
+    private void addAfterClass(StringBuilder builder, String keyword, List<String> list) {
+        if (!list.isEmpty()) {
+            builder.append(" ").append(keyword).append(" ");
+            for (int i = 0; i < list.size(); i++) {
+                final String s = list.get(i);
+                if (i != 0) {
+                    builder.append(", ");
+                }
+                builder.append(s);
+            }
+        }
     }
 }

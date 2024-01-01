@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,46 @@ import java.util.stream.Collectors;
  */
 public interface Spec {
     /**
+     * Create a literal string
+     *
+     * @param s the string
+     * @return the spec
+     */
+    static Spec literal(String s) {
+        return (builder, _) -> builder.append(s);
+    }
+
+    /**
+     * Create parentheses spec
+     *
+     * @param spec spec
+     * @return spec
+     */
+    static Spec parentheses(Spec spec) {
+        return (builder, indent) -> {
+            builder.append('(');
+            spec.append(builder, indent);
+            builder.append(')');
+        };
+    }
+
+    /**
+     * Create operator spec
+     *
+     * @param operator operator
+     * @param a        a
+     * @param b        b
+     * @return spec
+     */
+    static Spec operatorSpec(String operator, Spec a, Spec b) {
+        return (builder, indent) -> {
+            a.append(builder, indent);
+            builder.append(' ').append(operator).append(' ');
+            b.append(builder, indent);
+        };
+    }
+
+    /**
      * Create simple class name spec
      *
      * @param clazz class
@@ -43,6 +83,38 @@ public interface Spec {
      */
     static Spec className(Class<?> clazz) {
         return literal(clazz.getCanonicalName());
+    }
+
+    /**
+     * Create an assign statement
+     *
+     * @param left  left
+     * @param right right
+     * @return statement
+     */
+    static Spec assignStatement(Spec left, Spec right) {
+        return (builder, indent) -> {
+            builder.append(indentString(indent));
+            left.append(builder, indent);
+            builder.append(" = ");
+            right.append(builder, indent);
+            builder.append(";\n");
+        };
+    }
+
+    /**
+     * Create an assign statement
+     *
+     * @param left  left
+     * @param right right
+     * @return statement
+     */
+    static Spec assignStatement(String left, Spec right) {
+        return (builder, indent) -> {
+            builder.append(indentString(indent)).append(left).append(" = ");
+            right.append(builder, indent);
+            builder.append(";\n");
+        };
     }
 
     /**
@@ -109,6 +181,21 @@ public interface Spec {
     }
 
     /**
+     * Create non-equal spec
+     *
+     * @param left  left
+     * @param right right
+     * @return spec
+     */
+    static Spec neqSpec(Spec left, Spec right) {
+        return (builder, indent) -> {
+            left.append(builder, indent);
+            builder.append(" != ");
+            right.append(builder, indent);
+        };
+    }
+
+    /**
      * Create an expression casting
      *
      * @param type type
@@ -162,16 +249,6 @@ public interface Spec {
             spec.append(builder, indent);
             builder.append(";\n");
         };
-    }
-
-    /**
-     * Create a literal string
-     *
-     * @param s the string
-     * @return the spec
-     */
-    static Spec literal(String s) {
-        return (builder, indent) -> builder.append(s);
     }
 
     /**

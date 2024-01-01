@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,22 @@ public final class Util {
     }
 
     /**
+     * capitalize
+     *
+     * @param str str
+     * @return capitalize
+     */
+    public static String capitalize(String str) {
+        final int len = str == null ? 0 : str.length();
+        if (len == 0) return str;
+        final int codePoint0 = str.codePointAt(0);
+        final int titleCase = Character.toTitleCase(codePoint0);
+        if (codePoint0 == titleCase) return str;
+        if (len > 1) return (char) titleCase + str.substring(1);
+        return String.valueOf((char) titleCase);
+    }
+
+    /**
      * Invalid type
      *
      * @param typeMirror typeMirror
@@ -59,6 +75,16 @@ public final class Util {
     }
 
     /**
+     * isDeclared
+     *
+     * @param typeMirror typeMirror
+     * @return isDeclared
+     */
+    public static boolean isDeclared(TypeMirror typeMirror) {
+        return typeMirror.getKind() == TypeKind.DECLARED;
+    }
+
+    /**
      * isMemorySegment
      *
      * @param clazzName clazzName
@@ -75,7 +101,8 @@ public final class Util {
      * @return isMemorySegment
      */
     public static boolean isMemorySegment(TypeMirror typeMirror) {
-        return isMemorySegment(typeMirror.toString());
+        return isDeclared(typeMirror) &&
+               isMemorySegment(typeMirror.toString());
     }
 
     /**
@@ -95,7 +122,8 @@ public final class Util {
      * @return isString
      */
     public static boolean isString(TypeMirror typeMirror) {
-        return isString(typeMirror.toString());
+        return isDeclared(typeMirror) &&
+               isString(typeMirror.toString());
     }
 
     /**
@@ -115,7 +143,8 @@ public final class Util {
      * @return isBooleanArray
      */
     public static boolean isBooleanArray(TypeMirror typeMirror) {
-        return getArrayComponentType(typeMirror).getKind() == TypeKind.BOOLEAN;
+        return isArray(typeMirror) &&
+               getArrayComponentType(typeMirror).getKind() == TypeKind.BOOLEAN;
     }
 
     /**
@@ -125,7 +154,18 @@ public final class Util {
      * @return isPrimitiveArray
      */
     public static boolean isPrimitiveArray(TypeMirror typeMirror) {
-        return getArrayComponentType(typeMirror).getKind().isPrimitive();
+        return isArray(typeMirror) &&
+               getArrayComponentType(typeMirror).getKind().isPrimitive();
+    }
+
+    /**
+     * isStringArray
+     *
+     * @param typeMirror typeMirror
+     * @return isStringArray
+     */
+    public static boolean isStringArray(TypeMirror typeMirror) {
+        return isArray(typeMirror) && isString(getArrayComponentType(typeMirror));
     }
 
     /**
@@ -136,50 +176,5 @@ public final class Util {
      */
     public static TypeMirror getArrayComponentType(TypeMirror typeMirror) {
         return ((ArrayType) typeMirror).getComponentType();
-    }
-
-    /**
-     * isSupportedType
-     *
-     * @param typeMirror typeMirror
-     * @return isSupportedType
-     */
-    public static boolean isSupportedType(TypeMirror typeMirror) {
-        return switch (typeMirror.getKind()) {
-            case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE -> true;
-            case ARRAY -> isPrimitiveArray(typeMirror);
-            case DECLARED -> // TODO: 2023/12/15 Add support to struct
-                isMemorySegment(typeMirror) || isString(typeMirror);
-            default -> false;
-        };
-    }
-
-    /**
-     * toValueLayout
-     *
-     * @param typeMirror typeMirror
-     * @return toValueLayout
-     */
-    public static String toValueLayout(TypeMirror typeMirror) {
-        return switch (typeMirror.getKind()) {
-            case BOOLEAN -> "ValueLayout.JAVA_BOOLEAN";
-            case BYTE -> "ValueLayout.JAVA_BYTE";
-            case SHORT -> "ValueLayout.JAVA_SHORT";
-            case INT -> "ValueLayout.JAVA_INT";
-            case LONG -> "ValueLayout.JAVA_LONG";
-            case CHAR -> "ValueLayout.JAVA_CHAR";
-            case FLOAT -> "ValueLayout.JAVA_FLOAT";
-            case DOUBLE -> "ValueLayout.JAVA_DOUBLE";
-            case ARRAY -> {
-                if (isPrimitiveArray(typeMirror)) yield "ValueLayout.ADDRESS";
-                else throw invalidType(typeMirror);
-            }
-            case DECLARED -> {
-                if (isMemorySegment(typeMirror) || isString(typeMirror)) yield "ValueLayout.ADDRESS";
-                // TODO: 2023/12/15 Add support to struct
-                throw invalidType(typeMirror);
-            }
-            default -> throw invalidType(typeMirror);
-        };
     }
 }

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -96,7 +96,7 @@ public final class SourceFile {
      * @throws IOException If an I/O error occurs
      */
     public void write(Writer writer) throws IOException {
-        final StringBuilder sb = new StringBuilder(16384);
+        final StringBuilder sb = new StringBuilder(32768);
         // header
         sb.append("// This file is auto-generated. DO NOT EDIT!\n");
         // package

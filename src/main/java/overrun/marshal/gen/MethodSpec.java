@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@ import java.util.List;
  * @author squid233
  * @since 0.1.0
  */
-public final class MethodSpec implements Spec, StatementBlock {
+public final class MethodSpec implements Annotatable, Spec, StatementBlock {
     private final String returnType;
     private final String name;
     private String document = null;
@@ -64,6 +64,7 @@ public final class MethodSpec implements Spec, StatementBlock {
      *
      * @param annotationSpec annotation
      */
+    @Override
     public void addAnnotation(AnnotationSpec annotationSpec) {
         annotations.add(annotationSpec);
     }
@@ -84,6 +85,16 @@ public final class MethodSpec implements Spec, StatementBlock {
      */
     public void addParameter(ParameterSpec parameterSpec) {
         parameters.add(parameterSpec);
+    }
+
+    /**
+     * Add a parameter
+     *
+     * @param type type
+     * @param name name
+     */
+    public void addParameter(Class<?> type, String name) {
+        addParameter(type.getSimpleName(), name);
     }
 
     /**
@@ -155,7 +166,10 @@ public final class MethodSpec implements Spec, StatementBlock {
         if (isDefault) {
             builder.append("default ");
         }
-        builder.append(returnType).append(' ').append(name).append('(');
+        if (returnType != null) {
+            builder.append(returnType).append(' ');
+        }
+        builder.append(name).append('(');
         if (separateLine) {
             builder.append('\n').append(indentString4);
         }

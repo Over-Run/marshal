@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -115,9 +115,11 @@ public final class VariableStatement implements Spec {
         if (isFinal) {
             builder.append("final ");
         }
-        builder.append(type).append(' ').append(name)
-            .append(" = ");
-        value.append(builder, indent);
+        builder.append(type).append(' ').append(name);
+        if (value != null) {
+            builder.append(" = ");
+            value.append(builder, indent);
+        }
         builder.append(";\n");
     }
 }

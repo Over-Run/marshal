@@ -14,13 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal;
+
+import java.lang.annotation.*;
+
 /**
- * The main package of marshal.
+ * Marks a memory segment as fix-sized.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @SizedSeg(0x7FFFFFFFFFFFFFFFL)
+ * MemorySegment segment;
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct
+ * @see Checks#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
-package overrun.marshal;
+@Documented
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+@Retention(RetentionPolicy.SOURCE)
+public @interface SizedSeg {
+    /**
+     * {@return the size of the memory segment}
+     */
+    long value();
+}

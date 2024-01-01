@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,29 +14,11 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
-
-import java.lang.annotation.*;
-
 /**
- * Marks an array parameter as a fixed size array.
- * <p>
- * The generated code will try to check the size of a passing array.
- * <h2>Example</h2>
- * <pre>{@code
- * void set(@FixedSize(3) int[] vec);
- * }</pre>
+ * The struct package of marshal.
  *
  * @author squid233
- * @see Checks#CHECK_ARRAY_SIZE
+ * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.PARAMETER)
-@Retention(RetentionPolicy.SOURCE)
-public @interface FixedSize {
-    /**
-     * {@return the size of the array}
-     */
-    int value();
-}
+package overrun.marshal.struct;

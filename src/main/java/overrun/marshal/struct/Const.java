@@ -14,13 +14,27 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.struct;
+
+import java.lang.annotation.*;
+
 /**
- * The main package of marshal.
+ * Marks a struct or its member as <i>const</i>.
+ * <p>
+ * A const struct or its member does not generate setter.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Const
+ * @Struct
+ * record Vector2(int x, int y) {
+ * }
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct
  * @since 0.1.0
  */
-package overrun.marshal;
+@Documented
+@Target({ElementType.FIELD, ElementType.TYPE})
+@Retention(RetentionPolicy.SOURCE)
+public @interface Const {
+}

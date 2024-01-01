@@ -14,28 +14,42 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.struct;
 
 import java.lang.annotation.*;
 
 /**
- * Sets the charset of a string type.
+ * Marks a class or interface as a struct provider.
+ * <p>
+ * The generated class contains a {@link java.lang.foreign.StructLayout StructLayout} with name "{@code _LAYOUT}".
+ * You can link it in the documentation.
  * <h2>Example</h2>
- * <pre>{@code
- * @StrCharset("UTF-16")
- * String apply(@StrCharset("UTF-16") String s);
- * }</pre>
+ * <pre><code>
+ * &#47;**
+ *  * {&#64;linkplain _LAYOUT Layout}
+ *  *&#47;
+ * &#64;Struct
+ * class Point {
+ *     &#64;Skip
+ *     int _LAYOUT;
+ *     int x, y;
+ * }</code></pre>
  *
  * @author squid233
- * @see java.nio.charset.Charset Charset
+ * @see Const
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.PARAMETER, ElementType.METHOD, ElementType.FIELD})
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
-public @interface StrCharset {
+public @interface Struct {
     /**
-     * {@return the charset}
+     * {@return the name of the generated class}
      */
-    String value() default "UTF-8";
+    String name() default "";
+
+    /**
+     * {@return {@code true} if the generated class should not be {@code final}; {@code false} otherwise}
+     */
+    boolean nonFinal() default false;
 }

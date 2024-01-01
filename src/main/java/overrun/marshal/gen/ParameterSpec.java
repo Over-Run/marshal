@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  * @author squid233
  * @since 0.1.0
  */
-public final class ParameterSpec implements Spec {
+public final class ParameterSpec implements Annotatable, Spec {
     private final String type;
     private final String name;
     private final List<AnnotationSpec> annotations = new ArrayList<>();
@@ -47,6 +47,7 @@ public final class ParameterSpec implements Spec {
      *
      * @param annotationSpec annotation
      */
+    @Override
     public void addAnnotation(AnnotationSpec annotationSpec) {
         annotations.add(annotationSpec);
     }

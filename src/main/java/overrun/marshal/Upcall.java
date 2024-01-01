@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * An upcall interface.
@@ -56,13 +58,13 @@ import java.util.Arrays;
  *     // Create a wrap method
  *     @Wrapper
  *     static MyCallback wrap(MemorySegment stub) {
- *         return (i, p) -> {
+ *         return TYPE.wrap(stub, (arena, mh) -> (i, p) -> {
  *             try {
- *                 return TYPE.downcall(stub).invokeExact(i, p);
+ *                 return mh.invokeExact(i, arena.get().allocateFrom(p));
  *             } catch (Throwable e) {
  *                 throw new RuntimeException(e);
  *             }
- *         }
+ *         });
  *     }
  * }
  *
@@ -117,7 +119,6 @@ public interface Upcall {
     static <T extends Upcall> Type<T> create(Class<T> tClass) {
         return new Type<>(tClass);
     }
-
 
     /**
      * Marks a method as an upcall stub provider.
@@ -199,6 +200,18 @@ public interface Upcall {
          */
         public MethodHandle downcall(MemorySegment stub) {
             return LINKER.downcallHandle(stub, descriptor);
+        }
+
+        /**
+         * Wraps the given upcall stub segment.
+         *
+         * @param stub     the upcall stub segment
+         * @param function the function that transforms the given method handle into the downcall type.
+         *                 The {@link Arena} is wrapped in a {@link Supplier} and you should store it with a variable
+         * @return the downcall type
+         */
+        public T wrap(MemorySegment stub, BiFunction<Supplier<Arena>, MethodHandle, T> function) {
+            return function.apply(Arena::ofAuto, downcall(stub));
         }
 
         /**
