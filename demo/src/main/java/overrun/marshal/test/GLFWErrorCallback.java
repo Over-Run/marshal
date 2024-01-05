@@ -16,6 +16,7 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.SizedSeg;
 import overrun.marshal.Upcall;
 
 import java.lang.foreign.Arena;
@@ -34,8 +35,8 @@ public interface GLFWErrorCallback extends Upcall {
     void invoke(int error, String description);
 
     @Stub
-    default void invoke(int error, MemorySegment description) {
-        invoke(error, description.reinterpret(Long.MAX_VALUE).getString(0));
+    default void invoke(int error, @SizedSeg(Long.MAX_VALUE) MemorySegment description) {
+        invoke(error, description.getString(0));
     }
 
     @Override

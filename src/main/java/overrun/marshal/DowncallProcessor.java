@@ -245,16 +245,7 @@ public final class DowncallProcessor extends Processor {
                                     .map(p -> Spec.literal(p.getSimpleName().toString()))
                                     .collect(Collectors.toList()));
                             if (notVoid) {
-                                final Spec castSpec = Spec.cast(javaReturnType, invokeExact);
-                                if (eIsStruct) {
-                                    targetStatement.addStatement(Spec.returnStatement(new InvokeSpec(Spec.parentheses(castSpec), "reinterpret")
-                                        .addArgument(new InvokeSpec(Spec.accessSpec(eStructRef.value(), "LAYOUT"), "byteSize"))));
-                                } else if (eSizedSeg != null || eSized != null) {
-                                    targetStatement.addStatement(Spec.returnStatement(new InvokeSpec(Spec.parentheses(castSpec), "reinterpret")
-                                        .addArgument(getConstExp(eSizedSeg != null ? eSizedSeg.value() : eSized.value()))));
-                                } else {
-                                    targetStatement.addStatement(Spec.returnStatement(castSpec));
-                                }
+                                targetStatement.addStatement(Spec.returnStatement(Spec.cast(javaReturnType, invokeExact)));
                             } else {
                                 targetStatement.addStatement(Spec.statement(invokeExact));
                             }
@@ -447,12 +438,6 @@ public final class DowncallProcessor extends Processor {
                                 .addArgument(finalInvocation);
                         } else if (isArray(returnType)) {
                             final TypeMirror arrayComponentType = getArrayComponentType(returnType);
-                            if (eSized != null) {
-                                finalInvocation = new InvokeSpec(finalInvocation, "reinterpret")
-                                    .addArgument(Spec.operatorSpec("*",
-                                        Spec.literal(getConstExp(eSized.value())),
-                                        new InvokeSpec(toValueLayoutStr(arrayComponentType), "byteSize")));
-                            }
                             if (isBooleanArray(returnType)) {
                                 finalInvocation = new InvokeSpec(BoolHelper.class, "toArray")
                                     .addArgument(finalInvocation);
@@ -620,7 +605,27 @@ public final class DowncallProcessor extends Processor {
                         .addArgument(new InvokeSpec(FunctionDescriptor.class,
                             returnType.getKind() == TypeKind.VOID ? "ofVoid" : "of").also(invokeSpec -> {
                             if (returnType.getKind() != TypeKind.VOID) {
-                                invokeSpec.addArgument(toValueLayoutStr(returnType));
+                                final StructRef structRef = v.getAnnotation(StructRef.class);
+                                final boolean isStruct = structRef != null;
+                                final String valueLayoutStr = isStruct ? "ValueLayout.ADDRESS" : toValueLayoutStr(returnType);
+                                final SizedSeg sizedSeg = v.getAnnotation(SizedSeg.class);
+                                final Sized sized = v.getAnnotation(Sized.class);
+                                if (isStruct) {
+                                    invokeSpec.addArgument(new InvokeSpec(valueLayoutStr, "withTargetLayout")
+                                        .addArgument(Spec.accessSpec(structRef.value(), "LAYOUT")));
+                                } else if (sizedSeg != null && isMemorySegment(returnType)) {
+                                    invokeSpec.addArgument(new InvokeSpec(valueLayoutStr, "withTargetLayout")
+                                        .addArgument(new InvokeSpec(MemoryLayout.class, "sequenceLayout")
+                                            .addArgument(getConstExp(sizedSeg.value()))
+                                            .addArgument(Spec.accessSpec(ValueLayout.class, "JAVA_BYTE"))));
+                                } else if (sized != null && isArray(returnType)) {
+                                    invokeSpec.addArgument(new InvokeSpec(valueLayoutStr, "withTargetLayout")
+                                        .addArgument(new InvokeSpec(MemoryLayout.class, "sequenceLayout")
+                                            .addArgument(getConstExp(sized.value()))
+                                            .addArgument(Spec.accessSpec(ValueLayout.class, toValueLayoutStr(getArrayComponentType(returnType))))));
+                                } else {
+                                    invokeSpec.addArgument(valueLayoutStr);
+                                }
                             }
                             v.getParameters().forEach(e -> invokeSpec.addArgument(toValueLayoutStr(e.asType())));
                         })).also(invokeSpec -> {

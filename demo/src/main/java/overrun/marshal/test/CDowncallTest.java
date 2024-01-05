@@ -125,6 +125,7 @@ interface CDowncallTest {
     void testCriticalFalse();
 
     @Entrypoint("testReturnSizedArr")
+    @SizedSeg(4 * Integer.BYTES)
     MemorySegment ntestReturnSizedArr();
 
     @Overload("ntestReturnSizedArr")
