@@ -385,15 +385,12 @@ public final class StructProcessor extends Processor {
                             }
                         } else if (isUpcall) {
                             // find wrap method
-                            final var wrapMethod = findWrapperMethod(eType);
+                            final var wrapMethod = findUpcallWrapperMethod(eType);
                             if (wrapMethod.isPresent()) {
                                 finalReturnValue = new InvokeSpec(eTypeString, wrapMethod.get().getSimpleName().toString())
                                     .addArgument(finalReturnValue);
                             } else {
-                                printError("""
-                                    Couldn't find any wrap method in %s while %s.%s required
-                                         Possible solution: Mark the wrap method with @Upcall.Wrapper"""
-                                    .formatted(eType, type, nameString));
+                                printError(wrapperNotFound(eType, type, ".", nameString, "Upcall.Wrapper"));
                                 return;
                             }
                         }

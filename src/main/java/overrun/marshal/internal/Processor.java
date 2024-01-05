@@ -16,6 +16,7 @@
 
 package overrun.marshal.internal;
 
+import overrun.marshal.CEnum;
 import overrun.marshal.StrCharset;
 import overrun.marshal.Upcall;
 import overrun.marshal.gen.*;
@@ -50,6 +51,10 @@ public abstract class Processor extends AbstractProcessor {
      * upcallTypeMirror
      */
     protected TypeMirror upcallTypeMirror;
+    /**
+     * cEnumTypeMirror
+     */
+    protected TypeMirror cEnumTypeMirror;
 
     /**
      * constructor
@@ -60,7 +65,8 @@ public abstract class Processor extends AbstractProcessor {
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
-        upcallTypeMirror = processingEnv.getElementUtils().getTypeElement(Upcall.class.getCanonicalName()).asType();
+        upcallTypeMirror = getTypeMirror(Upcall.class);
+        cEnumTypeMirror = getTypeMirror(CEnum.class);
     }
 
     /**
@@ -122,6 +128,15 @@ public abstract class Processor extends AbstractProcessor {
         return processingEnv.getElementUtils().getConstantExpression(value);
     }
 
+    private TypeMirror getTypeMirror(Class<?> aClass) {
+        return processingEnv.getElementUtils().getTypeElement(aClass.getCanonicalName()).asType();
+    }
+
+    private boolean isAOfB(TypeMirror a, TypeMirror b) {
+        return Util.isDeclared(a) &&
+               processingEnv.getTypeUtils().isAssignable(a, b);
+    }
+
     /**
      * isUpcall
      *
@@ -129,8 +144,17 @@ public abstract class Processor extends AbstractProcessor {
      * @return isUpcall
      */
     protected boolean isUpcall(TypeMirror typeMirror) {
-        return Util.isDeclared(typeMirror) &&
-               processingEnv.getTypeUtils().isAssignable(typeMirror, upcallTypeMirror);
+        return isAOfB(typeMirror, upcallTypeMirror);
+    }
+
+    /**
+     * isCEnum
+     *
+     * @param typeMirror typeMirror
+     * @return isCEnum
+     */
+    protected boolean isCEnum(TypeMirror typeMirror) {
+        return isAOfB(typeMirror, cEnumTypeMirror);
     }
 
     /**
@@ -258,12 +282,12 @@ public abstract class Processor extends AbstractProcessor {
     }
 
     /**
-     * Find wrapper method
+     * Find upcall wrapper method
      *
      * @param typeMirror the type
-     * @return the wrapper method
+     * @return the upcall wrapper method
      */
-    protected Optional<ExecutableElement> findWrapperMethod(TypeMirror typeMirror) {
+    protected Optional<ExecutableElement> findUpcallWrapperMethod(TypeMirror typeMirror) {
         return ElementFilter.methodsIn(processingEnv.getTypeUtils()
                 .asElement(typeMirror)
                 .getEnclosedElements())
@@ -274,6 +298,42 @@ public abstract class Processor extends AbstractProcessor {
                 return list.size() == 1 && isMemorySegment(list.getFirst().asType());
             })
             .findFirst();
+    }
+
+    /**
+     * Find CEnum wrapper method
+     *
+     * @param typeMirror the type
+     * @return the CEnum wrapper method
+     */
+    protected Optional<ExecutableElement> findCEnumWrapperMethod(TypeMirror typeMirror) {
+        return ElementFilter.methodsIn(processingEnv.getTypeUtils()
+                .asElement(typeMirror)
+                .getEnclosedElements())
+            .stream()
+            .filter(method -> method.getAnnotation(CEnum.Wrapper.class) != null)
+            .filter(method -> {
+                final var list = method.getParameters();
+                return list.size() == 1 && int.class.getSimpleName().equals(list.getFirst().asType().toString());
+            })
+            .findFirst();
+    }
+
+    /**
+     * wrapperNotFound
+     *
+     * @param type           type
+     * @param enclosingType  enclosingType
+     * @param delimiter      delimiter
+     * @param name           name
+     * @param annotationName annotationName
+     * @return string
+     */
+    protected static String wrapperNotFound(Object type, Object enclosingType, Object delimiter, Object name, Object annotationName) {
+        return """
+            Couldn't find any wrap method in %s while %s%s%s required
+                 Possible solution: Mark the wrap method with @%s"""
+            .formatted(type, enclosingType, delimiter, name, annotationName);
     }
 
     @Override

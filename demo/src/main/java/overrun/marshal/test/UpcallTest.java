@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -17,6 +17,9 @@
 package overrun.marshal.test;
 
 import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.util.Arrays;
 
 /**
  * @author squid233
@@ -35,5 +38,13 @@ public final class UpcallTest {
 
         glfwSetErrorCallback(arena, (error, description) ->
             System.out.println("0x" + Integer.toHexString(error) + ": " + description));
+
+        Upcall2 upcall2 = (segment, arr) -> {
+            System.out.println("segment = " + segment);
+            System.out.println("arr = " + Arrays.toString(arr));
+            return MemorySegment.NULL;
+        };
+        System.out.println("descriptor = " + Upcall2.TYPE.descriptor());
+        System.out.println("return = " + Upcall2.wrap(upcall2.stub(arena)).invoke(MemorySegment.ofAddress(0x20L), arena.allocateFrom(ValueLayout.JAVA_INT, 1, 2, 3, 4)));
     }
 }

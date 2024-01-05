@@ -16,7 +16,10 @@
 
 package overrun.marshal;
 
-import java.lang.annotation.*;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -38,7 +41,7 @@ import java.util.function.Supplier;
  * @FunctionalInterface
  * public interface MyCallback extends Upcall {
  *     // Create a type wrapper
- *     Type<MyCallback> TYPE = Upcall.create();
+ *     Type<MyCallback> TYPE = Upcall.type();
  *
  *     // The function to be invoked in C
  *     int invoke(int i, String p);
@@ -94,10 +97,10 @@ public interface Upcall {
      *
      * @param <T> the type of the upcall interface
      * @return the created {@link Type}
-     * @see #create(Class)
+     * @see #type(Class)
      */
     @SuppressWarnings("unchecked")
-    static <T extends Upcall> Type<T> create() {
+    static <T extends Upcall> Type<T> type() {
         final class Walker {
             private static final StackWalker STACK_WALKER = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
         }
@@ -105,7 +108,7 @@ public interface Upcall {
         if (!Upcall.class.isAssignableFrom(callerClass)) {
             throw new ClassCastException(callerClass.getName());
         }
-        return create((Class<T>) callerClass);
+        return type((Class<T>) callerClass);
     }
 
     /**
@@ -114,9 +117,9 @@ public interface Upcall {
      * @param tClass the class of the upcall interface
      * @param <T>    the type of the upcall interface
      * @return the created {@link Type}
-     * @see #create()
+     * @see #type()
      */
-    static <T extends Upcall> Type<T> create(Class<T> tClass) {
+    static <T extends Upcall> Type<T> type(Class<T> tClass) {
         return new Type<>(tClass);
     }
 
@@ -170,8 +173,15 @@ public interface Upcall {
                 throw new RuntimeException(e);
             }
             final var returnType = method.getReturnType();
-            final MemoryLayout[] memoryLayouts = Arrays.stream(method.getParameterTypes())
-                .map(Type::toMemoryLayout)
+            final MemoryLayout[] memoryLayouts = Arrays.stream(method.getParameters())
+                .map(p -> {
+                    final MemoryLayout layout = toMemoryLayout(p.getType());
+                    final SizedSeg sizedSeg = p.getDeclaredAnnotation(SizedSeg.class);
+                    if (sizedSeg != null && layout instanceof AddressLayout addressLayout) {
+                        return addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sizedSeg.value(), ValueLayout.JAVA_BYTE));
+                    }
+                    return layout;
+                })
                 .toArray(MemoryLayout[]::new);
             if (returnType == void.class) {
                 descriptor = FunctionDescriptor.ofVoid(memoryLayouts);
@@ -189,7 +199,7 @@ public interface Upcall {
          * @see Linker#upcallStub(MethodHandle, FunctionDescriptor, Arena, Linker.Option...) upcallStub
          */
         public MemorySegment of(Arena arena, T upcall) {
-            return LINKER.upcallStub(target.bindTo(upcall), descriptor, arena);
+            return LINKER.upcallStub(target.bindTo(upcall), descriptor(), arena);
         }
 
         /**
@@ -199,7 +209,7 @@ public interface Upcall {
          * @return the downcall method handle
          */
         public MethodHandle downcall(MemorySegment stub) {
-            return LINKER.downcallHandle(stub, descriptor);
+            return LINKER.downcallHandle(stub, descriptor());
         }
 
         /**

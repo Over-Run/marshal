@@ -339,6 +339,8 @@ public final class DowncallProcessor extends Processor {
                                     } else if (isUpcall(pType)) {
                                         invocation.addArgument(new InvokeSpec(nameString, "stub")
                                             .addArgument(allocatorParamName));
+                                    } else if (isCEnum(pType)) {
+                                        invocation.addArgument(new InvokeSpec(nameString, "value"));
                                     } else {
                                         invocation.addArgument(nameString);
                                     }
@@ -367,12 +369,21 @@ public final class DowncallProcessor extends Processor {
                             }
                         }
                     });
-                    Spec finalSpec;
+                    final Spec finalSpec;
                     if (notVoid) {
                         if (shouldStoreResult) {
-                            finalSpec = new VariableStatement(MemorySegment.class, "$_marshalResult", invocation)
+                            finalSpec = new VariableStatement("var", "$_marshalResult", invocation)
                                 .setAccessModifier(AccessModifier.PACKAGE_PRIVATE)
                                 .setFinal(true);
+                        } else if (isCEnum(returnType)) {
+                            final var wrapMethod = findCEnumWrapperMethod(returnType);
+                            if (wrapMethod.isPresent()) {
+                                finalSpec = Spec.returnStatement(new InvokeSpec(returnType.toString(), wrapMethod.get().getSimpleName().toString())
+                                    .addArgument(invocation));
+                            } else {
+                                printError(wrapperNotFound(returnType, type, "::", e, "CEnum.Wrapper"));
+                                return;
+                            }
                         } else {
                             finalSpec = Spec.returnStatement(invocation);
                         }
@@ -463,24 +474,33 @@ public final class DowncallProcessor extends Processor {
                                 finalInvocation = getString;
                             } else if (isUpcall(returnType)) {
                                 // find wrap method
-                                final var wrapMethod = findWrapperMethod(returnType);
+                                final var wrapMethod = findUpcallWrapperMethod(returnType);
                                 if (wrapMethod.isPresent()) {
                                     finalInvocation = new InvokeSpec(returnType.toString(), wrapMethod.get().getSimpleName().toString())
                                         .addArgument(finalInvocation);
                                 } else {
-                                    printError("""
-                                        Couldn't find any wrap method in %s while %s::%s required
-                                             Possible solution: Mark the wrap method with @Upcall.Wrapper"""
-                                        .formatted(returnType, type, e));
+                                    printError(wrapperNotFound(returnType, type, "::", e, "Upcall.Wrapper"));
+                                    return;
+                                }
+                            } else if (isCEnum(returnType)) {
+                                final var wrapMethod = findCEnumWrapperMethod(returnType);
+                                if (wrapMethod.isPresent()) {
+                                    finalInvocation = new InvokeSpec(returnType.toString(), wrapMethod.get().getSimpleName().toString())
+                                        .addArgument(finalInvocation);
+                                } else {
+                                    printError(wrapperNotFound(returnType, type, "::", e, "CEnum.Wrapper"));
                                     return;
                                 }
                             }
                         }
 
                         methodSpec.addStatement(Spec.returnStatement(
-                            Spec.ternaryOp(Spec.neqSpec(new InvokeSpec("$_marshalResult", "address"), Spec.literal("0L")),
-                                finalInvocation,
-                                Spec.literal("null"))
+                            (eIsStruct || canConvertToAddress(returnType)) ?
+                                Spec.ternaryOp(Spec.neqSpec(new InvokeSpec("$_marshalResult", "address"), Spec.literal("0L")),
+                                    finalInvocation,
+                                    Spec.literal("null")
+                                ) :
+                                finalInvocation
                         ));
                     }
                 });
@@ -665,6 +685,9 @@ public final class DowncallProcessor extends Processor {
                 }
                 if (isUpcall(typeMirror)) {
                     yield overload == null ? MemorySegment.class.getSimpleName() : typeMirror.toString();
+                }
+                if (isCEnum(typeMirror)) {
+                    yield overload == null ? int.class.getSimpleName() : typeMirror.toString();
                 }
                 throw invalidType(typeMirror);
             }

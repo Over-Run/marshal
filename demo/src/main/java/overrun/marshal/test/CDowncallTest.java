@@ -158,6 +158,16 @@ interface CDowncallTest {
     @StructRef("overrun.marshal.test.StructTest")
     Object testReturnStruct();
 
+    int testEnumValue(int value);
+
+    @Overload
+    MyEnum testEnumValue(MyEnum value);
+
+    int testEnumValueWithRef(int value, MemorySegment ref);
+
+    @Overload
+    MyEnum testEnumValueWithRef(MyEnum value, @Ref int[] ref);
+
     /**
      * This is a test that tests all features.
      *

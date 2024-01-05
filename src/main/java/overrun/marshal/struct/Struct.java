@@ -21,17 +21,17 @@ import java.lang.annotation.*;
 /**
  * Marks a class or interface as a struct provider.
  * <p>
- * The generated class contains a {@link java.lang.foreign.StructLayout StructLayout} with name "{@code _LAYOUT}".
+ * The generated class contains a {@link java.lang.foreign.StructLayout StructLayout} with name "{@code LAYOUT}".
  * You can link it in the documentation.
  * <h2>Example</h2>
  * <pre><code>
  * &#47;**
- *  * {&#64;linkplain _LAYOUT Layout}
+ *  * {&#64;linkplain LAYOUT Layout}
  *  *&#47;
  * &#64;Struct
  * class Point {
  *     &#64;Skip
- *     int _LAYOUT;
+ *     int LAYOUT;
  *     int x, y;
  * }</code></pre>
  *

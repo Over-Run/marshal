@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -16,26 +16,27 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.SizedSeg;
 import overrun.marshal.Upcall;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 
 /**
- * Test upcall stub
- *
  * @author squid233
  * @since 0.1.0
  */
 @FunctionalInterface
-public interface GLFWErrorCallback extends Upcall {
-    Type<GLFWErrorCallback> TYPE = Upcall.type();
+public interface Upcall2 extends Upcall {
+    Type<Upcall2> TYPE = Upcall.type();
 
-    void invoke(int error, String description);
+    MemorySegment invoke(MemorySegment segment, int[] arr);
 
+    @SizedSeg(16L)
     @Stub
-    default void invoke(int error, MemorySegment description) {
-        invoke(error, description.reinterpret(Long.MAX_VALUE).getString(0));
+    default MemorySegment invoke(@SizedSeg(8L) MemorySegment segment, @SizedSeg(4L * Integer.BYTES) MemorySegment arr) {
+        return invoke(segment, arr.toArray(ValueLayout.JAVA_INT));
     }
 
     @Override
@@ -44,10 +45,10 @@ public interface GLFWErrorCallback extends Upcall {
     }
 
     @Wrapper
-    static GLFWErrorCallback wrap(MemorySegment stub) {
-        return TYPE.wrap(stub, (arena, methodHandle) -> (error, description) -> {
+    static Upcall2 wrap(MemorySegment stub) {
+        return TYPE.wrap(stub, (arenaSupplier, methodHandle) -> (segment, arr) -> {
             try {
-                methodHandle.invokeExact(error, arena.get().allocateFrom(description));
+                return (MemorySegment) methodHandle.invokeExact(segment, arenaSupplier.get().allocateFrom(ValueLayout.JAVA_INT, arr));
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }

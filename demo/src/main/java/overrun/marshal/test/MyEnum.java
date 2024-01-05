@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,28 +14,35 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.test;
 
-import java.lang.annotation.*;
+import overrun.marshal.CEnum;
 
 /**
- * Marks a memory segment as fix-sized.
- * <h2>Example</h2>
- * <pre>{@code
- * @SizedSeg(0x7FFFFFFFFFFFFFFFL)
- * MemorySegment segment;
- * }</pre>
- *
  * @author squid233
- * @see Checks#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
-@Documented
-@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface SizedSeg {
-    /**
-     * {@return the size of the memory segment}
-     */
-    long value();
+public enum MyEnum implements CEnum {
+    NO_ERROR(0x0),
+    SOME_ERROR(0x10);
+
+    private final int value;
+
+    MyEnum(int value) {
+        this.value = value;
+    }
+
+    @Wrapper
+    public static MyEnum of(int value) {
+        return switch (value) {
+            case 0x0 -> NO_ERROR;
+            case 0x10 -> SOME_ERROR;
+            default -> throw new IllegalArgumentException("Unexpected value: " + value);
+        };
+    }
+
+    @Override
+    public int value() {
+        return value;
+    }
 }

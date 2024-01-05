@@ -28,7 +28,7 @@ import overrun.marshal.struct.StructRef;
 import java.lang.foreign.MemorySegment;
 
 /**
- * {@linkplain #_LAYOUT Layout}
+ * {@linkplain #LAYOUT Layout}
  *
  * @author squid233
  * @since 0.1.0
@@ -36,7 +36,7 @@ import java.lang.foreign.MemorySegment;
 @Struct
 final class CStructTest {
     @Skip
-    int _LAYOUT;
+    int LAYOUT;
     int x;
     @Const
     int y;
