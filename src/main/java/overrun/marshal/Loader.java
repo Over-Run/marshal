@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,20 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal;
 
-import overrun.marshal.Loader;
-
-import java.lang.foreign.Arena;
+import java.lang.annotation.*;
 import java.lang.foreign.SymbolLookup;
 
 /**
+ * Marks a <strong>static</strong> method as the library loader.
+ * <p>
+ * The target method must only contain a parameter of type {@link String} and returns {@link SymbolLookup}.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Loader
+ * static SymbolLookup load(String name) {
+ *     //...
+ * }
+ * }</pre>
+ *
  * @author squid233
+ * @see Downcall
  * @since 0.1.0
  */
-public final class NativeLibLoader {
-    @Loader
-    public static SymbolLookup load(String basename) {
-        return SymbolLookup.libraryLookup(basename, Arena.ofAuto());
-    }
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Loader {
 }

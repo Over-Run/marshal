@@ -571,11 +571,23 @@ public final class DowncallProcessor extends Processor {
             .map(e -> e.getValue().getValue().toString())
             .orElse(null);
         final String libname = downcall.libname();
-        classSpec.addField(new VariableStatement(SymbolLookup.class, "_LOOKUP",
-            (loader == null ?
-                new InvokeSpec(Spec.className(LibraryLoader.class), "loadLibrary") :
-                new InvokeSpec(new ConstructSpec(loader), "load")).addArgument(getConstExp(libname))
-        ).setAccessModifier(AccessModifier.PRIVATE)
+        final InvokeSpec invocation;
+        if (loader == null) {
+            invocation = new InvokeSpec(SymbolLookup.class, "libraryLookup")
+                .addArgument(getConstExp(libname))
+                .addArgument(new InvokeSpec(Arena.class, "global"));
+        } else {
+            final var libLoader = findLibLoaderMethod(processingEnv.getElementUtils().getTypeElement(loader).asType());
+            if (libLoader.isPresent()) {
+                invocation = new InvokeSpec(loader, libLoader.get().getSimpleName().toString())
+                    .addArgument(getConstExp(libname));
+            } else {
+                printError(specifiedMethodNotFound("loader", loader, type, "", "", "Loader"));
+                return;
+            }
+        }
+        classSpec.addField(new VariableStatement(SymbolLookup.class, "_LOOKUP", invocation)
+            .setAccessModifier(AccessModifier.PRIVATE)
             .setStatic(true)
             .setFinal(true));
         classSpec.addField(new VariableStatement(Linker.class, "_LINKER",
