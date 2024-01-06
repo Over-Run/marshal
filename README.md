@@ -76,7 +76,7 @@ interface CGLFW {
      * @param posX   the position x
      * @param posY   the position y
      */
-    void glfwSetWindowPos(MemorySegment window, @Ref MemorySegment posX, @Ref MemorySegment posY);
+    void glfwGetWindowPos(MemorySegment window, @Ref MemorySegment posX, @Ref MemorySegment posY);
 
     /**
      * Overload another method with the same name
@@ -86,7 +86,7 @@ interface CGLFW {
      * @param posY   the array where to store the position y
      */
     @Overload
-    void glfwSetWindowPos(MemorySegment window, @Ref int[] posX, @Ref int[] posY);
+    void glfwGetWindowPos(MemorySegment window, @Ref int[] posX, @Ref int[] posY);
 
     /**
      * {@return a UTF-16 string}
@@ -109,8 +109,8 @@ class Main {
             MemorySegment bufY1 = stack.callocInt(1);
             int[] bufX2 = {0};
             int[] bufY2 = {0};
-            GLFW.glfwSetWindowPos(windowHandle, bufX1, bufY1);
-            GLFW.glfwSetWindowPos(windowHandle, bufX2, bufY2);
+            GLFW.glfwGetWindowPos(windowHandle, bufX1, bufY1);
+            GLFW.glfwGetWindowPos(windowHandle, bufX2, bufY2);
         }
         String s = GLFW.returnString();
     }
@@ -123,7 +123,7 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    def marshalVersion = "0.1.0-alpha.4"
+    def marshalVersion = "0.1.0-alpha.5"
     annotationProcessor("io.github.over-run:marshal:$marshalVersion")
     implementation("io.github.over-run:marshal:$marshalVersion")
 }
