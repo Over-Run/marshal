@@ -632,10 +632,6 @@ public final class StructProcessor extends Processor {
         return insertUnderline("arena", nameString);
     }
 
-    private static String insertUnderline(String builtinName, String nameString) {
-        return builtinName.equals(nameString) ? "_" + builtinName : builtinName;
-    }
-
     private static void addIStructImpl(ClassSpec classSpec, Class<?> aClass, String name, Spec spec) {
         classSpec.addMethod(new MethodSpec(aClass.getSimpleName(), name), methodSpec -> {
             methodSpec.addAnnotation(new AnnotationSpec(Override.class));

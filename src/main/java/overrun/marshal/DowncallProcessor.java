@@ -18,6 +18,7 @@ package overrun.marshal;
 
 import overrun.marshal.gen.*;
 import overrun.marshal.internal.Processor;
+import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.StructRef;
 
 import javax.annotation.processing.RoundEnvironment;
@@ -145,12 +146,13 @@ public final class DowncallProcessor extends Processor {
                 }
 
                 classSpec.addMethod(new MethodSpec(javaReturnType, methodName), methodSpec -> {
+                    final ByValue byValue = e.getAnnotation(ByValue.class);
                     final var parameters = e.getParameters();
                     final boolean shouldInsertArena = parameters.stream().map(VariableElement::asType).anyMatch(this::isUpcall);
-                    final boolean shouldInsertAllocator = !shouldInsertArena && parameters.stream().anyMatch(p -> {
+                    final boolean shouldInsertAllocator = !shouldInsertArena && (parameters.stream().anyMatch(p -> {
                         final TypeMirror t = p.asType();
                         return isArray(t) || isString(t);
-                    });
+                    }) || byValue != null);
                     final boolean notVoid = returnType.getKind() != TypeKind.VOID;
                     final boolean shouldStoreResult = notVoid &&
                                                       (isArray(returnType) ||
@@ -158,6 +160,7 @@ public final class DowncallProcessor extends Processor {
                                                        isUpcall(returnType) ||
                                                        eIsStruct ||
                                                        parameters.stream().anyMatch(p -> p.getAnnotation(Ref.class) != null));
+                    // annotations
                     final Access access = e.getAnnotation(Access.class);
                     final Critical critical = e.getAnnotation(Critical.class);
                     final Custom custom = e.getAnnotation(Custom.class);
@@ -166,7 +169,21 @@ public final class DowncallProcessor extends Processor {
                     final SizedSeg eSizedSeg = e.getAnnotation(SizedSeg.class);
                     final Sized eSized = e.getAnnotation(Sized.class);
 
-                    final String allocatorParamName = shouldInsertArena ? "_arena" : "_segmentAllocator";
+                    final String arenaParameter = parameters.stream()
+                        .map(VariableElement::getSimpleName)
+                        .filter("arena"::contentEquals)
+                        .findAny()
+                        .map(Object::toString)
+                        .orElse(null);
+                    final String segmentAllocatorParameter = parameters.stream()
+                        .map(VariableElement::getSimpleName)
+                        .filter("segmentAllocator"::contentEquals)
+                        .findAny()
+                        .map(Object::toString)
+                        .orElse(null);
+                    final String allocatorParamName = shouldInsertArena ?
+                        insertUnderline("arena", arenaParameter) :
+                        insertUnderline("segmentAllocator", segmentAllocatorParameter);
 
                     String document = getDocument(e);
                     if (document != null) {
@@ -240,10 +257,13 @@ public final class DowncallProcessor extends Processor {
                                 targetStatement = ifStatement;
                                 tryCatchStatement.addStatement(ifStatement);
                             }
-                            final InvokeSpec invokeExact = new InvokeSpec(entrypoint, "invokeExact")
-                                .addArguments(e.getParameters().stream()
-                                    .map(p -> Spec.literal(p.getSimpleName().toString()))
-                                    .collect(Collectors.toList()));
+                            final InvokeSpec invokeExact = new InvokeSpec(entrypoint, "invokeExact");
+                            if (byValue != null) {
+                                invokeExact.addArgument(allocatorParamName);
+                            }
+                            invokeExact.addArguments(e.getParameters().stream()
+                                .map(p -> Spec.literal(p.getSimpleName().toString()))
+                                .collect(Collectors.toList()));
                             if (notVoid) {
                                 targetStatement.addStatement(Spec.returnStatement(Spec.cast(javaReturnType, invokeExact)));
                             } else {
@@ -308,6 +328,9 @@ public final class DowncallProcessor extends Processor {
                     // invoke
                     final InvokeSpec invocation = new InvokeSpec(simpleClassName, overloadValue);
                     // add argument to overload invocation
+                    if (byValue != null) {
+                        invocation.addArgument(allocatorParamName);
+                    }
                     parameters.forEach(p -> {
                         final TypeMirror pType = p.asType();
                         final TypeKind pTypeKind = pType.getKind();
@@ -611,8 +634,12 @@ public final class DowncallProcessor extends Processor {
                                 final SizedSeg sizedSeg = v.getAnnotation(SizedSeg.class);
                                 final Sized sized = v.getAnnotation(Sized.class);
                                 if (isStruct) {
-                                    invokeSpec.addArgument(new InvokeSpec(valueLayoutStr, "withTargetLayout")
-                                        .addArgument(Spec.accessSpec(structRef.value(), "LAYOUT")));
+                                    if (v.getAnnotation(ByValue.class) != null) {
+                                        invokeSpec.addArgument(Spec.accessSpec(structRef.value(), "LAYOUT"));
+                                    } else {
+                                        invokeSpec.addArgument(new InvokeSpec(valueLayoutStr, "withTargetLayout")
+                                            .addArgument(Spec.accessSpec(structRef.value(), "LAYOUT")));
+                                    }
                                 } else if (sizedSeg != null && isMemorySegment(returnType)) {
                                     invokeSpec.addArgument(new InvokeSpec(valueLayoutStr, "withTargetLayout")
                                         .addArgument(new InvokeSpec(MemoryLayout.class, "sequenceLayout")

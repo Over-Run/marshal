@@ -17,6 +17,7 @@
 package overrun.marshal.test;
 
 import overrun.marshal.*;
+import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.StructRef;
 
 import java.lang.foreign.MemorySegment;
@@ -153,11 +154,21 @@ interface CDowncallTest {
 
     @Entrypoint("testReturnStruct")
     @StructRef("overrun.marshal.test.StructTest")
-    long ntestReturnStruct();
+    MemorySegment ntestReturnStruct();
 
     @Overload("ntestReturnStruct")
     @StructRef("overrun.marshal.test.StructTest")
     Object testReturnStruct();
+
+    @ByValue
+    @Entrypoint("returnByValueStruct")
+    @StructRef("overrun.marshal.test.StructTest")
+    MemorySegment nreturnByValueStruct();
+
+    @ByValue
+    @Overload("nreturnByValueStruct")
+    @StructRef("overrun.marshal.test.StructTest")
+    Object returnByValueStruct();
 
     int testEnumValue(int value);
 
@@ -168,6 +179,11 @@ interface CDowncallTest {
 
     @Overload
     MyEnum testEnumValueWithRef(MyEnum value, @Ref int[] ref);
+
+    void testNameSegmentAllocator(MemorySegment segmentAllocator, MemorySegment arr);
+
+    @Overload
+    void testNameSegmentAllocator(MemorySegment segmentAllocator, int[] arr);
 
     /**
      * This is a test that tests all features.

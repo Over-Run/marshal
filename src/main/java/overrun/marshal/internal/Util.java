@@ -177,4 +177,15 @@ public final class Util {
     public static TypeMirror getArrayComponentType(TypeMirror typeMirror) {
         return ((ArrayType) typeMirror).getComponentType();
     }
+
+    /**
+     * insertUnderline
+     *
+     * @param builtinName builtinName
+     * @param nameString  nameString
+     * @return insertUnderline
+     */
+    public static String insertUnderline(String builtinName, String nameString) {
+        return builtinName.equals(nameString) ? "_" + builtinName : builtinName;
+    }
 }
