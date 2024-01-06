@@ -223,16 +223,14 @@ public final class DowncallProcessor extends Processor {
                     final var parameterTypeFunction = parameterTypeFunction(custom, overloadValue);
                     parameters.forEach(p -> methodSpec.addParameter(new ParameterSpec(parameterTypeFunction.apply(p), p.getSimpleName().toString())
                         .also(parameterSpec -> {
+                            if (p.getAnnotation(NullableRef.class) != null) {
+                                parameterSpec.addAnnotation(new AnnotationSpec(NullableRef.class));
+                            }
+                            if (p.getAnnotation(Ref.class) != null) {
+                                parameterSpec.addAnnotation(new AnnotationSpec(Ref.class));
+                            }
                             addAnnotationValue(parameterSpec, p.getAnnotation(SizedSeg.class), SizedSeg.class, SizedSeg::value);
                             addAnnotationValue(parameterSpec, p.getAnnotation(Sized.class), Sized.class, Sized::value);
-                            final Ref ref = p.getAnnotation(Ref.class);
-                            if (ref != null) {
-                                parameterSpec.addAnnotation(new AnnotationSpec(Ref.class).also(annotationSpec -> {
-                                    if (ref.nullable()) {
-                                        annotationSpec.addArgument("nullable", "true");
-                                    }
-                                }));
-                            }
                         })));
 
                     if (custom != null) {
@@ -298,7 +296,6 @@ public final class DowncallProcessor extends Processor {
                             final TypeMirror arrayComponentType = getArrayComponentType(pType);
                             final Name name = p.getSimpleName();
                             final String nameString = name.toString();
-                            final Ref ref = p.getAnnotation(Ref.class);
                             final Spec invokeSpec;
                             if (isBooleanArray(pType)) {
                                 invokeSpec = new InvokeSpec(BoolHelper.class, "of")
@@ -317,7 +314,7 @@ public final class DowncallProcessor extends Processor {
                                 invokeSpec = Spec.literal(nameString);
                             }
                             methodSpec.addStatement(new VariableStatement(MemorySegment.class, "_" + nameString,
-                                ref.nullable() ?
+                                p.getAnnotation(NullableRef.class) != null ?
                                     Spec.ternaryOp(Spec.notNullSpec(nameString),
                                         invokeSpec,
                                         Spec.accessSpec(MemorySegment.class, "NULL")) :
@@ -335,53 +332,63 @@ public final class DowncallProcessor extends Processor {
                         final TypeMirror pType = p.asType();
                         final TypeKind pTypeKind = pType.getKind();
                         final String nameString = p.getSimpleName().toString();
+                        final Spec invocationArg;
                         if (p.getAnnotation(StructRef.class) != null) {
-                            invocation.addArgument(new InvokeSpec(nameString, "segment"));
+                            invocationArg = new InvokeSpec(nameString, "segment");
                         } else if (pTypeKind.isPrimitive()) {
-                            invocation.addArgument(nameString);
+                            invocationArg = Spec.literal(nameString);
                         } else {
-                            switch (pTypeKind) {
+                            invocationArg = switch (pTypeKind) {
                                 case DECLARED -> {
                                     if (isString(pType)) {
-                                        invocation.addArgument(new InvokeSpec(allocatorParamName, "allocateFrom")
+                                        yield new InvokeSpec(allocatorParamName, "allocateFrom")
                                             .addArgument(nameString)
                                             .also(invokeSpec -> {
                                                 if (p.getAnnotation(StrCharset.class) != null) {
                                                     invokeSpec.addArgument(createCharset(file, getCustomCharset(p)));
                                                 }
-                                            }));
-                                    } else if (isUpcall(pType)) {
-                                        invocation.addArgument(new InvokeSpec(nameString, "stub")
-                                            .addArgument(allocatorParamName));
-                                    } else if (isCEnum(pType)) {
-                                        invocation.addArgument(new InvokeSpec(nameString, "value"));
-                                    } else {
-                                        invocation.addArgument(nameString);
+                                            });
                                     }
+                                    if (isUpcall(pType)) {
+                                        yield new InvokeSpec(nameString, "stub")
+                                            .addArgument(allocatorParamName);
+                                    }
+                                    if (isCEnum(pType)) {
+                                        yield new InvokeSpec(nameString, "value");
+                                    }
+                                    yield Spec.literal(nameString);
                                 }
                                 case ARRAY -> {
                                     if (p.getAnnotation(Ref.class) != null) {
-                                        invocation.addArgument('_' + nameString);
-                                    } else {
-                                        if (isBooleanArray(pType)) {
-                                            invocation.addArgument(new InvokeSpec(BoolHelper.class, "of")
-                                                .addArgument(allocatorParamName)
-                                                .addArgument(nameString));
-                                        } else if (isStringArray(pType)) {
-                                            invocation.addArgument(new InvokeSpec(StrHelper.class, "of")
-                                                .addArgument(allocatorParamName)
-                                                .addArgument(nameString)
-                                                .addArgument(createCharset(file, getCustomCharset(p))));
-                                        } else {
-                                            invocation.addArgument(new InvokeSpec(allocatorParamName, "allocateFrom")
-                                                .addArgument(toValueLayoutStr(getArrayComponentType(pType)))
-                                                .addArgument(nameString));
-                                        }
+                                        yield Spec.literal('_' + nameString);
                                     }
+                                    if (isBooleanArray(pType)) {
+                                        yield new InvokeSpec(BoolHelper.class, "of")
+                                            .addArgument(allocatorParamName)
+                                            .addArgument(nameString);
+                                    }
+                                    if (isStringArray(pType)) {
+                                        yield new InvokeSpec(StrHelper.class, "of")
+                                            .addArgument(allocatorParamName)
+                                            .addArgument(nameString)
+                                            .addArgument(createCharset(file, getCustomCharset(p)));
+                                    }
+                                    yield new InvokeSpec(allocatorParamName, "allocateFrom")
+                                        .addArgument(toValueLayoutStr(getArrayComponentType(pType)))
+                                        .addArgument(nameString);
                                 }
-                                default -> printError("Invalid type " + pType + " in " + type + "::" + e);
+                                default -> null;
+                            };
+                            if (invocationArg == null) {
+                                printError("Invalid type " + pType + " in " + type + "::" + e);
+                                return;
                             }
                         }
+                        invocation.addArgument(p.getAnnotation(NullableRef.class) != null ?
+                            Spec.ternaryOp(Spec.notNullSpec(nameString),
+                                invocationArg,
+                                Spec.accessSpec(MemorySegment.class, "NULL")) :
+                            invocationArg);
                     });
                     final Spec finalSpec;
                     if (notVoid) {
@@ -414,7 +421,7 @@ public final class DowncallProcessor extends Processor {
                             final TypeMirror pType = p.asType();
                             final String nameString = p.getSimpleName().toString();
                             final Ref ref = p.getAnnotation(Ref.class);
-                            final boolean nullable = ref.nullable();
+                            final boolean nullable = p.getAnnotation(NullableRef.class) != null;
                             if (isArray(pType)) {
                                 final Spec spec;
                                 if (isBooleanArray(pType)) {

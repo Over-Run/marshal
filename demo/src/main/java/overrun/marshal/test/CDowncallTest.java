@@ -65,10 +65,10 @@ interface CDowncallTest {
     @Access(AccessModifier.PRIVATE)
     int testWithPrivate(int i);
 
-    void testWithArray(int i, MemorySegment arr);
+    void testWithArray(int i, MemorySegment arr, MemorySegment nullableArr);
 
     @Overload
-    void testWithArray(int i, int[] arr);
+    void testWithArray(int i, int[] arr, @NullableRef int[] nullableArr);
 
     void testWithOneRef(@Ref MemorySegment arr);
 
@@ -83,12 +83,12 @@ interface CDowncallTest {
     void testWithRefArray(MemorySegment arr0, MemorySegment arr1, MemorySegment arr2, MemorySegment arr3, MemorySegment arr4, MemorySegment arr5);
 
     @Overload
-    void testWithRefArray(int[] arr0, @Ref int[] arr1, @Ref(nullable = true) int[] arr2, boolean[] arr3, @Ref boolean[] arr4, @Sized(3) int[] arr5);
+    void testWithRefArray(int[] arr0, @Ref int[] arr1, @NullableRef @Ref int[] arr2, boolean[] arr3, @Ref boolean[] arr4, @Sized(3) int[] arr5);
 
-    void testWithString(MemorySegment str1, MemorySegment str2);
+    void testWithString(MemorySegment str1, MemorySegment str2, MemorySegment nullableStr);
 
     @Overload
-    void testWithString(String str1, @StrCharset("UTF-16") String str2);
+    void testWithString(String str1, @StrCharset("UTF-16") String str2, @NullableRef String nullableStr);
 
     @Entrypoint("testReturnString")
     MemorySegment ntestReturnString();
@@ -136,10 +136,10 @@ interface CDowncallTest {
     @SizedSeg(4L)
     MemorySegment testReturnSizedSeg();
 
-    void testUpcall(MemorySegment cb);
+    void testUpcall(MemorySegment cb, MemorySegment nullableCb);
 
     @Overload
-    void testUpcall(GLFWErrorCallback cb);
+    void testUpcall(GLFWErrorCallback cb, @NullableRef GLFWErrorCallback nullableCb);
 
     @Entrypoint("testReturnUpcall")
     MemorySegment ntestReturnUpcall();
@@ -147,10 +147,10 @@ interface CDowncallTest {
     @Overload("ntestReturnUpcall")
     GLFWErrorCallback testReturnUpcall();
 
-    void testStruct(MemorySegment struct);
+    void testStruct(MemorySegment struct, MemorySegment nullableStruct);
 
     @Overload
-    void testStruct(@StructRef("overrun.marshal.test.Vector3") Object struct);
+    void testStruct(@StructRef("overrun.marshal.test.Vector3") Object struct, @NullableRef @StructRef("overrun.marshal.test.Vector3") Object nullableStruct);
 
     @Entrypoint("testReturnStruct")
     @StructRef("overrun.marshal.test.StructTest")
