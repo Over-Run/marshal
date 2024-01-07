@@ -185,6 +185,12 @@ interface CDowncallTest {
     @Overload
     void testNameSegmentAllocator(MemorySegment segmentAllocator, int[] arr);
 
+    @Entrypoint("_testAnotherEntrypoint")
+    void testAnotherEntrypoint(MemorySegment segment);
+
+    @Overload
+    void testAnotherEntrypoint(int[] segment);
+
     /**
      * This is a test that tests all features.
      *

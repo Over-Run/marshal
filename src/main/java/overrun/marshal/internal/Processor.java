@@ -17,6 +17,7 @@
 package overrun.marshal.internal;
 
 import overrun.marshal.CEnum;
+import overrun.marshal.Loader;
 import overrun.marshal.StrCharset;
 import overrun.marshal.Upcall;
 import overrun.marshal.gen.*;
@@ -31,6 +32,7 @@ import javax.lang.model.util.ElementFilter;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -314,9 +316,48 @@ public abstract class Processor extends AbstractProcessor {
             .filter(method -> method.getAnnotation(CEnum.Wrapper.class) != null)
             .filter(method -> {
                 final var list = method.getParameters();
-                return list.size() == 1 && int.class.getSimpleName().equals(list.getFirst().asType().toString());
+                return list.size() == 1 && int.class.getCanonicalName().equals(list.getFirst().asType().toString());
             })
             .findFirst();
+    }
+
+    /**
+     * Find LibLoader method
+     *
+     * @param typeMirror the type
+     * @return the LibLoader method
+     */
+    protected Optional<ExecutableElement> findLibLoaderMethod(TypeMirror typeMirror) {
+        return ElementFilter.methodsIn(processingEnv.getTypeUtils()
+                .asElement(typeMirror)
+                .getEnclosedElements())
+            .stream()
+            .filter(method -> method.getAnnotation(Loader.class) != null)
+            .filter(method -> {
+                final var list = method.getParameters();
+                return list.size() == 1 &&
+                       isString(list.getFirst().asType()) &&
+                       SymbolLookup.class.getCanonicalName().equals(method.getReturnType().toString());
+            })
+            .findFirst();
+    }
+
+    /**
+     * specifiedMethodNotFound
+     *
+     * @param wrapType       wrapType
+     * @param type           type
+     * @param enclosingType  enclosingType
+     * @param delimiter      delimiter
+     * @param name           name
+     * @param annotationName annotationName
+     * @return string
+     */
+    protected static String specifiedMethodNotFound(String wrapType, Object type, Object enclosingType, Object delimiter, Object name, Object annotationName) {
+        return """
+            Couldn't find any %s method in %s while %s%s%s required
+                 Possible solution: Mark the %1$s method with @%s"""
+            .formatted(wrapType, type, enclosingType, delimiter, name, annotationName);
     }
 
     /**
@@ -330,10 +371,7 @@ public abstract class Processor extends AbstractProcessor {
      * @return string
      */
     protected static String wrapperNotFound(Object type, Object enclosingType, Object delimiter, Object name, Object annotationName) {
-        return """
-            Couldn't find any wrap method in %s while %s%s%s required
-                 Possible solution: Mark the wrap method with @%s"""
-            .formatted(type, enclosingType, delimiter, name, annotationName);
+        return specifiedMethodNotFound("wrap", type, enclosingType, delimiter, name, annotationName);
     }
 
     @Override

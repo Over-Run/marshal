@@ -16,22 +16,26 @@
 
 package overrun.marshal;
 
+import java.lang.annotation.*;
+import java.lang.foreign.SymbolLookup;
+
 /**
- * Checks
+ * Marks a <strong>static</strong> method as the library loader.
+ * <p>
+ * The target method must only contain a parameter of type {@link String} and returns {@link SymbolLookup}.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Loader
+ * static SymbolLookup load(String name) {
+ *     //...
+ * }
+ * }</pre>
  *
  * @author squid233
+ * @see Downcall
  * @since 0.1.0
  */
-public final class Checks {
-    /**
-     * Checks the array size.
-     *
-     * @param expected the expected size
-     * @param got      the got size
-     */
-    public static void checkArraySize(int expected, int got) {
-        if (Configurations.CHECK_ARRAY_SIZE.get() && expected != got) {
-            throw new IllegalArgumentException("Expected array of size " + expected + ", got " + got);
-        }
-    }
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Loader {
 }

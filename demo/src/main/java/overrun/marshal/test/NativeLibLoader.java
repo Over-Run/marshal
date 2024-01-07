@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.LibraryLoader;
+import overrun.marshal.Loader;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.SymbolLookup;
@@ -25,9 +25,9 @@ import java.lang.foreign.SymbolLookup;
  * @author squid233
  * @since 0.1.0
  */
-public final class NativeLibLoader implements LibraryLoader {
-    @Override
-    public SymbolLookup load(String basename) {
+public final class NativeLibLoader {
+    @Loader
+    public static SymbolLookup load(String basename) {
         return SymbolLookup.libraryLookup(basename, Arena.ofAuto());
     }
 }

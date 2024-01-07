@@ -28,7 +28,7 @@ import java.lang.annotation.*;
  * }</pre>
  *
  * @author squid233
- * @see Checks#CHECK_ARRAY_SIZE
+ * @see Configurations#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
 @Documented

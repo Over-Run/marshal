@@ -81,9 +81,9 @@ public @interface Downcall {
     String name() default "";
 
     /**
-     * {@return the {@linkplain LibraryLoader library loader}}
+     * {@return the library loader}
      */
-    Class<? extends LibraryLoader> loader() default LibraryLoader.class;
+    Class<?> loader() default Loader.class;
 
     /**
      * {@return {@code true} if the generated class should not be {@code final}; {@code false} otherwise}
