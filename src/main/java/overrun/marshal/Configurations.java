@@ -16,6 +16,8 @@
 
 package overrun.marshal;
 
+import overrun.marshal.gen.Sized;
+
 import java.util.function.Supplier;
 
 /**

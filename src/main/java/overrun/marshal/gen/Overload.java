@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,26 +14,33 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a parameter as an array type that reads the result from the native code.
+ * Marks a method as an overload.
+ * <p>
+ * An overload method keeps {@link String} and array types
+ * instead of converting them into {@link java.lang.foreign.MemorySegment MemorySegment}.
+ * It will also invoke another method with the same name or {@linkplain #value() the specified value}.
  * <h2>Example</h2>
  * <pre>{@code
- * void get(@Ref int[] dst);
+ * void nset(MemorySegment vec);
+ *
+ * @Overload
+ * void set(int[] vec);
  * }</pre>
  *
  * @author squid233
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.PARAMETER)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Ref {
+public @interface Overload {
     /**
-     * {@return {@code true} if the array is nullable; {@code false} otherwise}
+     * {@return the name of the other method to be overloaded}
      */
-    boolean nullable() default false;
+    String value() default "";
 }

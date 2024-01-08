@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.CEnum;
+import overrun.marshal.gen.CEnum;
 
 /**
  * @author squid233

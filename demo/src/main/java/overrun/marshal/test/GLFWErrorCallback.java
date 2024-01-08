@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.SizedSeg;
+import overrun.marshal.gen.SizedSeg;
 import overrun.marshal.Upcall;
 
 import java.lang.foreign.Arena;

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,33 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a method as an overload.
- * <p>
- * An overload method keeps {@link String} and array types
- * instead of converting them into {@link java.lang.foreign.MemorySegment MemorySegment}.
- * It will also invoke another method with the same name or {@linkplain #value() the specified value}.
+ * Sets the charset of a string type.
  * <h2>Example</h2>
  * <pre>{@code
- * void nset(MemorySegment vec);
- *
- * @Overload
- * void set(int[] vec);
+ * @StrCharset("UTF-16")
+ * String apply(@StrCharset("UTF-16") String s);
  * }</pre>
  *
  * @author squid233
+ * @see java.nio.charset.Charset Charset
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.METHOD)
+@Target({ElementType.PARAMETER, ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.SOURCE)
-public @interface Overload {
+public @interface StrCharset {
     /**
-     * {@return the name of the other method to be overloaded}
+     * {@return the charset}
      */
-    String value() default "";
+    String value() default "UTF-8";
 }

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,41 +14,23 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
+
+import java.lang.annotation.*;
 
 /**
- * The access modifier.
+ * Skips generating a marked field in {@linkplain overrun.marshal.struct.Struct struct}.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Skip
+ * int LAYOUT;
+ * }</pre>
  *
  * @author squid233
- * @see Access
  * @since 0.1.0
  */
-public enum AccessModifier {
-    /**
-     * {@code public} access
-     */
-    PUBLIC("public"),
-    /**
-     * {@code protected} access
-     */
-    PROTECTED("protected"),
-    /**
-     * package-private access
-     */
-    PACKAGE_PRIVATE(""),
-    /**
-     * {@code private} access
-     */
-    PRIVATE("private");
-
-    private final String toStringValue;
-
-    AccessModifier(String toStringValue) {
-        this.toStringValue = toStringValue;
-    }
-
-    @Override
-    public String toString() {
-        return toStringValue;
-    }
+@Documented
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Skip {
 }

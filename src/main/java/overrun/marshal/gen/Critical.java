@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2024 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,22 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a parameter as nullable. Not to confuse with {@link Ref}.
+ * Marks a method that invokes a <em>critical</em> function.
  * <h2>Example</h2>
  * <pre>{@code
- * void test(@NullableRef int[] arr);
+ * @Critical(allowHeapAccess = false)
+ * void criticalFunction();
  * }</pre>
  *
  * @author squid233
+ * @see java.lang.foreign.Linker.Option#critical(boolean) Linker.Option.critical
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.PARAMETER)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface NullableRef {
+public @interface Critical {
+    /**
+     * {@return whether the linked function should allow access to the Java heap}
+     */
+    boolean allowHeapAccess();
 }

@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.Loader;
+import overrun.marshal.gen.Loader;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.SymbolLookup;

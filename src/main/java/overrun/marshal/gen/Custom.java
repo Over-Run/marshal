@@ -14,28 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a memory segment as fix-sized.
+ * Marks a method that uses custom code instead of generated code.
  * <h2>Example</h2>
  * <pre>{@code
- * @SizedSeg(0x7FFFFFFFFFFFFFFFL)
- * MemorySegment segment;
+ * @Custom("""
+ *     System.out.println("Hello world");""")
+ * void myCode();
  * }</pre>
  *
  * @author squid233
- * @see Configurations#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface SizedSeg {
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Custom {
     /**
-     * {@return the size of the memory segment}
+     * {@return the custom code}
      */
-    long value();
+    String value();
 }

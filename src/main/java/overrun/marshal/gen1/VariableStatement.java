@@ -16,7 +16,7 @@
 
 package overrun.marshal.gen1;
 
-import overrun.marshal.AccessModifier;
+import overrun.marshal.gen.AccessModifier;
 
 /**
  * Variable statement

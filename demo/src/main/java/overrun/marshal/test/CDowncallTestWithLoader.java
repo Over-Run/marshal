@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.Downcall;
+import overrun.marshal.gen.Downcall;
 
 import java.lang.foreign.MemorySegment;
 

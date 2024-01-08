@@ -16,7 +16,7 @@
 
 package overrun.marshal.gen2;
 
-import overrun.marshal.AccessModifier;
+import overrun.marshal.gen.AccessModifier;
 
 /**
  * Holds field

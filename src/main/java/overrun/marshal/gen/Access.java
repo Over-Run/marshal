@@ -14,29 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
 
 import java.lang.annotation.*;
 
 /**
- * Marks an array parameter as a fixed size array.
- * <p>
- * The generated code will try to check the size of a passing array.
+ * Changes the access modifier of a method.
  * <h2>Example</h2>
  * <pre>{@code
- * void set(@Sized(3) int[] vec);
+ * @Access(AccessModifier.PROTECTED)
+ * int ngetStatus(MemorySegment dst);
  * }</pre>
  *
  * @author squid233
- * @see Configurations#CHECK_ARRAY_SIZE
+ * @see AccessModifier
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Sized {
+public @interface Access {
     /**
-     * {@return the size of the array}
+     * {@return the access modifier of the method}
      */
-    int value();
+    AccessModifier value() default AccessModifier.PUBLIC;
 }

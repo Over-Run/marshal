@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2024 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,28 +14,30 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
+
+import overrun.marshal.Configurations;
 
 import java.lang.annotation.*;
-import java.lang.foreign.SymbolLookup;
 
 /**
- * Marks a <strong>static</strong> method as the library loader.
- * <p>
- * The target method must only contain a parameter of type {@link String} and returns {@link SymbolLookup}.
+ * Marks a memory segment as fix-sized.
  * <h2>Example</h2>
  * <pre>{@code
- * @Loader
- * static SymbolLookup load(String name) {
- *     //...
- * }
+ * @SizedSeg(0x7FFFFFFFFFFFFFFFL)
+ * MemorySegment segment;
  * }</pre>
  *
  * @author squid233
- * @see Downcall
+ * @see Configurations#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
-public @interface Loader {
+@Documented
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface SizedSeg {
+    /**
+     * {@return the size of the memory segment}
+     */
+    long value();
 }

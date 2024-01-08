@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,33 +14,31 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
+
+import overrun.marshal.Configurations;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a method that has a default return value.
+ * Marks an array parameter as a fixed size array.
  * <p>
- * A method marked as {@code @Default} will not throw an exception or be invoked
- * if it couldn't be found in the specified library.
+ * The generated code will try to check the size of a passing array.
  * <h2>Example</h2>
  * <pre>{@code
- * @Default
- * void functionThatMightBeAbsent();
- *
- * @Default("42")
- * int anotherFunction();
+ * void set(@Sized(3) int[] vec);
  * }</pre>
  *
  * @author squid233
+ * @see Configurations#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.METHOD)
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.SOURCE)
-public @interface Default {
+public @interface Sized {
     /**
-     * {@return the default value of the method}
+     * {@return the size of the array}
      */
-    String value() default "";
+    int value();
 }

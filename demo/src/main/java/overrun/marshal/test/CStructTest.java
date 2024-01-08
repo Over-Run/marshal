@@ -16,10 +16,10 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.SizedSeg;
-import overrun.marshal.Sized;
-import overrun.marshal.Skip;
-import overrun.marshal.StrCharset;
+import overrun.marshal.gen.SizedSeg;
+import overrun.marshal.gen.Sized;
+import overrun.marshal.gen.Skip;
+import overrun.marshal.gen.StrCharset;
 import overrun.marshal.struct.Const;
 import overrun.marshal.struct.Padding;
 import overrun.marshal.struct.Struct;

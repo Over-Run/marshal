@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,28 +14,26 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
 
 import java.lang.annotation.*;
 
 /**
- * Changes the access modifier of a method.
+ * Marks a parameter as an array type that reads the result from the native code.
  * <h2>Example</h2>
  * <pre>{@code
- * @Access(AccessModifier.PROTECTED)
- * int ngetStatus(MemorySegment dst);
+ * void get(@Ref int[] dst);
  * }</pre>
  *
  * @author squid233
- * @see AccessModifier
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.METHOD)
+@Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Access {
+public @interface Ref {
     /**
-     * {@return the access modifier of the method}
+     * {@return {@code true} if the array is nullable; {@code false} otherwise}
      */
-    AccessModifier value() default AccessModifier.PUBLIC;
+    boolean nullable() default false;
 }

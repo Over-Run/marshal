@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.*;
+import overrun.marshal.gen.*;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.StructRef;
 

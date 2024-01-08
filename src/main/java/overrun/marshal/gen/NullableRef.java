@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,23 +14,22 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
 
 import java.lang.annotation.*;
 
 /**
- * Skips generating a marked field in {@linkplain overrun.marshal.struct.Struct struct}.
+ * Marks a parameter as nullable. Not to confuse with {@link Ref}.
  * <h2>Example</h2>
  * <pre>{@code
- * @Skip
- * int LAYOUT;
+ * void test(@NullableRef int[] arr);
  * }</pre>
  *
  * @author squid233
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.FIELD)
+@Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Skip {
+public @interface NullableRef {
 }

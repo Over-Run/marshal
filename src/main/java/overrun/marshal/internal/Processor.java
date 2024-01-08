@@ -16,9 +16,9 @@
 
 package overrun.marshal.internal;
 
-import overrun.marshal.CEnum;
-import overrun.marshal.Loader;
-import overrun.marshal.StrCharset;
+import overrun.marshal.gen.CEnum;
+import overrun.marshal.gen.Loader;
+import overrun.marshal.gen.StrCharset;
 import overrun.marshal.Upcall;
 import overrun.marshal.gen1.*;
 

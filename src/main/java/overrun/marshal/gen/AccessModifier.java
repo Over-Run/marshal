@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,29 +14,41 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
-
-import java.lang.annotation.*;
+package overrun.marshal.gen;
 
 /**
- * Specifies the entrypoint of a method.
- * <h2>Example</h2>
- * <pre>{@code
- * @Entrypoint("getStatus")
- * int ngetStatus(MemorySegment dst);
- * }</pre>
+ * The access modifier.
  *
  * @author squid233
+ * @see Access
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
-public @interface Entrypoint {
+public enum AccessModifier {
     /**
-     * Uses the specified entrypoint (the native name of the function), instead of the method name.
-     *
-     * @return the entrypoint name of the method
+     * {@code public} access
      */
-    String value();
+    PUBLIC("public"),
+    /**
+     * {@code protected} access
+     */
+    PROTECTED("protected"),
+    /**
+     * package-private access
+     */
+    PACKAGE_PRIVATE(""),
+    /**
+     * {@code private} access
+     */
+    PRIVATE("private");
+
+    private final String toStringValue;
+
+    AccessModifier(String toStringValue) {
+        this.toStringValue = toStringValue;
+    }
+
+    @Override
+    public String toString() {
+        return toStringValue;
+    }
 }

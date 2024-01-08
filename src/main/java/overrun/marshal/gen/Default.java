@@ -14,28 +14,33 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen;
 
 import java.lang.annotation.*;
 
 /**
- * Sets the charset of a string type.
+ * Marks a method that has a default return value.
+ * <p>
+ * A method marked as {@code @Default} will not throw an exception or be invoked
+ * if it couldn't be found in the specified library.
  * <h2>Example</h2>
  * <pre>{@code
- * @StrCharset("UTF-16")
- * String apply(@StrCharset("UTF-16") String s);
+ * @Default
+ * void functionThatMightBeAbsent();
+ *
+ * @Default("42")
+ * int anotherFunction();
  * }</pre>
  *
  * @author squid233
- * @see java.nio.charset.Charset Charset
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.PARAMETER, ElementType.METHOD, ElementType.FIELD})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface StrCharset {
+public @interface Default {
     /**
-     * {@return the charset}
+     * {@return the default value of the method}
      */
-    String value() default "UTF-8";
+    String value() default "";
 }
