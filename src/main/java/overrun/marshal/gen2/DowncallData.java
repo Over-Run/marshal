@@ -151,10 +151,10 @@ public final class DowncallData {
                 final boolean s1Java = s1.startsWith("java.");
                 final boolean s2Java = s2.startsWith("java.");
                 if (s1Java && !s2Java) {
-                    return -1;
+                    return 1;
                 }
                 if (!s1Java && s2Java) {
-                    return 1;
+                    return -1;
                 }
                 return s1.compareTo(s2);
             })

@@ -11,7 +11,7 @@ This library requires JDK 22 or newer.
 ## Overview
 
 ```java
-import overrun.marshal.*;
+import overrun.marshal.gen.*;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
