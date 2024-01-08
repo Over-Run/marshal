@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,26 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.gen1;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
- * Try-catch
+ * Lambda
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class TryCatchStatement implements Spec, StatementBlock {
+public final class LambdaSpec implements Spec, StatementBlock {
+    private final String[] parameters;
     private final List<Spec> statements = new ArrayList<>();
-    private final List<CatchClause> catchClauses = new ArrayList<>();
 
     /**
      * Constructor
+     *
+     * @param parameters parameters
      */
-    public TryCatchStatement() {
+    public LambdaSpec(String... parameters) {
+        this.parameters = parameters;
     }
 
     /**
@@ -47,34 +49,30 @@ public final class TryCatchStatement implements Spec, StatementBlock {
     }
 
     /**
-     * Add a catch clause and perform the action
+     * Add a statement
      *
-     * @param catchClause catch clause
-     * @param consumer    action
-     */
-    public void addCatchClause(CatchClause catchClause, Consumer<CatchClause> consumer) {
-        catchClauses.add(catchClause);
-        consumer.accept(catchClause);
-    }
-
-    /**
-     * Also runs the action
-     *
-     * @param consumer the action
+     * @param spec statement
      * @return this
      */
-    public TryCatchStatement also(Consumer<TryCatchStatement> consumer) {
-        consumer.accept(this);
+    public LambdaSpec addStatementThis(Spec spec) {
+        addStatement(spec);
         return this;
     }
 
     @Override
     public void append(StringBuilder builder, int indent) {
-        final String indentString = Spec.indentString(indent);
-        builder.append(indentString).append("try {\n");
-        statements.forEach(spec -> spec.append(builder, indent + 4));
-        builder.append(indentString).append("} ");
-        catchClauses.forEach(catchClause -> catchClause.append(builder, indent));
-        builder.append('\n');
+        final boolean multi = statements.size() > 1;
+        builder.append(switch (parameters.length) {
+            case 0 -> "()";
+            case 1 -> parameters[0];
+            default -> '(' + String.join(", ", parameters) + ')';
+        }).append(" -> ");
+        if (multi) {
+            builder.append("{\n");
+        }
+        statements.forEach(spec -> spec.append(builder, multi ? indent + 4 : indent));
+        if (multi) {
+            builder.append(Spec.indentString(indent)).append('}');
+        }
     }
 }

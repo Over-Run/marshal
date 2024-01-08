@@ -16,7 +16,7 @@
 
 package overrun.marshal;
 
-import overrun.marshal.gen.*;
+import overrun.marshal.gen1.*;
 import overrun.marshal.internal.Processor;
 import overrun.marshal.struct.*;
 

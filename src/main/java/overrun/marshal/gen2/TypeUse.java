@@ -16,7 +16,7 @@
 
 package overrun.marshal.gen2;
 
-import overrun.marshal.gen.Spec;
+import overrun.marshal.gen1.Spec;
 
 /**
  * Holds spec with type data

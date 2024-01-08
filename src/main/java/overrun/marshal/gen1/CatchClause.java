@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.gen1;
 
 import java.util.ArrayList;
 import java.util.List;

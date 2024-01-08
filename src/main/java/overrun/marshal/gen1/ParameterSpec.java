@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.gen1;
 
 import java.util.ArrayList;
 import java.util.List;

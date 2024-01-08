@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,30 +14,26 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.gen1;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * If
+ * Try-catch
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class IfStatement implements Spec, StatementBlock {
-    private final Spec condition;
+public final class TryCatchStatement implements Spec, StatementBlock {
     private final List<Spec> statements = new ArrayList<>();
-    private final List<ElseClause> elseClauses = new ArrayList<>();
+    private final List<CatchClause> catchClauses = new ArrayList<>();
 
     /**
      * Constructor
-     *
-     * @param condition condition
      */
-    public IfStatement(Spec condition) {
-        this.condition = condition;
+    public TryCatchStatement() {
     }
 
     /**
@@ -51,28 +47,34 @@ public final class IfStatement implements Spec, StatementBlock {
     }
 
     /**
-     * Add an else clause and perform the action
+     * Add a catch clause and perform the action
      *
-     * @param elseClause else clause
-     * @param consumer   action
+     * @param catchClause catch clause
+     * @param consumer    action
      */
-    public void addElseClause(ElseClause elseClause, Consumer<ElseClause> consumer) {
-        consumer.accept(elseClause);
-        elseClauses.add(elseClause);
+    public void addCatchClause(CatchClause catchClause, Consumer<CatchClause> consumer) {
+        catchClauses.add(catchClause);
+        consumer.accept(catchClause);
+    }
+
+    /**
+     * Also runs the action
+     *
+     * @param consumer the action
+     * @return this
+     */
+    public TryCatchStatement also(Consumer<TryCatchStatement> consumer) {
+        consumer.accept(this);
+        return this;
     }
 
     @Override
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);
-        builder.append(indentString).append("if (");
-        condition.append(builder, indent);
-        builder.append(") {\n");
+        builder.append(indentString).append("try {\n");
         statements.forEach(spec -> spec.append(builder, indent + 4));
-        builder.append(indentString).append('}');
-        if (!elseClauses.isEmpty()) {
-            builder.append(' ');
-            elseClauses.forEach(elseClause -> elseClause.append(builder, indent));
-        }
+        builder.append(indentString).append("} ");
+        catchClauses.forEach(catchClause -> catchClause.append(builder, indent));
         builder.append('\n');
     }
 }

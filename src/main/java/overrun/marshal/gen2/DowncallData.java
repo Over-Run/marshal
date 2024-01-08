@@ -19,7 +19,7 @@ package overrun.marshal.gen2;
 import overrun.marshal.AccessModifier;
 import overrun.marshal.Downcall;
 import overrun.marshal.Loader;
-import overrun.marshal.gen.*;
+import overrun.marshal.gen1.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;

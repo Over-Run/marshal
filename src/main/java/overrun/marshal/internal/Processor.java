@@ -20,7 +20,7 @@ import overrun.marshal.CEnum;
 import overrun.marshal.Loader;
 import overrun.marshal.StrCharset;
 import overrun.marshal.Upcall;
-import overrun.marshal.gen.*;
+import overrun.marshal.gen1.*;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
