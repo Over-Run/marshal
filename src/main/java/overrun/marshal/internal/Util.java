@@ -16,10 +16,17 @@
 
 package overrun.marshal.internal;
 
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.ElementFilter;
+import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * Util
@@ -90,6 +97,7 @@ public final class Util {
      * @param clazzName clazzName
      * @return isMemorySegment
      */
+    @Deprecated(since = "0.1.0")
     public static boolean isMemorySegment(String clazzName) {
         return MemorySegment.class.getCanonicalName().equals(clazzName);
     }
@@ -101,8 +109,7 @@ public final class Util {
      * @return isMemorySegment
      */
     public static boolean isMemorySegment(TypeMirror typeMirror) {
-        return isDeclared(typeMirror) &&
-               isMemorySegment(typeMirror.toString());
+        return isSameClass(typeMirror, MemorySegment.class);
     }
 
     /**
@@ -111,6 +118,7 @@ public final class Util {
      * @param clazzName clazzName
      * @return isString
      */
+    @Deprecated(since = "0.1.0")
     public static boolean isString(String clazzName) {
         return String.class.getCanonicalName().equals(clazzName);
     }
@@ -122,8 +130,7 @@ public final class Util {
      * @return isString
      */
     public static boolean isString(TypeMirror typeMirror) {
-        return isDeclared(typeMirror) &&
-               isString(typeMirror.toString());
+        return isSameClass(typeMirror, String.class);
     }
 
     /**
@@ -187,5 +194,62 @@ public final class Util {
      */
     public static String insertUnderline(String builtinName, String nameString) {
         return builtinName.equals(nameString) ? "_" + builtinName : builtinName;
+    }
+
+    /**
+     * Finds annotated method
+     *
+     * @param typeElement the type element
+     * @param aClass      the class
+     * @param predicate   the filter
+     * @return the method
+     */
+    public static Optional<ExecutableElement> findAnnotatedMethod(
+        TypeElement typeElement,
+        Class<? extends Annotation> aClass,
+        Predicate<ExecutableElement> predicate
+    ) {
+        return ElementFilter.methodsIn(typeElement.getEnclosedElements())
+            .stream()
+            .filter(executableElement -> executableElement.getAnnotation(aClass) != null)
+            .filter(predicate)
+            .findFirst();
+    }
+
+    /**
+     * Gets the type element from class
+     *
+     * @param env    the processing environment
+     * @param aClass the class
+     * @return the type element
+     */
+    public static TypeElement getTypeElementFromClass(ProcessingEnvironment env, Class<?> aClass) {
+        return env.getElementUtils().getTypeElement(aClass.getCanonicalName());
+    }
+
+    /**
+     * {@return is A extends B}
+     *
+     * @param env the processing environment
+     * @param t1  A
+     * @param t2  B
+     */
+    public static boolean isAExtendsB(ProcessingEnvironment env, TypeMirror t1, TypeMirror t2) {
+        return isDeclared(t1) &&
+               isDeclared(t2) &&
+               env.getTypeUtils().isAssignable(t1, t2);
+    }
+
+    /**
+     * {@return is same class}
+     *
+     * @param typeMirror the type mirror
+     * @param aClass     the class
+     */
+    public static boolean isSameClass(TypeMirror typeMirror, Class<?> aClass) {
+        return aClass.getCanonicalName().equals(typeMirror.toString()) &&
+               ((typeMirror.getKind().isPrimitive() && aClass.isPrimitive()) ||
+                (typeMirror.getKind() == TypeKind.ARRAY && aClass.isArray()) ||
+                isDeclared(typeMirror));
     }
 }

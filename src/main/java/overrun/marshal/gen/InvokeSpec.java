@@ -38,6 +38,7 @@ public final class InvokeSpec implements Spec {
      * @param object the caller object
      * @param method the method
      */
+    @Deprecated(since = "0.1.0")
     public InvokeSpec(Class<?> object, String method) {
         this(Spec.simpleClassName(object), method);
     }

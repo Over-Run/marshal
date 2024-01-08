@@ -17,6 +17,7 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.*;
+import overrun.marshal.gen2.DowncallData;
 import overrun.marshal.internal.Processor;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.StructRef;
@@ -67,10 +68,16 @@ public final class DowncallProcessor extends Processor {
     }
 
     private void processClasses(RoundEnvironment roundEnv) {
+        // TODO: 2024/1/7 squid233: rewrite
+        final boolean debug = true;
         ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(Downcall.class)).forEach(e -> {
-            final var enclosed = e.getEnclosedElements();
             try {
-                writeFile(e, ElementFilter.fieldsIn(enclosed), ElementFilter.methodsIn(enclosed));
+                if (debug) {
+                    new DowncallData(processingEnv).generate(e);
+                } else {
+                    final var enclosed = e.getEnclosedElements();
+                    writeFile(e, ElementFilter.fieldsIn(enclosed), ElementFilter.methodsIn(enclosed));
+                }
             } catch (IOException ex) {
                 printStackTrace(ex);
             }
