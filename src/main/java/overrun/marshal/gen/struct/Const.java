@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2024 Overrun Organization
+ * Copyright (c) 2023-2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,32 +14,27 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.struct;
+package overrun.marshal.gen.struct;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a method that returns a struct by value.
+ * Marks a struct or its member as <i>const</i>.
  * <p>
- * This makes the generator insert a segment allocator before the first parameter.
+ * A const struct or its member does not generate setter.
  * <h2>Example</h2>
  * <pre>{@code
- * @ByValue
- * @Entrypoint("returnStruct")
- * @StructRef("org.example.MyStruct")
- * MemorySegment nreturnStruct();
- *
- * @ByValue
- * @Overload("nreturnStruct")
- * @StructRef("org.example.MyStruct")
- * Object returnStruct();
+ * @Const
+ * @Struct
+ * record Vector2(int x, int y) {
+ * }
  * }</pre>
  *
  * @author squid233
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.METHOD)
+@Target({ElementType.FIELD, ElementType.TYPE})
 @Retention(RetentionPolicy.SOURCE)
-public @interface ByValue {
+public @interface Const {
 }

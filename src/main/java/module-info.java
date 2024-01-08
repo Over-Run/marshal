@@ -23,7 +23,7 @@
 module io.github.overrun.marshal {
     exports overrun.marshal;
     exports overrun.marshal.gen;
-    exports overrun.marshal.struct;
+    exports overrun.marshal.gen.struct;
 
     requires java.compiler;
 }

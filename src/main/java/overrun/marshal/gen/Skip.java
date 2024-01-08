@@ -16,10 +16,12 @@
 
 package overrun.marshal.gen;
 
+import overrun.marshal.gen.struct.Struct;
+
 import java.lang.annotation.*;
 
 /**
- * Skips generating a marked field in {@linkplain overrun.marshal.struct.Struct struct}.
+ * Skips generating a marked field in {@linkplain Struct struct}.
  * <h2>Example</h2>
  * <pre>{@code
  * @Skip

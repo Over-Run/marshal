@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.struct;
+package overrun.marshal.gen.struct;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;

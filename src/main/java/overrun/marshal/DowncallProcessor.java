@@ -20,8 +20,8 @@ import overrun.marshal.gen.*;
 import overrun.marshal.gen1.*;
 import overrun.marshal.gen2.DowncallData;
 import overrun.marshal.internal.Processor;
-import overrun.marshal.struct.ByValue;
-import overrun.marshal.struct.StructRef;
+import overrun.marshal.gen.struct.ByValue;
+import overrun.marshal.gen.struct.StructRef;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.ExecutableElement;

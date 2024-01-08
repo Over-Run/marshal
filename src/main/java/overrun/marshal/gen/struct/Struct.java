@@ -14,27 +14,42 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.struct;
+package overrun.marshal.gen.struct;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a struct or its member as <i>const</i>.
+ * Marks a class or interface as a struct provider.
  * <p>
- * A const struct or its member does not generate setter.
+ * The generated class contains a {@link java.lang.foreign.StructLayout StructLayout} with name "{@code LAYOUT}".
+ * You can link it in the documentation.
  * <h2>Example</h2>
- * <pre>{@code
- * @Const
- * @Struct
- * record Vector2(int x, int y) {
- * }
- * }</pre>
+ * <pre><code>
+ * &#47;**
+ *  * {&#64;linkplain LAYOUT Layout}
+ *  *&#47;
+ * &#64;Struct
+ * class Point {
+ *     &#64;Skip
+ *     int LAYOUT;
+ *     int x, y;
+ * }</code></pre>
  *
  * @author squid233
+ * @see Const
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.FIELD, ElementType.TYPE})
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Const {
+public @interface Struct {
+    /**
+     * {@return the name of the generated class}
+     */
+    String name() default "";
+
+    /**
+     * {@return {@code true} if the generated class should not be {@code final}; {@code false} otherwise}
+     */
+    boolean nonFinal() default false;
 }

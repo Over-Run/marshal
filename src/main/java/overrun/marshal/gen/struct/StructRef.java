@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,42 +14,27 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.struct;
+package overrun.marshal.gen.struct;
 
 import java.lang.annotation.*;
 
 /**
- * Marks a class or interface as a struct provider.
- * <p>
- * The generated class contains a {@link java.lang.foreign.StructLayout StructLayout} with name "{@code LAYOUT}".
- * You can link it in the documentation.
+ * Marks a field as a reference of a struct.
  * <h2>Example</h2>
- * <pre><code>
- * &#47;**
- *  * {&#64;linkplain LAYOUT Layout}
- *  *&#47;
- * &#64;Struct
- * class Point {
- *     &#64;Skip
- *     int LAYOUT;
- *     int x, y;
- * }</code></pre>
+ * <pre>{@code
+ * @StructRef("org.example.Vector3")
+ * int vec;
+ * }</pre>
  *
  * @author squid233
- * @see Const
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.TYPE)
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.SOURCE)
-public @interface Struct {
+public @interface StructRef {
     /**
-     * {@return the name of the generated class}
+     * {@return the full class name of the target struct}
      */
-    String name() default "";
-
-    /**
-     * {@return {@code true} if the generated class should not be {@code final}; {@code false} otherwise}
-     */
-    boolean nonFinal() default false;
+    String value();
 }

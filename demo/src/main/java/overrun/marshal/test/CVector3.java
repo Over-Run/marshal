@@ -16,8 +16,8 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.struct.Const;
-import overrun.marshal.struct.Struct;
+import overrun.marshal.gen.struct.Const;
+import overrun.marshal.gen.struct.Struct;
 
 /**
  * @author squid233

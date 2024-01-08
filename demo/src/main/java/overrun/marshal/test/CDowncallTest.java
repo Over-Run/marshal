@@ -17,8 +17,8 @@
 package overrun.marshal.test;
 
 import overrun.marshal.gen.*;
-import overrun.marshal.struct.ByValue;
-import overrun.marshal.struct.StructRef;
+import overrun.marshal.gen.struct.ByValue;
+import overrun.marshal.gen.struct.StructRef;
 
 import java.lang.foreign.MemorySegment;
 

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,11 +14,32 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen.struct;
+
+import java.lang.annotation.*;
+
 /**
- * The struct package of marshal.
+ * Marks a method that returns a struct by value.
+ * <p>
+ * This makes the generator insert a segment allocator before the first parameter.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @ByValue
+ * @Entrypoint("returnStruct")
+ * @StructRef("org.example.MyStruct")
+ * MemorySegment nreturnStruct();
+ *
+ * @ByValue
+ * @Overload("nreturnStruct")
+ * @StructRef("org.example.MyStruct")
+ * Object returnStruct();
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
-package overrun.marshal.struct;
+@Documented
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface ByValue {
+}

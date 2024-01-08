@@ -20,10 +20,10 @@ import overrun.marshal.gen.SizedSeg;
 import overrun.marshal.gen.Sized;
 import overrun.marshal.gen.Skip;
 import overrun.marshal.gen.StrCharset;
-import overrun.marshal.struct.Const;
-import overrun.marshal.struct.Padding;
-import overrun.marshal.struct.Struct;
-import overrun.marshal.struct.StructRef;
+import overrun.marshal.gen.struct.Const;
+import overrun.marshal.gen.struct.Padding;
+import overrun.marshal.gen.struct.Struct;
+import overrun.marshal.gen.struct.StructRef;
 
 import java.lang.foreign.MemorySegment;
 
