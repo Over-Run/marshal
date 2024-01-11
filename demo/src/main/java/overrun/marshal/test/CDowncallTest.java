@@ -36,6 +36,8 @@ interface CDowncallTest {
      * A string value
      */
     String STR_VALUE = "Hello world";
+    @Skip
+    int SKIPPED = -1;
 
     void test();
 
@@ -190,6 +192,8 @@ interface CDowncallTest {
 
     @Overload
     void testAnotherEntrypoint(int[] segment);
+
+    void testWithoutOverload(int[] arr);
 
     /**
      * This is a test that tests all features.

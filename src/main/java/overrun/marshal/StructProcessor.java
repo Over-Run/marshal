@@ -20,7 +20,6 @@ import overrun.marshal.gen.*;
 import overrun.marshal.gen.struct.*;
 import overrun.marshal.gen1.*;
 import overrun.marshal.internal.Processor;
-import overrun.marshal.struct.*;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.TypeElement;
@@ -99,7 +98,10 @@ public final class StructProcessor extends Processor {
         }
 
         final SourceFile file = new SourceFile(packageName);
-        file.addImports("overrun.marshal.*", "java.lang.foreign.*");
+        file.addImports("overrun.marshal.*",
+            "overrun.marshal.gen.*",
+            "overrun.marshal.gen.struct.*",
+            "java.lang.foreign.*");
         file.addImports(
             MemoryLayout.PathElement.class,
             VarHandle.class
@@ -220,7 +222,7 @@ public final class StructProcessor extends Processor {
                 .setFinal(true)));
 
             // constructor
-            classSpec.addMethod(new MethodSpec(null, simpleClassName), methodSpec -> {
+            classSpec.addMethod(new MethodSpec((Spec) null, simpleClassName), methodSpec -> {
                 methodSpec.setDocument("""
                      Creates {@code %s} with the given segment and element count.
 
@@ -241,7 +243,7 @@ public final class StructProcessor extends Processor {
                             .addArgument("_PE_" + name)));
                 });
             });
-            classSpec.addMethod(new MethodSpec(null, simpleClassName), methodSpec -> {
+            classSpec.addMethod(new MethodSpec((Spec) null, simpleClassName), methodSpec -> {
                 methodSpec.setDocument("""
                      Creates {@code %s} with the given segment. The count is auto-inferred.
 

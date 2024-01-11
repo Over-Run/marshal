@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,23 +14,21 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.gen2;
 
-import java.lang.annotation.*;
+import javax.lang.model.element.AnnotationMirror;
+import java.lang.annotation.Annotation;
 
 /**
- * Skips generating a marked field, parameter or method.
- * <h2>Example</h2>
- * <pre>{@code
- * @Skip
- * int LAYOUT;
- * }</pre>
+ * Holds annotation
  *
+ * @param annotation the annotation
+ * @param mirror     the annotation mirror
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.SOURCE)
-public @interface Skip {
+public record AnnotationData(
+    Annotation annotation,
+    AnnotationMirror mirror
+) {
 }

@@ -26,7 +26,7 @@ import java.util.List;
  * @since 0.1.0
  */
 public final class ConstructSpec implements Spec {
-    private final String object;
+    private final Spec object;
     private final List<Spec> arguments = new ArrayList<>();
 
     /**
@@ -34,8 +34,17 @@ public final class ConstructSpec implements Spec {
      *
      * @param object the caller object
      */
-    public ConstructSpec(String object) {
+    public ConstructSpec(Spec object) {
         this.object = object;
+    }
+
+    /**
+     * Constructor
+     *
+     * @param object the caller object
+     */
+    public ConstructSpec(String object) {
+        this(Spec.literal(object));
     }
 
     /**
@@ -51,7 +60,9 @@ public final class ConstructSpec implements Spec {
 
     @Override
     public void append(StringBuilder builder, int indent) {
-        builder.append("new ").append(object).append('(');
+        builder.append("new ");
+        object.append(builder, indent);
+        builder.append('(');
         for (int i = 0; i < arguments.size(); i++) {
             Spec spec = arguments.get(i);
             if (i != 0) {

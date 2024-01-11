@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  * @since 0.1.0
  */
 public final class ParameterSpec implements Annotatable, Spec {
-    private final String type;
+    private final Spec type;
     private final String name;
     private final List<AnnotationSpec> annotations = new ArrayList<>();
 
@@ -37,9 +37,19 @@ public final class ParameterSpec implements Annotatable, Spec {
      * @param type type
      * @param name name
      */
-    public ParameterSpec(String type, String name) {
+    public ParameterSpec(Spec type, String name) {
         this.type = type;
         this.name = name;
+    }
+
+    /**
+     * Constructor
+     *
+     * @param type type
+     * @param name name
+     */
+    public ParameterSpec(String type, String name) {
+        this(Spec.literal(type), name);
     }
 
     /**
@@ -69,6 +79,7 @@ public final class ParameterSpec implements Annotatable, Spec {
             annotationSpec.append(builder, indent);
             builder.append(' ');
         });
-        builder.append(type).append(' ').append(name);
+        type.append(builder, indent);
+        builder.append(' ').append(name);
     }
 }

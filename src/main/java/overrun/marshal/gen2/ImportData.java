@@ -16,6 +16,8 @@
 
 package overrun.marshal.gen2;
 
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.type.TypeMirror;
 import java.util.List;
 
 /**
@@ -49,7 +51,7 @@ public record ImportData(List<DeclaredTypeData> imports) {
      */
     public String simplifyOrImport(TypeData typeData) {
         return switch (typeData) {
-            case ArrayTypeData arrayTypeData -> simplifyOrImport(arrayTypeData) + "[]";
+            case ArrayTypeData arrayTypeData -> simplifyOrImport(arrayTypeData.componentType()) + "[]";
             case DeclaredTypeData declaredTypeData when (isImported(typeData) || addImport(typeData)) ->
                 declaredTypeData.name();
             default -> typeData.toString();
@@ -64,5 +66,16 @@ public record ImportData(List<DeclaredTypeData> imports) {
      */
     public String simplifyOrImport(Class<?> aClass) {
         return simplifyOrImport(TypeData.fromClass(aClass));
+    }
+
+    /**
+     * Simplifies type name or import
+     *
+     * @param env        the processing environment
+     * @param typeMirror the type mirror
+     * @return the name
+     */
+    public String simplifyOrImport(ProcessingEnvironment env, TypeMirror typeMirror) {
+        return simplifyOrImport(TypeData.detectType(env, typeMirror));
     }
 }

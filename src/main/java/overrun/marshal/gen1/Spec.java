@@ -124,6 +124,7 @@ public interface Spec {
      * @param member member
      * @return spec
      */
+    @Deprecated(since = "0.1.0")
     static Spec accessSpec(Class<?> object, String member) {
         return literal(object.getSimpleName() + '.' + member);
     }
@@ -135,6 +136,7 @@ public interface Spec {
      * @param member member
      * @return spec
      */
+    @Deprecated(since = "0.1.0")
     static Spec accessSpec(Class<?> object, Class<?> member) {
         return literal(object.getSimpleName() + '.' + member.getSimpleName());
     }
@@ -192,6 +194,22 @@ public interface Spec {
             left.append(builder, indent);
             builder.append(" != ");
             right.append(builder, indent);
+        };
+    }
+
+    /**
+     * Create an expression casting
+     *
+     * @param type type
+     * @param exp  expression
+     * @return cast
+     */
+    static Spec cast(Spec type, Spec exp) {
+        return (builder, indent) -> {
+            builder.append('(');
+            type.append(builder, indent);
+            builder.append(") ");
+            exp.append(builder, indent);
         };
     }
 

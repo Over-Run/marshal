@@ -40,6 +40,7 @@ public final class VariableStatement implements Spec {
      * @param name  name
      * @param value value
      */
+    @Deprecated
     public VariableStatement(Class<?> type, String name, Spec value) {
         this(type.getSimpleName(), name, value);
     }

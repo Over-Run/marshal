@@ -26,7 +26,7 @@ import java.util.List;
  * @since 0.1.0
  */
 public final class CatchClause implements Spec, StatementBlock {
-    private final String type;
+    private final Spec type;
     private final String name;
     private final List<Spec> statements = new ArrayList<>();
 
@@ -36,9 +36,19 @@ public final class CatchClause implements Spec, StatementBlock {
      * @param type exception type
      * @param name variable name
      */
-    public CatchClause(String type, String name) {
+    public CatchClause(Spec type, String name) {
         this.type = type;
         this.name = name;
+    }
+
+    /**
+     * Constructor
+     *
+     * @param type exception type
+     * @param name variable name
+     */
+    public CatchClause(String type, String name) {
+        this(Spec.literal(type), name);
     }
 
     /**
@@ -61,7 +71,9 @@ public final class CatchClause implements Spec, StatementBlock {
     @Override
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);
-        builder.append("catch (").append(type).append(' ').append(name).append(") {\n");
+        builder.append("catch (");
+        type.append(builder, indent);
+        builder.append(' ').append(name).append(") {\n");
         statements.forEach(spec -> spec.append(builder, indent + 4));
         builder.append(indentString).append('}');
     }

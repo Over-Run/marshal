@@ -28,7 +28,7 @@ import javax.lang.model.type.TypeMirror;
  * @author squid233
  * @since 0.1.0
  */
-public sealed interface TypeData permits ArrayTypeData, DeclaredTypeData, PrimitiveTypeData {
+public sealed interface TypeData permits ArrayTypeData, DeclaredTypeData, PrimitiveTypeData, VoidTypeData {
     /**
      * Detects type
      *
@@ -50,6 +50,9 @@ public sealed interface TypeData permits ArrayTypeData, DeclaredTypeData, Primit
             final String qualifiedName = typeElement.getQualifiedName().toString();
             final String simpleName = typeElement.getSimpleName().toString();
             return new DeclaredTypeData(qualifiedName.substring(0, qualifiedName.lastIndexOf(simpleName) - 1), simpleName);
+        }
+        if (typeKind == TypeKind.VOID) {
+            return VoidTypeData.INSTANCE;
         }
         throw new IllegalArgumentException("Unknown type: " + type);
     }

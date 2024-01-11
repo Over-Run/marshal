@@ -21,27 +21,25 @@ import overrun.marshal.gen.AccessModifier;
 import java.util.List;
 
 /**
- * Holds field
+ * Holds downcall function
  *
  * @param document       the document
  * @param annotations    the annotations
  * @param accessModifier the access modifier
- * @param staticField    the static field
- * @param finalField     the final field
- * @param type           the type
+ * @param returnType     the return type
  * @param name           the name
- * @param value          the value
+ * @param parameters     the parameters
+ * @param statements     the statement
  * @author squid233
  * @since 0.1.0
  */
-public record FieldData(
+public record FunctionData(
     String document,
     List<AnnotationData> annotations,
     AccessModifier accessModifier,
-    boolean staticField,
-    boolean finalField,
-    TypeData type,
+    TypeUse returnType,
     String name,
-    TypeUse value
+    List<ParameterData> parameters,
+    List<TypeUse> statements
 ) {
 }

@@ -28,7 +28,7 @@ import java.util.List;
  * @since 0.1.0
  */
 public final class MethodSpec implements Annotatable, Spec, StatementBlock {
-    private final String returnType;
+    private final Spec returnType;
     private final String name;
     private String document = null;
     private final List<AnnotationSpec> annotations = new ArrayList<>();
@@ -45,9 +45,19 @@ public final class MethodSpec implements Annotatable, Spec, StatementBlock {
      * @param returnType return type
      * @param name       name
      */
-    public MethodSpec(String returnType, String name) {
+    public MethodSpec(Spec returnType, String name) {
         this.returnType = returnType;
         this.name = name;
+    }
+
+    /**
+     * Constructor
+     *
+     * @param returnType return type
+     * @param name       name
+     */
+    public MethodSpec(String returnType, String name) {
+        this(Spec.literal(returnType), name);
     }
 
     /**
@@ -167,7 +177,8 @@ public final class MethodSpec implements Annotatable, Spec, StatementBlock {
             builder.append("default ");
         }
         if (returnType != null) {
-            builder.append(returnType).append(' ');
+            returnType.append(builder, indent);
+            builder.append(' ');
         }
         builder.append(name).append('(');
         if (separateLine) {

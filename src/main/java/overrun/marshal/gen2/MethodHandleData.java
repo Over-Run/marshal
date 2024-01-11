@@ -18,30 +18,28 @@ package overrun.marshal.gen2;
 
 import overrun.marshal.gen.AccessModifier;
 
+import javax.lang.model.element.ExecutableElement;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Holds field
+ * Holds method handle
  *
- * @param document       the document
- * @param annotations    the annotations
- * @param accessModifier the access modifier
- * @param staticField    the static field
- * @param finalField     the final field
- * @param type           the type
- * @param name           the name
- * @param value          the value
+ * @param executableElement the executable element
+ * @param accessModifier    the access modifier
+ * @param name              the name
+ * @param returnType        the return type
+ * @param parameterTypes    the parameter types
+ * @param optional          optional
  * @author squid233
  * @since 0.1.0
  */
-public record FieldData(
-    String document,
-    List<AnnotationData> annotations,
+public record MethodHandleData(
+    ExecutableElement executableElement,
     AccessModifier accessModifier,
-    boolean staticField,
-    boolean finalField,
-    TypeData type,
     String name,
-    TypeUse value
+    Optional<TypeUse> returnType,
+    List<TypeUse> parameterTypes,
+    boolean optional
 ) {
 }

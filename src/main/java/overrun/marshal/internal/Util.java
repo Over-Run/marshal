@@ -56,6 +56,20 @@ public final class Util {
     }
 
     /**
+     * try insert underline
+     *
+     * @param name      the name
+     * @param predicate the predicate
+     * @return the string
+     */
+    public static String tryInsertUnderline(String name, Predicate<String> predicate) {
+        if (predicate.test(name)) {
+            return tryInsertUnderline("_" + name, predicate);
+        }
+        return name;
+    }
+
+    /**
      * Invalid type
      *
      * @param typeMirror typeMirror
@@ -71,6 +85,7 @@ public final class Util {
      * @param rawClassName rawClassName
      * @return name
      */
+    @Deprecated(since = "0.1.0")
     public static String simplify(String rawClassName) {
         if (isString(rawClassName)) {
             return String.class.getSimpleName();
@@ -192,6 +207,7 @@ public final class Util {
      * @param nameString  nameString
      * @return insertUnderline
      */
+    @Deprecated(since = "0.1.0")
     public static String insertUnderline(String builtinName, String nameString) {
         return builtinName.equals(nameString) ? "_" + builtinName : builtinName;
     }
