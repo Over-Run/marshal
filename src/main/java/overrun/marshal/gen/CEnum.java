@@ -52,6 +52,7 @@ public interface CEnum {
      * {@return the value of the enum}
      */
     int value();
+
     /**
      * Marks a <strong>static</strong> method as an enum value wrapper.
      * <p>

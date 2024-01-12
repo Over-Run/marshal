@@ -28,7 +28,7 @@ import java.lang.annotation.*;
  * <pre>{@code
  * void nset(MemorySegment vec);
  *
- * @Overload
+ * @Overload("nset")
  * void set(int[] vec);
  * }</pre>
  *

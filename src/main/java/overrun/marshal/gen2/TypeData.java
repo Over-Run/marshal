@@ -41,8 +41,7 @@ public sealed interface TypeData permits ArrayTypeData, DeclaredTypeData, Primit
         if (typeKind.isPrimitive()) {
             return new PrimitiveTypeData(type.toString());
         }
-        if (typeKind == TypeKind.ARRAY &&
-            type instanceof ArrayType arrayType) {
+        if (type instanceof ArrayType arrayType) {
             return new ArrayTypeData(detectType(env, arrayType.getComponentType()));
         }
         if (typeKind == TypeKind.DECLARED &&
@@ -69,6 +68,12 @@ public sealed interface TypeData permits ArrayTypeData, DeclaredTypeData, Primit
         }
         if (aClass.isArray()) {
             return new ArrayTypeData(fromClass(aClass.arrayType()));
+        }
+        if (aClass.isMemberClass()) {
+            final TypeData typeData = fromClass(aClass.getEnclosingClass());
+            if (typeData instanceof DeclaredTypeData(String packageName, String name)) {
+                return new DeclaredTypeData(packageName, name + "." + aClass.getSimpleName());
+            }
         }
         return new DeclaredTypeData(aClass.getPackageName(), aClass.getSimpleName());
     }

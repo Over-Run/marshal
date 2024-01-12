@@ -233,6 +233,17 @@ public final class Util {
     }
 
     /**
+     * Gets the type element from class name
+     *
+     * @param env    the processing environment
+     * @param aClass the class
+     * @return the type element
+     */
+    public static TypeElement getTypeElementFromClass(ProcessingEnvironment env, String aClass) {
+        return env.getElementUtils().getTypeElement(aClass);
+    }
+
+    /**
      * Gets the type element from class
      *
      * @param env    the processing environment
@@ -240,7 +251,7 @@ public final class Util {
      * @return the type element
      */
     public static TypeElement getTypeElementFromClass(ProcessingEnvironment env, Class<?> aClass) {
-        return env.getElementUtils().getTypeElement(aClass.getCanonicalName());
+        return getTypeElementFromClass(env, aClass.getCanonicalName());
     }
 
     /**
@@ -254,6 +265,17 @@ public final class Util {
         return isDeclared(t1) &&
                isDeclared(t2) &&
                env.getTypeUtils().isAssignable(t1, t2);
+    }
+
+    /**
+     * {@return is A extends B}
+     *
+     * @param env the processing environment
+     * @param t1  A
+     * @param t2  B
+     */
+    public static boolean isAExtendsB(ProcessingEnvironment env, TypeMirror t1, Class<?> t2) {
+        return isAExtendsB(env, t1, getTypeElementFromClass(env, t2).asType());
     }
 
     /**

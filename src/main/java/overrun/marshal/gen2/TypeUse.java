@@ -16,9 +16,12 @@
 
 package overrun.marshal.gen2;
 
+import overrun.marshal.gen.CEnum;
 import overrun.marshal.gen.struct.StructRef;
 import overrun.marshal.gen1.Spec;
+import overrun.marshal.internal.Util;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -33,18 +36,18 @@ import java.util.Optional;
  * @since 0.1.0
  */
 public interface TypeUse {
-    private static String valueLayoutString(TypeKind typeKind) {
+    private static Optional<TypeUse> valueLayout(TypeKind typeKind) {
         return switch (typeKind) {
-            case BOOLEAN -> "JAVA_BOOLEAN";
-            case CHAR -> "JAVA_CHAR";
-            case BYTE -> "JAVA_BYTE";
-            case SHORT -> "JAVA_SHORT";
-            case INT -> "JAVA_INT";
-            case LONG -> "JAVA_LONG";
-            case FLOAT -> "JAVA_FLOAT";
-            case DOUBLE -> "JAVA_DOUBLE";
-            case ARRAY, DECLARED -> "ADDRESS";
-            default -> null;
+            case BOOLEAN -> valueLayout(boolean.class);
+            case CHAR -> valueLayout(char.class);
+            case BYTE -> valueLayout(byte.class);
+            case SHORT -> valueLayout(short.class);
+            case INT -> valueLayout(int.class);
+            case LONG -> valueLayout(long.class);
+            case FLOAT -> valueLayout(float.class);
+            case DOUBLE -> valueLayout(double.class);
+            case ARRAY, DECLARED -> valueLayout(MemorySegment.class);
+            default -> Optional.empty();
         };
     }
 
@@ -59,38 +62,66 @@ public interface TypeUse {
     /**
      * Gets the value layout
      *
+     * @param env        the processing environment
      * @param typeMirror the type mirror
      * @return the value layout
      */
-    static Optional<TypeUse> valueLayout(TypeMirror typeMirror) {
-        return valueLayout(valueLayoutString(typeMirror.getKind()));
+    static Optional<TypeUse> valueLayout(ProcessingEnvironment env, TypeMirror typeMirror) {
+        if (Util.isAExtendsB(env, typeMirror, CEnum.class)) {
+            return valueLayout(int.class);
+        }
+        return valueLayout(typeMirror.getKind());
     }
 
     /**
      * Gets the value layout
      *
+     * @param env     the processing environment
      * @param element the element
      * @return the value layout
      */
-    static Optional<TypeUse> valueLayout(Element element) {
-        return element.getAnnotation(StructRef.class) != null ?
-            valueLayout("ADDRESS") :
-            valueLayout(element.asType());
+    static Optional<TypeUse> valueLayout(ProcessingEnvironment env, Element element) {
+        if (element.getAnnotation(StructRef.class) != null) {
+            return valueLayout(MemorySegment.class);
+        }
+        return valueLayout(env, element.asType());
+    }
+
+    /**
+     * Gets the value layout
+     *
+     * @param carrier the carrier
+     * @return the value layout
+     */
+    static Optional<TypeUse> valueLayout(Class<?> carrier) {
+        if (carrier == boolean.class) return valueLayout("JAVA_BOOLEAN");
+        if (carrier == char.class) return valueLayout("JAVA_CHAR");
+        if (carrier == byte.class) return valueLayout("JAVA_BYTE");
+        if (carrier == short.class) return valueLayout("JAVA_SHORT");
+        if (carrier == int.class) return valueLayout("JAVA_INT");
+        if (carrier == long.class) return valueLayout("JAVA_LONG");
+        if (carrier == float.class) return valueLayout("JAVA_FLOAT");
+        if (carrier == double.class) return valueLayout("JAVA_DOUBLE");
+        if (carrier == MemorySegment.class) return valueLayout("ADDRESS");
+        return Optional.empty();
     }
 
     /**
      * Converts to the downcall type
      *
+     * @param env        the processing environment
      * @param typeMirror the type mirror
      * @return the downcall type
      */
-    static Optional<TypeUse> toDowncallType(TypeMirror typeMirror) {
+    static Optional<TypeUse> toDowncallType(ProcessingEnvironment env, TypeMirror typeMirror) {
         final TypeKind typeKind = typeMirror.getKind();
         if (typeKind.isPrimitive()) {
             return Optional.of(_ -> Spec.literal(typeMirror.toString()));
         }
         return switch (typeKind) {
-            case ARRAY, DECLARED -> Optional.of(importData -> Spec.literal(importData.simplifyOrImport(MemorySegment.class)));
+            case ARRAY, DECLARED -> typeKind == TypeKind.DECLARED && Util.isAExtendsB(env, typeMirror, CEnum.class) ?
+                Optional.of(_ -> Spec.literal("int")) :
+                Optional.of(importData -> Spec.literal(importData.simplifyOrImport(MemorySegment.class)));
             default -> Optional.empty();
         };
     }

@@ -18,25 +18,24 @@ package overrun.marshal.gen2;
 
 import overrun.marshal.gen.*;
 import overrun.marshal.gen.struct.ByValue;
+import overrun.marshal.gen.struct.StructRef;
 import overrun.marshal.gen1.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
+import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
-import java.lang.foreign.Arena;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
-import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static overrun.marshal.internal.Util.*;
@@ -79,13 +78,13 @@ public final class DowncallData {
         this.processingEnv = processingEnv;
     }
 
-    private void processDowncallType(TypeElement typeElement) {
+    private void processDowncallType(TypeElement typeElement, String simpleClassName) {
         final var enclosedElements = typeElement.getEnclosedElements();
 
         // annotations
         final Downcall downcall = typeElement.getAnnotation(Downcall.class);
 
-        document = getDocComment(processingEnv, typeElement);
+        document = getDocComment(typeElement);
         nonFinal = downcall.nonFinal();
 
         // process fields
@@ -98,21 +97,21 @@ public final class DowncallData {
                 return;
             }
             fields.add(new FieldData(
-                getDocComment(processingEnv, element),
+                getDocComment(element),
                 List.of(),
                 AccessModifier.PUBLIC,
                 true,
                 true,
                 TypeData.detectType(processingEnv, element.asType()),
                 element.getSimpleName().toString(),
-                _ -> Spec.literal(getConstExp(processingEnv, constantValue))
+                _ -> Spec.literal(getConstExp(constantValue))
             ));
         });
 
         final var methods = ElementFilter.methodsIn(enclosedElements);
         if (!methods.isEmpty()) {
             // collect method handles
-            final Map<String, MethodHandleData> methodHandleDataList = LinkedHashMap.newLinkedHashMap(methods.size());
+            final Map<String, MethodHandleData> methodHandleDataMap = LinkedHashMap.newLinkedHashMap(methods.size());
             methods.forEach(executableElement -> {
                 if (executableElement.getAnnotation(Skip.class) != null ||
                     executableElement.getAnnotation(Overload.class) != null) {
@@ -120,24 +119,62 @@ public final class DowncallData {
                 }
                 final Access access = executableElement.getAnnotation(Access.class);
                 final String entrypoint = getMethodEntrypoint(executableElement);
-                methodHandleDataList.put(entrypoint,
+                final TypeMirror returnType = executableElement.getReturnType();
+                methodHandleDataMap.put(entrypoint,
                     new MethodHandleData(
                         executableElement,
                         access != null ? access.value() : AccessModifier.PUBLIC,
                         entrypoint,
-                        TypeUse.valueLayout(executableElement.getReturnType()),
+                        TypeUse.valueLayout(processingEnv, returnType)
+                            .map(typeUse -> importData -> {
+                                final ByValue byValue = executableElement.getAnnotation(ByValue.class);
+                                final StructRef structRef = executableElement.getAnnotation(StructRef.class);
+                                final SizedSeg sizedSeg = executableElement.getAnnotation(SizedSeg.class);
+                                final Sized sized = executableElement.getAnnotation(Sized.class);
+                                final boolean structRefNotNull = structRef != null;
+                                final boolean sizedSegNotNull = sizedSeg != null;
+                                final boolean sizedNotNull = sized != null;
+                                final Spec spec = typeUse.apply(importData);
+                                if (structRefNotNull || sizedSegNotNull || sizedNotNull) {
+                                    final InvokeSpec invokeSpec = new InvokeSpec(spec, "withTargetLayout");
+                                    if (structRefNotNull) {
+                                        final Spec layout = Spec.accessSpec(structRef.value(), "LAYOUT");
+                                        return byValue != null ? layout : invokeSpec.addArgument(layout);
+                                    }
+                                    if (sizedSegNotNull) {
+                                        return invokeSpec.addArgument(new InvokeSpec(
+                                            importData.simplifyOrImport(MemoryLayout.class),
+                                            "sequenceLayout"
+                                        ).addArgument(getConstExp(sizedSeg.value()))
+                                            .addArgument(TypeUse.valueLayout(byte.class).orElseThrow().apply(importData)));
+                                    }
+                                    return invokeSpec.addArgument(new InvokeSpec(
+                                        importData.simplifyOrImport(MemoryLayout.class),
+                                        "sequenceLayout"
+                                    ).also(invokeSpec1 -> {
+                                        invokeSpec1.addArgument(getConstExp(sized.value()));
+                                        final Optional<TypeUse> seqLayout;
+                                        if (returnType instanceof ArrayType arrayType) {
+                                            seqLayout = TypeUse.valueLayout(processingEnv, arrayType.getComponentType());
+                                        } else {
+                                            seqLayout = TypeUse.valueLayout(byte.class);
+                                        }
+                                        invokeSpec1.addArgument(seqLayout.orElseThrow().apply(importData));
+                                    }));
+                                }
+                                return spec;
+                            }),
                         executableElement.getParameters()
                             .stream()
                             .filter(element -> element.getAnnotation(Skip.class) == null)
-                            .map(TypeUse::valueLayout)
-                            .map(Optional::orElseThrow)
+                            .map(element -> TypeUse.valueLayout(processingEnv, element).orElseThrow())
                             .toList(),
                         executableElement.getAnnotation(Default.class) != null
                     ));
             });
 
             // add linker and lookup
-            final Predicate<String> containsKey = methodHandleDataList::containsKey;
+            final Predicate<String> containsKey = methodHandleDataMap::containsKey;
             final String lookupName = addLookup(typeElement, containsKey);
             final String linkerName = tryInsertUnderline("LINKER", containsKey);
             fields.add(new FieldData(
@@ -151,97 +188,69 @@ public final class DowncallData {
                 importData -> new InvokeSpec(importData.simplifyOrImport(Linker.class), "nativeLinker")
             ));
 
-            // add methods
-            final var fieldNames = fields.stream().map(FieldData::name).toList();
-            methodHandleDataList.values().forEach(methodHandleData -> {
-                final String name = methodHandleData.name();
-                fields.add(new FieldData(
-                    " The method handle of {@code " + name + "}.",
-                    List.of(),
-                    methodHandleData.accessModifier(),
-                    true,
-                    true,
-                    TypeData.fromClass(MethodHandle.class),
-                    name,
-                    importData -> {
-                        final InvokeSpec invokeSpec = new InvokeSpec(
-                            new InvokeSpec(lookupName, "find")
-                                .addArgument(getConstExp(processingEnv, name)), "map"
-                        ).addArgument(new LambdaSpec("s")
-                            .addStatementThis(new InvokeSpec(linkerName, "downcallHandle")
-                                .addArgument("s")
-                                .also(invokeSpec1 -> {
-                                    final var returnType = methodHandleData.returnType();
-                                    final String methodName = returnType.isPresent() ? "of" : "ofVoid";
-                                    invokeSpec1.addArgument(new InvokeSpec(importData.simplifyOrImport(FunctionDescriptor.class), methodName)
-                                        .also(invokeSpec2 -> {
-                                            returnType.ifPresent(typeUse -> invokeSpec2.addArgument(typeUse.apply(importData)));
-                                            methodHandleData.parameterTypes().forEach(typeUse ->
-                                                invokeSpec2.addArgument(typeUse.apply(importData)));
-                                        }));
-                                })));
-                        if (methodHandleData.optional()) {
-                            return new InvokeSpec(invokeSpec, "orElse").addArgument("null");
-                        }
-                        return new InvokeSpec(
-                            invokeSpec, "orElseThrow"
-                        );
-                    }
-                ));
-
-                final ExecutableElement executableElement = methodHandleData.executableElement();
-                final var returnType = TypeUse.toDowncallType(executableElement.getReturnType());
-                final var parameters = executableElement.getParameters().stream()
-                    .filter(element -> element.getAnnotation(Skip.class) == null)
-                    .map(element -> new ParameterData(
-                        null,
-                        getElementAnnotations(PARAMETER_ANNOTATIONS, element),
-                        TypeUse.toDowncallType(element.asType()).orElseThrow(),
-                        tryInsertUnderline(element.getSimpleName().toString(), fieldNames::contains)
-                    ))
-                    .toList();
-                final var parameterNames = parameters.stream().map(ParameterData::name).toList();
-                functionDataList.add(new FunctionData(
-                    getDocComment(processingEnv, executableElement),
-                    getElementAnnotations(METHOD_ANNOTATIONS, executableElement),
-                    methodHandleData.accessModifier(),
-                    returnType.orElseGet(() -> _ -> Spec.literal("void")),
-                    executableElement.getSimpleName().toString(),
-                    parameters,
-                    List.of(
-                        importData -> new TryCatchStatement().also(tryCatchStatement -> {
-                            final String exceptionName = tryInsertUnderline("e", s -> fieldNames.contains(s) || parameterNames.contains(s));
-                            final String methodHandleName = methodHandleData.name();
-                            final InvokeSpec invokeSpec = new InvokeSpec(methodHandleName, "invokeExact");
-                            parameterNames.forEach(invokeSpec::addArgument);
-                            final Spec returnSpec = returnType
-                                .map(typeUse -> Spec.returnStatement(Spec.cast(typeUse.apply(importData), invokeSpec)))
-                                .orElseGet(() -> Spec.statement(invokeSpec));
-                            final Spec optionalSpec;
-                            final Default defaultAnnotation = executableElement.getAnnotation(Default.class);
-                            if (defaultAnnotation != null) {
-                                final IfStatement ifStatement = new IfStatement(Spec.notNullSpec(methodHandleName));
-                                ifStatement.addStatement(returnSpec);
-                                final String defaultValue = defaultAnnotation.value();
-                                if (!defaultValue.isBlank()) {
-                                    ifStatement.addElseClause(ElseClause.of(), elseClause ->
-                                        elseClause.addStatement(Spec.returnStatement(Spec.literal(defaultValue)))
-                                    );
+            // adds methods
+            // method handles
+            methodHandleDataMap.forEach((name, methodHandleData) -> fields.add(new FieldData(
+                " The method handle of {@code " + name + "}.",
+                List.of(),
+                methodHandleData.accessModifier(),
+                true,
+                true,
+                TypeData.fromClass(MethodHandle.class),
+                methodHandleData.name(),
+                importData -> {
+                    final InvokeSpec invokeSpec = new InvokeSpec(
+                        new InvokeSpec(lookupName, "find")
+                            .addArgument(getConstExp(name)), "map"
+                    ).addArgument(new LambdaSpec("s")
+                        .addStatementThis(new InvokeSpec(linkerName, "downcallHandle")
+                            .addArgument("s")
+                            .also(downcallHandle -> {
+                                final var returnType = methodHandleData.returnType();
+                                final String methodName = returnType.isPresent() ? "of" : "ofVoid";
+                                downcallHandle.addArgument(new InvokeSpec(importData.simplifyOrImport(FunctionDescriptor.class), methodName)
+                                    .also(fdOf -> {
+                                        returnType.ifPresent(typeUse -> {
+                                            final Spec spec = typeUse.apply(importData);
+                                            fdOf.addArgument(spec);
+                                        });
+                                        methodHandleData.parameterTypes().forEach(typeUse ->
+                                            fdOf.addArgument(typeUse.apply(importData)));
+                                    }));
+                                final Critical critical = methodHandleData.executableElement().getAnnotation(Critical.class);
+                                if (critical != null) {
+                                    downcallHandle.addArgument(new InvokeSpec(importData.simplifyOrImport(Linker.Option.class), "critical")
+                                        .addArgument(getConstExp(critical.allowHeapAccess())));
                                 }
-                                optionalSpec = ifStatement;
-                            } else {
-                                optionalSpec = returnSpec;
-                            }
-                            tryCatchStatement.addStatement(optionalSpec);
-                            tryCatchStatement.addCatchClause(new CatchClause(
-                                importData.simplifyOrImport(Throwable.class),
-                                exceptionName
-                            ), catchClause ->
-                                catchClause.addStatement(Spec.throwStatement(new ConstructSpec(importData.simplifyOrImport(RuntimeException.class))
-                                    .addArgument(Spec.literal(exceptionName)))));
-                        })
-                    )
-                ));
+                            })));
+                    if (methodHandleData.optional()) {
+                        return new InvokeSpec(invokeSpec, "orElse").addArgument("null");
+                    }
+                    return new InvokeSpec(
+                        invokeSpec, "orElseThrow"
+                    );
+                }
+            )));
+
+            // methods
+            final var fieldNames = fields.stream().map(FieldData::name).toList();
+            methods.forEach(executableElement -> {
+                if (executableElement.getAnnotation(Skip.class) != null) {
+                    return;
+                }
+                final Overload overload = executableElement.getAnnotation(Overload.class);
+                final boolean isOverload = overload != null || containsNonDowncallType(executableElement);
+                final MethodHandleData methodHandleData = methodHandleDataMap.get(getMethodEntrypoint(executableElement));
+                if (methodHandleData == null) {
+                    return;
+                }
+
+                if (isOverload) {
+                    // TODO: 2024/1/12 squid233: Overload
+                    return;
+                }
+
+                addDowncallMethod(simpleClassName, executableElement, fieldNames, methodHandleData);
             });
         }
     }
@@ -273,7 +282,7 @@ public final class DowncallData {
             simpleClassName = downcall.name();
         }
 
-        processDowncallType(typeElement);
+        processDowncallType(typeElement, simpleClassName);
 
         final SourceFile file = new SourceFile(declaredTypeDataOfTypeElement.packageName());
         file.addClass(simpleClassName, classSpec -> {
@@ -309,6 +318,93 @@ public final class DowncallData {
         }
     }
 
+    private void addDowncallMethod(String simpleClassName,
+                                   ExecutableElement executableElement,
+                                   List<String> fieldNames,
+                                   MethodHandleData methodHandleData) {
+        final String methodHandleName = methodHandleData.name();
+        final var returnType = TypeUse.toDowncallType(processingEnv, executableElement.getReturnType());
+
+        final var parameters = executableElement.getParameters().stream()
+            .filter(element -> element.getAnnotation(Skip.class) == null)
+            .map(element -> new ParameterData(
+                null,
+                getElementAnnotations(PARAMETER_ANNOTATIONS, element),
+                TypeUse.toDowncallType(processingEnv, element.asType()).orElseThrow(),
+                element.getSimpleName().toString()
+            ))
+            .collect(Collectors.toList());
+        final var parameterNames = parameters.stream()
+            .map(ParameterData::name)
+            .collect(Collectors.toList());
+
+        if (executableElement.getAnnotation(ByValue.class) != null) {
+            final String allocatorName = tryInsertUnderline("segmentAllocator", parameterNames::contains);
+            parameters.addFirst(new ParameterData(
+                "the segment allocator",
+                List.of(),
+                importData -> Spec.literal(importData.simplifyOrImport(SegmentAllocator.class)),
+                allocatorName
+            ));
+            parameterNames.addFirst(allocatorName);
+        }
+
+        final boolean shouldAddInvoker = parameterNames.stream().anyMatch(fieldNames::contains);
+
+        String docComment = getDocComment(executableElement);
+        if (docComment != null) {
+            docComment += parameters.stream()
+                .filter(parameterData -> parameterData.document() != null)
+                .map(parameterData -> " @param " + parameterData.name() + " " + parameterData.document())
+                .collect(Collectors.joining("\n"));
+        }
+        functionDataList.add(new FunctionData(
+            docComment,
+            getElementAnnotations(METHOD_ANNOTATIONS, executableElement),
+            methodHandleData.accessModifier(),
+            returnType.orElseGet(() -> _ -> Spec.literal("void")),
+            executableElement.getSimpleName().toString(),
+            parameters,
+            List.of(
+                importData -> new TryCatchStatement().also(tryCatchStatement -> {
+                    final InvokeSpec invokeSpec = new InvokeSpec(shouldAddInvoker ?
+                        Spec.accessSpec(simpleClassName, methodHandleName) :
+                        Spec.literal(methodHandleName), "invokeExact");
+                    parameterNames.forEach(invokeSpec::addArgument);
+
+                    final Spec returnSpec = returnType
+                        .map(typeUse -> Spec.returnStatement(Spec.cast(typeUse.apply(importData), invokeSpec)))
+                        .orElseGet(() -> Spec.statement(invokeSpec));
+
+                    final Spec optionalSpec;
+                    final Default defaultAnnotation = executableElement.getAnnotation(Default.class);
+                    if (defaultAnnotation != null) {
+                        final IfStatement ifStatement = new IfStatement(Spec.notNullSpec(methodHandleName));
+                        ifStatement.addStatement(returnSpec);
+                        final String defaultValue = defaultAnnotation.value();
+                        if (!defaultValue.isBlank()) {
+                            ifStatement.addElseClause(ElseClause.of(), elseClause ->
+                                elseClause.addStatement(Spec.returnStatement(Spec.literal(defaultValue)))
+                            );
+                        }
+                        optionalSpec = ifStatement;
+                    } else {
+                        optionalSpec = returnSpec;
+                    }
+
+                    final String exceptionName = tryInsertUnderline("e", s -> fieldNames.contains(s) || parameterNames.contains(s));
+                    tryCatchStatement.addStatement(optionalSpec);
+                    tryCatchStatement.addCatchClause(new CatchClause(
+                        importData.simplifyOrImport(Throwable.class),
+                        exceptionName
+                    ), catchClause ->
+                        catchClause.addStatement(Spec.throwStatement(new ConstructSpec(importData.simplifyOrImport(RuntimeException.class))
+                            .addArgument(Spec.literal(exceptionName)))));
+                })
+            )
+        ));
+    }
+
     private String addLookup(TypeElement typeElement, Predicate<String> insertUnderlineTest) {
         final Downcall downcall = typeElement.getAnnotation(Downcall.class);
         final String loader = typeElement.getAnnotationMirrors().stream()
@@ -321,14 +417,14 @@ public final class DowncallData {
             .map(e -> e.getValue().getValue().toString())
             .orElse(null);
         final String libname = downcall.libname();
-        final String libnameConstExp = getConstExp(processingEnv, libname);
+        final String libnameConstExp = getConstExp(libname);
         final TypeElement loaderTypeElement;
         final Optional<ExecutableElement> annotatedMethod;
         if (loader == null) {
             loaderTypeElement = null;
             annotatedMethod = Optional.empty();
         } else {
-            loaderTypeElement = processingEnv.getElementUtils().getTypeElement(loader);
+            loaderTypeElement = getTypeElementFromClass(processingEnv, loader);
             annotatedMethod = findAnnotatedMethod(loaderTypeElement,
                 Loader.class,
                 executableElement -> {
@@ -373,7 +469,7 @@ public final class DowncallData {
         return annotationMirrors.stream()
             .filter(mirror -> isAExtendsB(processingEnv,
                 mirror.getAnnotationType(),
-                getTypeElementFromClass(processingEnv, aClass).asType()));
+                aClass));
     }
 
     private List<AnnotationData> getElementAnnotations(List<Class<? extends Annotation>> list, Element e) {
@@ -395,6 +491,16 @@ public final class DowncallData {
             }
         }
         return executableElement.getSimpleName().toString();
+    }
+
+    private boolean containsNonDowncallType(ExecutableElement executableElement) {
+        return executableElement.getParameters().stream()
+            .anyMatch(element -> {
+                final TypeMirror type = element.asType();
+                final TypeKind typeKind = type.getKind();
+                return !(typeKind.isPrimitive() ||
+                         typeKind == TypeKind.DECLARED && isSameClass(type, MemorySegment.class));
+            });
     }
 
     private void addFields(ClassSpec spec) {
@@ -433,11 +539,11 @@ public final class DowncallData {
             }));
     }
 
-    private String getDocComment(ProcessingEnvironment env, Element e) {
-        return env.getElementUtils().getDocComment(e);
+    private String getDocComment(Element e) {
+        return processingEnv.getElementUtils().getDocComment(e);
     }
 
-    private String getConstExp(ProcessingEnvironment env, Object v) {
-        return env.getElementUtils().getConstantExpression(v);
+    private String getConstExp(Object v) {
+        return processingEnv.getElementUtils().getConstantExpression(v);
     }
 }

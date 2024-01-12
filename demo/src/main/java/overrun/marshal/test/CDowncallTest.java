@@ -162,6 +162,11 @@ interface CDowncallTest {
     @StructRef("overrun.marshal.test.StructTest")
     Object testReturnStruct();
 
+    /**
+     * A document
+     *
+     * @return the segment
+     */
     @ByValue
     @Entrypoint("returnByValueStruct")
     @StructRef("overrun.marshal.test.StructTest")
@@ -194,6 +199,13 @@ interface CDowncallTest {
     void testAnotherEntrypoint(int[] segment);
 
     void testWithoutOverload(int[] arr);
+
+    void testDuplicateName(int testDuplicateName);
+
+    MyEnum testReturnEnumWithoutOverload();
+
+    @Sized(4)
+    int[] testReturnSizedArrWithoutOverload();
 
     /**
      * This is a test that tests all features.

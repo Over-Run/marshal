@@ -153,6 +153,20 @@ public interface Spec {
     }
 
     /**
+     * Create access spec
+     *
+     * @param object object
+     * @param member member
+     * @return spec
+     */
+    static Spec accessSpec(Spec object, String member) {
+        return (builder, indent) -> {
+            object.append(builder, indent);
+            builder.append('.').append(member);
+        };
+    }
+
+    /**
      * Create ternary operator spec
      *
      * @param condition  condition

@@ -20,6 +20,7 @@ import overrun.marshal.gen.*;
 import overrun.marshal.gen.struct.*;
 import overrun.marshal.gen1.*;
 import overrun.marshal.internal.Processor;
+import overrun.marshal.struct.IStruct;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.TypeElement;
