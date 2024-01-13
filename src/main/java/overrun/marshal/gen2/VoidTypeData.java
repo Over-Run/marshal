@@ -22,7 +22,7 @@ package overrun.marshal.gen2;
  * @author squid233
  * @since 0.1.0
  */
-public final class VoidTypeData implements TypeData {
+public record VoidTypeData() implements TypeData {
     static final VoidTypeData INSTANCE = new VoidTypeData();
 
     @Override

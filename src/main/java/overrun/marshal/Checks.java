@@ -23,6 +23,9 @@ package overrun.marshal;
  * @since 0.1.0
  */
 public final class Checks {
+    private Checks() {
+    }
+
     /**
      * Checks the array size.
      *

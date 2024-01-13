@@ -16,11 +16,14 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.MemoryStack;
 import overrun.marshal.gen.*;
 import overrun.marshal.gen.struct.ByValue;
 import overrun.marshal.gen.struct.StructRef;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
 
 /**
  * Test basic features
@@ -110,6 +113,9 @@ interface CDowncallTest {
     @Overload
     String[] testStringArray(String[] arr, @Ref String[] refArr);
 
+    @StrCharset("UTF-16")
+    String[] testStringArrayUTF16(@StrCharset("UTF-16") String[] arr, @Ref @StrCharset("UTF-16") String[] refArr);
+
     @Entrypoint("testWithReturnArray")
     MemorySegment ntestWithReturnArray();
 
@@ -141,41 +147,29 @@ interface CDowncallTest {
     void testUpcall(MemorySegment cb, MemorySegment nullableCb);
 
     @Overload
-    void testUpcall(GLFWErrorCallback cb, @NullableRef GLFWErrorCallback nullableCb);
+    void testUpcall(Arena arena, GLFWErrorCallback cb, @NullableRef GLFWErrorCallback nullableCb);
 
     @Entrypoint("testReturnUpcall")
     MemorySegment ntestReturnUpcall();
 
     @Overload("ntestReturnUpcall")
-    GLFWErrorCallback testReturnUpcall();
+    GLFWErrorCallback testReturnUpcall(Arena arena);
 
     void testStruct(MemorySegment struct, MemorySegment nullableStruct);
 
     @Overload
     void testStruct(@StructRef("overrun.marshal.test.Vector3") Object struct, @NullableRef @StructRef("overrun.marshal.test.Vector3") Object nullableStruct);
 
-    @Entrypoint("testReturnStruct")
-    @StructRef("overrun.marshal.test.StructTest")
-    MemorySegment ntestReturnStruct();
-
-    @Overload("ntestReturnStruct")
     @StructRef("overrun.marshal.test.StructTest")
     Object testReturnStruct();
 
-    /**
-     * A document
-     *
-     * @return the segment
-     */
     @ByValue
-    @Entrypoint("returnByValueStruct")
     @StructRef("overrun.marshal.test.StructTest")
-    MemorySegment nreturnByValueStruct();
+    Object returnByValueStruct(SegmentAllocator allocator);
 
     @ByValue
-    @Overload("nreturnByValueStruct")
     @StructRef("overrun.marshal.test.StructTest")
-    Object returnByValueStruct();
+    Object returnByValueStructWithArena(Arena arena);
 
     int testEnumValue(int value);
 
@@ -187,10 +181,10 @@ interface CDowncallTest {
     @Overload
     MyEnum testEnumValueWithRef(MyEnum value, @Ref int[] ref);
 
-    void testNameSegmentAllocator(MemorySegment segmentAllocator, MemorySegment arr);
+    void testNameMemoryStack(MemorySegment stack, MemorySegment arr);
 
     @Overload
-    void testNameSegmentAllocator(MemorySegment segmentAllocator, int[] arr);
+    void testNameMemoryStack(MemorySegment stack, int[] arr);
 
     @Entrypoint("_testAnotherEntrypoint")
     void testAnotherEntrypoint(MemorySegment segment);
@@ -200,12 +194,24 @@ interface CDowncallTest {
 
     void testWithoutOverload(int[] arr);
 
-    void testDuplicateName(int testDuplicateName);
+    void testDuplicateName(int[] testDuplicateName);
 
     MyEnum testReturnEnumWithoutOverload();
 
     @Sized(4)
     int[] testReturnSizedArrWithoutOverload();
+
+    void testWithArrWithoutOverload(int[] arr);
+
+    void testWithArrWithoutOverload(SegmentAllocator allocator, int[] arr);
+
+    void testWithArrWithoutOverload(Arena arena, int[] arr);
+
+    void testWithArrWithoutOverload(MemoryStack stack, int[] arr);
+
+    void testStructWithoutOverload(@StructRef("overrun.marshal.test.StructTest") Object struct);
+
+    void testUpcallWithoutOverload(Arena arena, GLFWErrorCallback cb);
 
     /**
      * This is a test that tests all features.

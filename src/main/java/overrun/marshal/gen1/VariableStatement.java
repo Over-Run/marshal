@@ -32,6 +32,7 @@ public final class VariableStatement implements Spec {
     private AccessModifier accessModifier = AccessModifier.PUBLIC;
     private boolean isStatic = false;
     private boolean isFinal = false;
+    private boolean addSemicolon = true;
 
     /**
      * Constructor
@@ -102,11 +103,24 @@ public final class VariableStatement implements Spec {
         return this;
     }
 
+    /**
+     * setAddSemicolon
+     *
+     * @param addSemicolon addSemicolon
+     */
+    public VariableStatement setAddSemicolon(boolean addSemicolon) {
+        this.addSemicolon = addSemicolon;
+        return this;
+    }
+
     @Override
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);
         Spec.appendDocument(builder, document, indentString);
-        builder.append(indentString).append(accessModifier);
+        if (addSemicolon) {
+            builder.append(indentString);
+        }
+        builder.append(accessModifier);
         if (accessModifier != AccessModifier.PACKAGE_PRIVATE) {
             builder.append(' ');
         }
@@ -121,6 +135,8 @@ public final class VariableStatement implements Spec {
             builder.append(" = ");
             value.append(builder, indent);
         }
-        builder.append(";\n");
+        if (addSemicolon) {
+            builder.append(";\n");
+        }
     }
 }

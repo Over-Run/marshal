@@ -17,11 +17,11 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.*;
+import overrun.marshal.gen.struct.ByValue;
+import overrun.marshal.gen.struct.StructRef;
 import overrun.marshal.gen1.*;
 import overrun.marshal.gen2.DowncallData;
 import overrun.marshal.internal.Processor;
-import overrun.marshal.gen.struct.ByValue;
-import overrun.marshal.gen.struct.StructRef;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.ExecutableElement;
@@ -69,16 +69,9 @@ public final class DowncallProcessor extends Processor {
     }
 
     private void processClasses(RoundEnvironment roundEnv) {
-        // TODO: 2024/1/7 squid233: rewrite
-        final boolean debug = true;
         ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(Downcall.class)).forEach(e -> {
             try {
-                if (debug) {
-                    new DowncallData(processingEnv).generate(e);
-                } else {
-                    final var enclosed = e.getEnclosedElements();
-                    writeFile(e, ElementFilter.fieldsIn(enclosed), ElementFilter.methodsIn(enclosed));
-                }
+                new DowncallData(processingEnv).generate(e);
             } catch (IOException ex) {
                 printStackTrace(ex);
             }

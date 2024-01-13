@@ -41,7 +41,8 @@ public sealed interface TypeData permits ArrayTypeData, DeclaredTypeData, Primit
         if (typeKind.isPrimitive()) {
             return new PrimitiveTypeData(type.toString());
         }
-        if (type instanceof ArrayType arrayType) {
+        if (typeKind == TypeKind.ARRAY &&
+            type instanceof ArrayType arrayType) {
             return new ArrayTypeData(detectType(env, arrayType.getComponentType()));
         }
         if (typeKind == TypeKind.DECLARED &&

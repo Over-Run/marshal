@@ -26,8 +26,10 @@ import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Holds spec with type data
@@ -67,6 +69,9 @@ public interface TypeUse {
      * @return the value layout
      */
     static Optional<TypeUse> valueLayout(ProcessingEnvironment env, TypeMirror typeMirror) {
+        if (Util.isAExtendsB(env, typeMirror, SegmentAllocator.class)) {
+            return Optional.empty();
+        }
         if (Util.isAExtendsB(env, typeMirror, CEnum.class)) {
             return valueLayout(int.class);
         }
@@ -119,11 +124,47 @@ public interface TypeUse {
             return Optional.of(_ -> Spec.literal(typeMirror.toString()));
         }
         return switch (typeKind) {
-            case ARRAY, DECLARED -> typeKind == TypeKind.DECLARED && Util.isAExtendsB(env, typeMirror, CEnum.class) ?
-                Optional.of(_ -> Spec.literal("int")) :
-                Optional.of(importData -> Spec.literal(importData.simplifyOrImport(MemorySegment.class)));
+            case ARRAY, DECLARED -> {
+                if (typeKind == TypeKind.DECLARED) {
+                    if (Util.isAExtendsB(env, typeMirror, SegmentAllocator.class)) {
+                        yield Optional.of(importData -> Spec.literal(importData.simplifyOrImport(env, typeMirror)));
+                    }
+                    if (Util.isAExtendsB(env, typeMirror, CEnum.class)) {
+                        yield Optional.of(_ -> Spec.literal("int"));
+                    }
+                }
+                yield Optional.of(importData -> Spec.literal(importData.simplifyOrImport(MemorySegment.class)));
+            }
             default -> Optional.empty();
         };
+    }
+
+    /**
+     * Converts to the downcall type
+     *
+     * @param env     the processing environment
+     * @param element the element
+     * @return the downcall type
+     */
+    static Optional<TypeUse> toDowncallType(ProcessingEnvironment env, Element element) {
+        return toDowncallType(env, element, Element::asType);
+    }
+
+    /**
+     * Converts to the downcall type
+     *
+     * @param env      the processing environment
+     * @param element  the element
+     * @param function the function
+     * @param <T>      the element type
+     * @return the downcall type
+     */
+    static <T extends Element> Optional<TypeUse> toDowncallType(ProcessingEnvironment env, T element, Function<T, TypeMirror> function) {
+        final StructRef structRef = element.getAnnotation(StructRef.class);
+        if (structRef != null) {
+            return Optional.of(importData -> Spec.literal(importData.simplifyOrImport(MemorySegment.class)));
+        }
+        return toDowncallType(env, function.apply(element));
     }
 
     /**

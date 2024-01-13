@@ -56,6 +56,21 @@ public final class Util {
     }
 
     /**
+     * try insert prefix
+     *
+     * @param prefix    the prefix
+     * @param name      the name
+     * @param predicate the predicate
+     * @return the string
+     */
+    public static String tryInsertPrefix(String prefix, String name, Predicate<String> predicate) {
+        if (predicate.test(name)) {
+            return tryInsertPrefix(prefix, prefix + name, predicate);
+        }
+        return name;
+    }
+
+    /**
      * try insert underline
      *
      * @param name      the name
@@ -63,10 +78,7 @@ public final class Util {
      * @return the string
      */
     public static String tryInsertUnderline(String name, Predicate<String> predicate) {
-        if (predicate.test(name)) {
-            return tryInsertUnderline("_" + name, predicate);
-        }
-        return name;
+        return tryInsertPrefix("_", name, predicate);
     }
 
     /**
@@ -123,6 +135,7 @@ public final class Util {
      * @param typeMirror typeMirror
      * @return isMemorySegment
      */
+    @Deprecated(since = "0.1.0")
     public static boolean isMemorySegment(TypeMirror typeMirror) {
         return isSameClass(typeMirror, MemorySegment.class);
     }
@@ -144,6 +157,7 @@ public final class Util {
      * @param typeMirror typeMirror
      * @return isString
      */
+    @Deprecated(since = "0.1.0")
     public static boolean isString(TypeMirror typeMirror) {
         return isSameClass(typeMirror, String.class);
     }
@@ -154,6 +168,7 @@ public final class Util {
      * @param typeMirror typeMirror
      * @return isArray
      */
+    @Deprecated(since = "0.1.0")
     public static boolean isArray(TypeMirror typeMirror) {
         return typeMirror.getKind() == TypeKind.ARRAY;
     }
@@ -285,9 +300,9 @@ public final class Util {
      * @param aClass     the class
      */
     public static boolean isSameClass(TypeMirror typeMirror, Class<?> aClass) {
-        return aClass.getCanonicalName().equals(typeMirror.toString()) &&
-               ((typeMirror.getKind().isPrimitive() && aClass.isPrimitive()) ||
+        return ((typeMirror.getKind().isPrimitive() && aClass.isPrimitive()) ||
                 (typeMirror.getKind() == TypeKind.ARRAY && aClass.isArray()) ||
-                isDeclared(typeMirror));
+                isDeclared(typeMirror)) &&
+               aClass.getCanonicalName().equals(typeMirror.toString());
     }
 }
