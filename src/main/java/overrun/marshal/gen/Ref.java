@@ -32,8 +32,4 @@ import java.lang.annotation.*;
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Ref {
-    /**
-     * {@return {@code true} if the array is nullable; {@code false} otherwise}
-     */
-    boolean nullable() default false;
 }

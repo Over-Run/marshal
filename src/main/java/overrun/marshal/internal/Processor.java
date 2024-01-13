@@ -16,10 +16,8 @@
 
 package overrun.marshal.internal;
 
-import overrun.marshal.gen.CEnum;
-import overrun.marshal.gen.Loader;
-import overrun.marshal.gen.StrCharset;
 import overrun.marshal.Upcall;
+import overrun.marshal.gen.StrCharset;
 import overrun.marshal.gen1.*;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -32,7 +30,6 @@ import javax.lang.model.util.ElementFilter;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
-import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -53,10 +50,6 @@ public abstract class Processor extends AbstractProcessor {
      * upcallTypeMirror
      */
     protected TypeMirror upcallTypeMirror;
-    /**
-     * cEnumTypeMirror
-     */
-    protected TypeMirror cEnumTypeMirror;
 
     /**
      * constructor
@@ -68,7 +61,6 @@ public abstract class Processor extends AbstractProcessor {
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         upcallTypeMirror = getTypeMirror(Upcall.class);
-        cEnumTypeMirror = getTypeMirror(CEnum.class);
     }
 
     /**
@@ -147,16 +139,6 @@ public abstract class Processor extends AbstractProcessor {
      */
     protected boolean isUpcall(TypeMirror typeMirror) {
         return isAOfB(typeMirror, upcallTypeMirror);
-    }
-
-    /**
-     * isCEnum
-     *
-     * @param typeMirror typeMirror
-     * @return isCEnum
-     */
-    protected boolean isCEnum(TypeMirror typeMirror) {
-        return isAOfB(typeMirror, cEnumTypeMirror);
     }
 
     /**
@@ -298,46 +280,6 @@ public abstract class Processor extends AbstractProcessor {
             .filter(method -> {
                 final var list = method.getParameters();
                 return list.size() == 1 && isMemorySegment(list.getFirst().asType());
-            })
-            .findFirst();
-    }
-
-    /**
-     * Find CEnum wrapper method
-     *
-     * @param typeMirror the type
-     * @return the CEnum wrapper method
-     */
-    protected Optional<ExecutableElement> findCEnumWrapperMethod(TypeMirror typeMirror) {
-        return ElementFilter.methodsIn(processingEnv.getTypeUtils()
-                .asElement(typeMirror)
-                .getEnclosedElements())
-            .stream()
-            .filter(method -> method.getAnnotation(CEnum.Wrapper.class) != null)
-            .filter(method -> {
-                final var list = method.getParameters();
-                return list.size() == 1 && int.class.getCanonicalName().equals(list.getFirst().asType().toString());
-            })
-            .findFirst();
-    }
-
-    /**
-     * Find LibLoader method
-     *
-     * @param typeMirror the type
-     * @return the LibLoader method
-     */
-    protected Optional<ExecutableElement> findLibLoaderMethod(TypeMirror typeMirror) {
-        return ElementFilter.methodsIn(processingEnv.getTypeUtils()
-                .asElement(typeMirror)
-                .getEnclosedElements())
-            .stream()
-            .filter(method -> method.getAnnotation(Loader.class) != null)
-            .filter(method -> {
-                final var list = method.getParameters();
-                return list.size() == 1 &&
-                       isString(list.getFirst().asType()) &&
-                       SymbolLookup.class.getCanonicalName().equals(method.getReturnType().toString());
             })
             .findFirst();
     }

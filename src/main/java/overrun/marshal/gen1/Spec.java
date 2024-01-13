@@ -76,16 +76,6 @@ public interface Spec {
     }
 
     /**
-     * Create class name spec
-     *
-     * @param clazz class
-     * @return spec
-     */
-    static Spec className(Class<?> clazz) {
-        return literal(clazz.getCanonicalName());
-    }
-
-    /**
      * Create an assign statement
      *
      * @param left  left
@@ -150,20 +140,6 @@ public interface Spec {
      */
     static Spec accessSpec(String object, String member) {
         return literal(object + '.' + member);
-    }
-
-    /**
-     * Create access spec
-     *
-     * @param object object
-     * @param member member
-     * @return spec
-     */
-    static Spec accessSpec(Spec object, String member) {
-        return (builder, indent) -> {
-            object.append(builder, indent);
-            builder.append('.').append(member);
-        };
     }
 
     /**
@@ -294,22 +270,21 @@ public interface Spec {
     }
 
     /**
-     * Create an indented literal string
+     * Indent code block
      *
-     * @param s the string
+     * @param s the code
      * @return the spec
      */
-    static Spec indentedExceptFirstLine(String s) {
-        return (builder, indent) -> {
+    static Spec indentCodeBlock(String s) {
+        return (builder, indent) -> s.lines().findFirst().ifPresent(first -> {
             final String indentString = indentString(indent);
-            s.lines().findFirst().ifPresentOrElse(s1 -> {
-                builder.append(s1);
-                if (s.lines().count() > 1) {
-                    builder.append(s.lines().skip(1).map(s2 -> indentString + s2).collect(Collectors.joining("\n", "\n", "")));
-                }
-            }, () -> {
-            });
-        };
+            builder.append(first)
+                .append('\n')
+                .append(s.lines()
+                    .skip(1)
+                    .map(s1 -> indentString + s1)
+                    .collect(Collectors.joining("\n")));
+        });
     }
 
     /**

@@ -59,6 +59,12 @@ interface CDowncallTest {
     @Default
     void testWithOptional();
 
+    @Default("""
+        Math.sqrt(
+            2
+        )""")
+    double testDefaultWithMultiline();
+
     void testWithArgument(int i, MemorySegment holder);
 
     MemorySegment testWithArgAndReturnValue(MemorySegment segment);
@@ -66,6 +72,11 @@ interface CDowncallTest {
     @Custom("""
         return testWithArgAndReturnValue(MemorySegment.NULL);""")
     MemorySegment testWithCustomBody();
+
+    @Custom("""
+        System.out.println("Hello world");
+        return testWithArgAndReturnValue(MemorySegment.NULL);""")
+    MemorySegment testWithCustomBodyMultiline();
 
     @Access(AccessModifier.PRIVATE)
     int testWithPrivate(int i);

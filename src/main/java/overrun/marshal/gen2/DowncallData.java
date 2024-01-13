@@ -577,7 +577,7 @@ public final class DowncallData {
                         final String defaultValue = defaultAnnotation.value();
                         if (!defaultValue.isBlank()) {
                             ifStatement.addElseClause(ElseClause.of(), elseClause ->
-                                elseClause.addStatement(Spec.returnStatement(Spec.literal(defaultValue)))
+                                elseClause.addStatement(Spec.returnStatement(Spec.indentCodeBlock(defaultValue)))
                             );
                         }
                         optionalSpec = ifStatement;
@@ -592,7 +592,7 @@ public final class DowncallData {
                         exceptionName
                     ), catchClause ->
                         catchClause.addStatement(Spec.throwStatement(new ConstructSpec(importData.simplifyOrImport(RuntimeException.class))
-                            .addArgument(Spec.literal(exceptionName)))));
+                            .addArgument(Spec.literal(catchClause.name())))));
                 })
             )
         ));
@@ -1048,9 +1048,8 @@ public final class DowncallData {
                 methodSpec.setAccessModifier(functionData.accessModifier());
                 methodSpec.setStatic(true);
                 functionData.parameters().forEach(parameterData ->
-                    methodSpec.addParameter(new ParameterSpec(parameterData.type().apply(imports), parameterData.name()).also(parameterSpec -> {
-                        addAnnotationSpec(parameterData.annotations(), parameterSpec);
-                    }))
+                    methodSpec.addParameter(new ParameterSpec(parameterData.type().apply(imports), parameterData.name()).also(parameterSpec ->
+                        addAnnotationSpec(parameterData.annotations(), parameterSpec)))
                 );
                 functionData.statements().forEach(typeUse ->
                     methodSpec.addStatement(typeUse.apply(imports)));

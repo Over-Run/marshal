@@ -17,7 +17,6 @@
 package overrun.marshal.gen1;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -90,17 +89,6 @@ public final class InvokeSpec implements Spec {
      */
     public InvokeSpec addArgument(String spec) {
         return addArgument(Spec.literal(spec));
-    }
-
-    /**
-     * Add arguments
-     *
-     * @param spec the arguments
-     * @return this
-     */
-    public InvokeSpec addArguments(Collection<Spec> spec) {
-        arguments.addAll(spec);
-        return this;
     }
 
     /**
