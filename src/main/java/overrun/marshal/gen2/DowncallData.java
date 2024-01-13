@@ -28,9 +28,7 @@ import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import javax.tools.JavaFileObject;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
@@ -49,7 +47,7 @@ import static overrun.marshal.internal.Util.*;
  * @author squid233
  * @since 0.1.0
  */
-public final class DowncallData {
+public final class DowncallData extends BaseData {
     private static final List<Class<? extends Annotation>> METHOD_ANNOTATIONS = List.of(
         ByValue.class,
         Critical.class,
@@ -65,12 +63,6 @@ public final class DowncallData {
         Sized.class,
         StrCharset.class
     );
-    private final ProcessingEnvironment processingEnv;
-    private final ImportData imports = new ImportData(new ArrayList<>());
-    private final List<FieldData> fields = new ArrayList<>();
-    private final List<FunctionData> functionDataList = new ArrayList<>();
-    private String document = null;
-    private boolean nonFinal = false;
 
     /**
      * Construct
@@ -78,17 +70,16 @@ public final class DowncallData {
      * @param processingEnv the processing environment
      */
     public DowncallData(ProcessingEnvironment processingEnv) {
-        this.processingEnv = processingEnv;
+        super(processingEnv);
     }
 
     private void processDowncallType(TypeElement typeElement, String simpleClassName) {
         final var enclosedElements = typeElement.getEnclosedElements();
 
-        // annotations
         final Downcall downcall = typeElement.getAnnotation(Downcall.class);
 
-        document = getDocComment(typeElement);
-        nonFinal = downcall.nonFinal();
+        this.document = getDocComment(typeElement);
+        this.nonFinal = downcall.nonFinal();
 
         // process fields
         skipAnnotated(ElementFilter.fieldsIn(enclosedElements)).forEach(element -> {
@@ -305,61 +296,14 @@ public final class DowncallData {
      * @param typeElement the type element
      * @throws IOException if an I/O error occurred
      */
+    @Override
     public void generate(TypeElement typeElement) throws IOException {
         final Downcall downcall = typeElement.getAnnotation(Downcall.class);
-        final DeclaredTypeData declaredTypeDataOfTypeElement = (DeclaredTypeData) TypeData.detectType(processingEnv, typeElement.asType());
-        final String simpleClassName;
-        if (downcall.name().isBlank()) {
-            final String string = declaredTypeDataOfTypeElement.name();
-            if (string.startsWith("C")) {
-                simpleClassName = string.substring(1);
-            } else {
-                processingEnv.getMessager().printError("""
-                    Class name must start with C if the name is not specified. Current name: %s
-                         Possible solutions:
-                         1) Add C as a prefix e.g. C%1$s
-                         2) Specify the name in @Downcall e.g. @Downcall(name = "%1$s")"""
-                    .formatted(string), typeElement);
-                return;
-            }
-        } else {
-            simpleClassName = downcall.name();
-        }
+        final DeclaredTypeData generatedClassName = generateClassName(downcall.name(), typeElement);
 
-        processDowncallType(typeElement, simpleClassName);
+        processDowncallType(typeElement, generatedClassName.name());
 
-        final SourceFile file = new SourceFile(declaredTypeDataOfTypeElement.packageName());
-        file.addClass(simpleClassName, classSpec -> {
-            if (document != null) {
-                classSpec.setDocument(document);
-            }
-            classSpec.setFinal(!nonFinal);
-
-            addFields(classSpec);
-            addMethods(classSpec);
-        });
-        imports.imports()
-            .stream()
-            .filter(declaredTypeData -> !"java.lang".equals(declaredTypeData.packageName()))
-            .map(DeclaredTypeData::toString)
-            .sorted((s1, s2) -> {
-                final boolean s1Java = s1.startsWith("java.");
-                final boolean s2Java = s2.startsWith("java.");
-                if (s1Java && !s2Java) {
-                    return 1;
-                }
-                if (!s1Java && s2Java) {
-                    return -1;
-                }
-                return s1.compareTo(s2);
-            })
-            .forEach(file::addImport);
-
-        final JavaFileObject sourceFile = processingEnv.getFiler()
-            .createSourceFile(declaredTypeDataOfTypeElement.packageName() + "." + simpleClassName);
-        try (PrintWriter out = new PrintWriter(sourceFile.openWriter())) {
-            file.write(out);
-        }
+        generate(generatedClassName);
     }
 
     private void addOverloadMethod(
@@ -1016,62 +960,5 @@ public final class DowncallData {
     private boolean containsNonDowncallType(ExecutableElement executableElement) {
         return returnNonDowncallType(executableElement) ||
                parameterContainsNonDowncallType(executableElement);
-    }
-
-    private static <T extends Element> Stream<T> skipAnnotated(Stream<T> stream) {
-        return stream.filter(t -> t.getAnnotation(Skip.class) == null);
-    }
-
-    private static <T extends Element> Stream<T> skipAnnotated(Collection<T> collection) {
-        return skipAnnotated(collection.stream());
-    }
-
-    private void addFields(ClassSpec spec) {
-        fields.forEach(fieldData -> {
-            final TypeData type = fieldData.type();
-            spec.addField(new VariableStatement(
-                imports.simplifyOrImport(type),
-                fieldData.name(),
-                fieldData.value().apply(imports)
-            ).setDocument(fieldData.document())
-                .setAccessModifier(fieldData.accessModifier())
-                .setStatic(fieldData.staticField())
-                .setFinal(fieldData.finalField()));
-        });
-    }
-
-    private void addMethods(ClassSpec spec) {
-        functionDataList.forEach(functionData ->
-            spec.addMethod(new MethodSpec(functionData.returnType().apply(imports), functionData.name()), methodSpec -> {
-                methodSpec.setDocument(functionData.document());
-                addAnnotationSpec(functionData.annotations(), methodSpec);
-                methodSpec.setAccessModifier(functionData.accessModifier());
-                methodSpec.setStatic(true);
-                functionData.parameters().forEach(parameterData ->
-                    methodSpec.addParameter(new ParameterSpec(parameterData.type().apply(imports), parameterData.name()).also(parameterSpec ->
-                        addAnnotationSpec(parameterData.annotations(), parameterSpec)))
-                );
-                functionData.statements().forEach(typeUse ->
-                    methodSpec.addStatement(typeUse.apply(imports)));
-            }));
-    }
-
-    private void addAnnotationSpec(List<AnnotationData> list, Annotatable annotatable) {
-        list.forEach(annotationData -> {
-            final AnnotationMirror annotationMirror = annotationData.mirror();
-            annotatable.addAnnotation(new AnnotationSpec(
-                imports.simplifyOrImport(processingEnv, annotationMirror.getAnnotationType())
-            ).also(annotationSpec ->
-                annotationMirror.getElementValues().forEach((executableElement, annotationValue) ->
-                    annotationSpec.addArgument(executableElement.getSimpleName().toString(), annotationValue.toString()))));
-        });
-    }
-
-    private String getDocComment(Element e) {
-        return processingEnv.getElementUtils().getDocComment(e);
-    }
-
-    private String getConstExp(Object v) {
-        return processingEnv.getElementUtils().getConstantExpression(v);
     }
 }
