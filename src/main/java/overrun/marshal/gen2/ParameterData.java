@@ -16,13 +16,11 @@
 
 package overrun.marshal.gen2;
 
-import javax.lang.model.element.VariableElement;
 import java.util.List;
 
 /**
  * Holds parameter
  *
- * @param element     the element
  * @param annotations the annotations
  * @param type        the type
  * @param name        the name
@@ -30,7 +28,6 @@ import java.util.List;
  * @since 0.1.0
  */
 public record ParameterData(
-    VariableElement element,
     List<AnnotationData> annotations,
     TypeUse type,
     String name

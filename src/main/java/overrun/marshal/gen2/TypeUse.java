@@ -37,6 +37,7 @@ import java.util.function.Function;
  * @author squid233
  * @since 0.1.0
  */
+@FunctionalInterface
 public interface TypeUse {
     private static Optional<TypeUse> valueLayout(TypeKind typeKind) {
         return switch (typeKind) {
@@ -121,19 +122,19 @@ public interface TypeUse {
     static Optional<TypeUse> toDowncallType(ProcessingEnvironment env, TypeMirror typeMirror) {
         final TypeKind typeKind = typeMirror.getKind();
         if (typeKind.isPrimitive()) {
-            return Optional.of(_ -> Spec.literal(typeMirror.toString()));
+            return Optional.of(literal(typeMirror.toString()));
         }
         return switch (typeKind) {
             case ARRAY, DECLARED -> {
                 if (typeKind == TypeKind.DECLARED) {
                     if (Util.isAExtendsB(env, typeMirror, SegmentAllocator.class)) {
-                        yield Optional.of(importData -> Spec.literal(importData.simplifyOrImport(env, typeMirror)));
+                        yield Optional.of(of(env, typeMirror));
                     }
                     if (Util.isAExtendsB(env, typeMirror, CEnum.class)) {
-                        yield Optional.of(_ -> Spec.literal("int"));
+                        yield Optional.of(literal(int.class));
                     }
                 }
-                yield Optional.of(importData -> Spec.literal(importData.simplifyOrImport(MemorySegment.class)));
+                yield Optional.of(of(MemorySegment.class));
             }
             default -> Optional.empty();
         };
@@ -162,9 +163,55 @@ public interface TypeUse {
     static <T extends Element> Optional<TypeUse> toDowncallType(ProcessingEnvironment env, T element, Function<T, TypeMirror> function) {
         final StructRef structRef = element.getAnnotation(StructRef.class);
         if (structRef != null) {
-            return Optional.of(importData -> Spec.literal(importData.simplifyOrImport(MemorySegment.class)));
+            return Optional.of(of(MemorySegment.class));
         }
         return toDowncallType(env, function.apply(element));
+    }
+
+    /**
+     * {@return literal type use}
+     *
+     * @param aClass class
+     */
+    static TypeUse of(Class<?> aClass) {
+        return literal(importData -> importData.simplifyOrImport(aClass));
+    }
+
+    /**
+     * {@return literal type use}
+     *
+     * @param env        env
+     * @param typeMirror typeMirror
+     */
+    static TypeUse of(ProcessingEnvironment env, TypeMirror typeMirror) {
+        return literal(importData -> importData.simplifyOrImport(env, typeMirror));
+    }
+
+    /**
+     * {@return literal type use}
+     *
+     * @param s string
+     */
+    static TypeUse literal(String s) {
+        return _ -> Spec.literal(s);
+    }
+
+    /**
+     * {@return literal type use}
+     *
+     * @param aClass class
+     */
+    static TypeUse literal(Class<?> aClass) {
+        return literal(aClass.getCanonicalName());
+    }
+
+    /**
+     * {@return literal type use}
+     *
+     * @param function function
+     */
+    static TypeUse literal(Function<ImportData, String> function) {
+        return importData -> Spec.literal(function.apply(importData));
     }
 
     /**

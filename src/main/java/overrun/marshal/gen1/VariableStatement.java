@@ -18,13 +18,16 @@ package overrun.marshal.gen1;
 
 import overrun.marshal.gen.AccessModifier;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Variable statement
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class VariableStatement implements Spec {
+public final class VariableStatement implements Annotatable, Spec {
     private final String type;
     private final String name;
     private final Spec value;
@@ -33,6 +36,7 @@ public final class VariableStatement implements Spec {
     private boolean isStatic = false;
     private boolean isFinal = false;
     private boolean addSemicolon = true;
+    private final List<AnnotationSpec> annotations = new ArrayList<>();
 
     /**
      * Constructor
@@ -114,12 +118,21 @@ public final class VariableStatement implements Spec {
     }
 
     @Override
+    public void addAnnotation(AnnotationSpec annotationSpec) {
+        annotations.add(annotationSpec);
+    }
+
+    @Override
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);
         Spec.appendDocument(builder, document, indentString);
         if (addSemicolon) {
             builder.append(indentString);
         }
+        annotations.forEach(annotationSpec -> {
+            annotationSpec.append(builder, indent);
+            builder.append(' ');
+        });
         builder.append(accessModifier);
         if (accessModifier != AccessModifier.PACKAGE_PRIVATE) {
             builder.append(' ');

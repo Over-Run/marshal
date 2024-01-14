@@ -52,11 +52,6 @@ public final class ParameterSpec implements Annotatable, Spec {
         this(Spec.literal(type), name);
     }
 
-    /**
-     * Add an annotation
-     *
-     * @param annotationSpec annotation
-     */
     @Override
     public void addAnnotation(AnnotationSpec annotationSpec) {
         annotations.add(annotationSpec);

@@ -37,7 +37,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static overrun.marshal.internal.Util.*;
 
@@ -81,13 +80,13 @@ public final class DowncallData extends BaseData {
         this.document = getDocComment(typeElement);
         this.nonFinal = downcall.nonFinal();
 
-        // process fields
+        // process fieldDataList
         skipAnnotated(ElementFilter.fieldsIn(enclosedElements)).forEach(element -> {
             final Object constantValue = element.getConstantValue();
             if (constantValue == null) {
                 return;
             }
-            fields.add(new FieldData(
+            fieldDataList.add(new FieldData(
                 getDocComment(element),
                 List.of(),
                 AccessModifier.PUBLIC,
@@ -95,7 +94,7 @@ public final class DowncallData extends BaseData {
                 true,
                 TypeData.detectType(processingEnv, element.asType()),
                 element.getSimpleName().toString(),
-                _ -> Spec.literal(getConstExp(constantValue))
+                TypeUse.literal(getConstExp(constantValue))
             ));
         });
 
@@ -169,7 +168,7 @@ public final class DowncallData extends BaseData {
         final Predicate<String> containsKey = methodHandleDataMap::containsKey;
         final String lookupName = addLookup(typeElement, containsKey);
         final String linkerName = tryInsertUnderline("LINKER", containsKey);
-        fields.add(new FieldData(
+        fieldDataList.add(new FieldData(
             null,
             List.of(),
             AccessModifier.PRIVATE,
@@ -182,7 +181,7 @@ public final class DowncallData extends BaseData {
 
         // adds methods
         // method handles
-        methodHandleDataMap.forEach((name, methodHandleData) -> fields.add(new FieldData(
+        methodHandleDataMap.forEach((name, methodHandleData) -> fieldDataList.add(new FieldData(
             " The method handle of {@code " + name + "}.",
             List.of(),
             methodHandleData.accessModifier(),
@@ -225,7 +224,7 @@ public final class DowncallData extends BaseData {
         )));
 
         // methods
-        final var fieldNames = fields.stream().map(FieldData::name).toList();
+        final var fieldNames = fieldDataList.stream().map(FieldData::name).toList();
         final List<MethodHandleData> addedMethodHandleInvoker = new ArrayList<>(methodHandleDataMap.size());
         skipAnnotated(methods).forEach(executableElement -> {
             final Overload overload = executableElement.getAnnotation(Overload.class);
@@ -329,7 +328,7 @@ public final class DowncallData extends BaseData {
         final String memoryStackName = tryInsertUnderline("stack", s -> variablesInScope.stream().anyMatch(s::equals));
         final boolean hasAllocatorParameter =
             !parameterDataList.isEmpty() &&
-            isAExtendsB(processingEnv, parameterDataList.getFirst().element().asType(), SegmentAllocator.class);
+            isAExtendsB(processingEnv, rawParameterList.getFirst().asType(), SegmentAllocator.class);
         final String allocatorParameter = hasAllocatorParameter ?
             parameterDataList.getFirst().name() :
             memoryStackName;
@@ -381,12 +380,11 @@ public final class DowncallData extends BaseData {
         final TypeUse invokeTypeUse = importData -> {
             final InvokeSpec invokeSpec = new InvokeSpec(shouldAddInvoker ? Spec.literal(simpleClassName) : null, downcallName);
             // wrap parameters
-            var stream = parameterDataList.stream();
+            var stream = rawParameterList.stream();
             if (skipFirst > 0) {
                 stream = stream.skip(1);
             }
-            stream.map(ParameterData::element)
-                .map(element -> wrapParameter(importData, allocatorParameter, element, true, refNameMap::get))
+            stream.map(element -> wrapParameter(importData, allocatorParameter, element, true, refNameMap::get))
                 .forEach(invokeSpec::addArgument);
             return invokeSpec;
         };
@@ -432,9 +430,10 @@ public final class DowncallData extends BaseData {
             getDocComment(executableElement),
             getElementAnnotations(METHOD_ANNOTATIONS, executableElement),
             methodHandleData.accessModifier(),
+            true,
             structRef != null ?
-                _ -> Spec.literal(structRef.value()) :
-                importData -> Spec.literal(importData.simplifyOrImport(processingEnv, returnType)),
+                TypeUse.literal(structRef.value()) :
+                TypeUse.of(processingEnv, returnType),
             methodName,
             parameterDataList,
             shouldWrapWithMemoryStack ?
@@ -474,7 +473,6 @@ public final class DowncallData extends BaseData {
         final var parameters = stream.toList();
         final var parameterDataList = parameters.stream()
             .map(element -> new ParameterData(
-                element,
                 getElementAnnotations(PARAMETER_ANNOTATIONS, element),
                 TypeUse.toDowncallType(processingEnv, element).orElseThrow(),
                 element.getSimpleName().toString()
@@ -490,7 +488,8 @@ public final class DowncallData extends BaseData {
             getDocComment(executableElement),
             getElementAnnotations(METHOD_ANNOTATIONS, executableElement),
             methodHandleData.accessModifier(),
-            returnType.orElseGet(() -> _ -> Spec.literal("void")),
+            true,
+            returnType.orElseGet(() -> TypeUse.literal(void.class)),
             methodName,
             parameterDataList,
             List.of(
@@ -500,10 +499,9 @@ public final class DowncallData extends BaseData {
                         Spec.literal(methodHandleName), "invokeExact");
                     var stream1 = parameterNames.stream();
                     if (returnByValue) {
-                        final ParameterData first = parameterDataList.getFirst();
-                        if (!isSameClass(first.element().asType(), SegmentAllocator.class)) {
+                        if (!isSameClass(parameters.getFirst().asType(), SegmentAllocator.class)) {
                             invokeSpec.addArgument(Spec.cast(importData.simplifyOrImport(SegmentAllocator.class),
-                                Spec.literal(first.name())));
+                                Spec.literal(parameterDataList.getFirst().name())));
                             stream1 = stream1.skip(1);
                         }
                     }
@@ -583,7 +581,8 @@ public final class DowncallData extends BaseData {
             getDocComment(executableElement),
             getElementAnnotations(METHOD_ANNOTATIONS, executableElement),
             methodHandleData.accessModifier(),
-            importData -> Spec.literal(importData.simplifyOrImport(processingEnv, executableElement.getReturnType())),
+            true,
+            TypeUse.of(processingEnv, executableElement.getReturnType()),
             executableElement.getSimpleName().toString(),
             parametersToParameterDataList(skipAnnotated(executableElement.getParameters()).toList()),
             List.of(_ -> Spec.indented(custom.value()))
@@ -597,7 +596,7 @@ public final class DowncallData extends BaseData {
             .findFirst()
             .orElseThrow()
             .getElementValues().entrySet().stream()
-            .filter(e -> "loader".equals(e.getKey().getSimpleName().toString()))
+            .filter(e -> "loader".contentEquals(e.getKey().getSimpleName()))
             .findFirst()
             .map(e -> e.getValue().getValue().toString())
             .orElse(null);
@@ -627,7 +626,7 @@ public final class DowncallData extends BaseData {
             }
         }
         final String s = tryInsertUnderline("LOOKUP", insertUnderlineTest);
-        fields.add(new FieldData(
+        fieldDataList.add(new FieldData(
             null,
             List.of(),
             AccessModifier.PRIVATE,
@@ -834,7 +833,6 @@ public final class DowncallData extends BaseData {
     private List<ParameterData> parametersToParameterDataList(List<? extends VariableElement> parameters) {
         return parameters.stream()
             .map(element -> new ParameterData(
-                element,
                 getElementAnnotations(PARAMETER_ANNOTATIONS, element),
                 importData -> {
                     final StructRef structRef = element.getAnnotation(StructRef.class);
@@ -845,26 +843,6 @@ public final class DowncallData extends BaseData {
                 },
                 element.getSimpleName().toString()
             ))
-            .toList();
-    }
-
-    private Stream<? extends AnnotationMirror> findElementAnnotations(
-        List<? extends AnnotationMirror> annotationMirrors,
-        Class<? extends Annotation> aClass
-    ) {
-        return annotationMirrors.stream()
-            .filter(mirror -> isAExtendsB(processingEnv,
-                mirror.getAnnotationType(),
-                aClass));
-    }
-
-    private List<AnnotationData> getElementAnnotations(List<Class<? extends Annotation>> list, Element e) {
-        final var mirrors = e.getAnnotationMirrors();
-        return list.stream()
-            .filter(aClass -> e.getAnnotation(aClass) != null)
-            .<AnnotationData>mapMulti((aClass, consumer) -> findElementAnnotations(mirrors, aClass)
-                .map(mirror -> new AnnotationData(e.getAnnotation(aClass), mirror))
-                .forEach(consumer))
             .toList();
     }
 

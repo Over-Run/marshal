@@ -69,11 +69,6 @@ public final class MethodSpec implements Annotatable, Spec, StatementBlock {
         this.document = document;
     }
 
-    /**
-     * Add an annotation
-     *
-     * @param annotationSpec annotation
-     */
     @Override
     public void addAnnotation(AnnotationSpec annotationSpec) {
         annotations.add(annotationSpec);

@@ -16,19 +16,18 @@
 
 package overrun.marshal.gen2;
 
-import javax.lang.model.element.AnnotationMirror;
-import java.lang.annotation.Annotation;
+import java.util.Map;
 
 /**
  * Holds annotation
  *
- * @param annotation the annotation
- * @param mirror     the annotation mirror
+ * @param type the type
+ * @param map  the map
  * @author squid233
  * @since 0.1.0
  */
 public record AnnotationData(
-    Annotation annotation,
-    AnnotationMirror mirror
+    String type,
+    Map<String, String> map
 ) {
 }

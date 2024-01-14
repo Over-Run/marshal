@@ -22,6 +22,7 @@ import overrun.marshal.gen.struct.Padding;
 import overrun.marshal.gen.struct.Struct;
 import overrun.marshal.gen.struct.StructRef;
 import overrun.marshal.gen1.*;
+import overrun.marshal.gen2.struct.StructData;
 import overrun.marshal.internal.Processor;
 import overrun.marshal.struct.IStruct;
 
@@ -66,10 +67,8 @@ public final class StructProcessor extends Processor {
 
     private void processClasses(RoundEnvironment roundEnv) {
         ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(Struct.class)).forEach(e -> {
-            final var enclosed = e.getEnclosedElements();
             try {
-//                new StructData(processingEnv).generate(e);
-                writeFile(e, ElementFilter.fieldsIn(enclosed));
+                new StructData(processingEnv).generate(e);
             } catch (IOException ex) {
                 printStackTrace(ex);
             }

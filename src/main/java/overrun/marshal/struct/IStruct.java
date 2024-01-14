@@ -44,11 +44,11 @@ public interface IStruct {
     /**
      * Infers how many this struct is there in the given segment.
      *
-     * @param layout  the struct layout
      * @param segment the segment
+     * @param layout  the struct layout
      * @return the count
      */
-    static long inferCount(StructLayout layout, MemorySegment segment) {
+    static long inferCount(MemorySegment segment, StructLayout layout) {
         return segment.byteSize() / layout.byteSize();
     }
 }

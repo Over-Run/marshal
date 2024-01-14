@@ -21,16 +21,19 @@ import overrun.marshal.gen1.*;
 import overrun.marshal.gen2.struct.StructData;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static overrun.marshal.internal.Util.isAExtendsB;
 
 /**
  * Base data
@@ -48,9 +51,9 @@ public abstract sealed class BaseData permits DowncallData, StructData {
      */
     protected final ImportData imports = new ImportData(new ArrayList<>());
     /**
-     * fields
+     * fieldDataList
      */
-    protected final List<FieldData> fields = new ArrayList<>();
+    protected final List<FieldData> fieldDataList = new ArrayList<>();
     /**
      * functionDataList
      */
@@ -63,6 +66,14 @@ public abstract sealed class BaseData permits DowncallData, StructData {
      * nonFinal
      */
     protected boolean nonFinal = false;
+    /**
+     * superclasses
+     */
+    protected final List<TypeData> superclasses = new ArrayList<>();
+    /**
+     * superinterfaces
+     */
+    protected final List<TypeData> superinterfaces = new ArrayList<>();
 
     /**
      * Construct
@@ -110,16 +121,8 @@ public abstract sealed class BaseData permits DowncallData, StructData {
     protected void generate(DeclaredTypeData declaredTypeData) throws IOException {
         final String packageName = declaredTypeData.packageName();
         final String simpleClassName = declaredTypeData.name();
-        final SourceFile file = new SourceFile(packageName);
-        file.addClass(simpleClassName, classSpec -> {
-            if (document != null) {
-                classSpec.setDocument(document);
-            }
-            classSpec.setFinal(!nonFinal);
+        final SourceFile file = createSourceFile(packageName, simpleClassName);
 
-            addFields(classSpec);
-            addMethods(classSpec);
-        });
         imports.imports()
             .stream()
             .filter(typeData -> !"java.lang".equals(typeData.packageName()))
@@ -144,6 +147,22 @@ public abstract sealed class BaseData permits DowncallData, StructData {
         }
     }
 
+    private SourceFile createSourceFile(String packageName, String simpleClassName) {
+        final SourceFile file = new SourceFile(packageName);
+        file.addClass(simpleClassName, classSpec -> {
+            if (document != null) {
+                classSpec.setDocument(document);
+            }
+            classSpec.setFinal(!nonFinal);
+            superclasses.forEach(typeData -> classSpec.addSuperclass(imports.simplifyOrImport(typeData)));
+            superinterfaces.forEach(typeData -> classSpec.addSuperinterface(imports.simplifyOrImport(typeData)));
+
+            addFields(classSpec);
+            addMethods(classSpec);
+        });
+        return file;
+    }
+
     /**
      * Generates the file
      *
@@ -158,12 +177,13 @@ public abstract sealed class BaseData permits DowncallData, StructData {
      * @param spec spec
      */
     protected void addFields(ClassSpec spec) {
-        fields.forEach(fieldData -> {
+        fieldDataList.forEach(fieldData -> {
             final TypeData type = fieldData.type();
+            final TypeUse value = fieldData.value();
             spec.addField(new VariableStatement(
                 imports.simplifyOrImport(type),
                 fieldData.name(),
-                fieldData.value().apply(imports)
+                value != null ? value.apply(imports) : null
             ).setDocument(fieldData.document())
                 .setAccessModifier(fieldData.accessModifier())
                 .setStatic(fieldData.staticField())
@@ -182,7 +202,7 @@ public abstract sealed class BaseData permits DowncallData, StructData {
                 methodSpec.setDocument(functionData.document());
                 addAnnotationSpec(functionData.annotations(), methodSpec);
                 methodSpec.setAccessModifier(functionData.accessModifier());
-                methodSpec.setStatic(true);
+                methodSpec.setStatic(functionData.staticMethod());
                 functionData.parameters().forEach(parameterData ->
                     methodSpec.addParameter(new ParameterSpec(parameterData.type().apply(imports), parameterData.name()).also(parameterSpec ->
                         addAnnotationSpec(parameterData.annotations(), parameterSpec)))
@@ -195,18 +215,26 @@ public abstract sealed class BaseData permits DowncallData, StructData {
     /**
      * addAnnotationSpec
      *
+     * @param list              list
+     * @param annotatable       annotatable
+     * @param escapeAtCharacter escapeAtCharacter
+     */
+    protected static void addAnnotationSpec(List<AnnotationData> list, Annotatable annotatable, boolean escapeAtCharacter) {
+        list.forEach(annotationData -> annotatable.addAnnotation(new AnnotationSpec(
+            annotationData.type(),
+            escapeAtCharacter
+        ).also(annotationSpec ->
+            annotationData.map().forEach(annotationSpec::addArgument))));
+    }
+
+    /**
+     * addAnnotationSpec
+     *
      * @param list        list
      * @param annotatable annotatable
      */
-    protected void addAnnotationSpec(List<AnnotationData> list, Annotatable annotatable) {
-        list.forEach(annotationData -> {
-            final AnnotationMirror annotationMirror = annotationData.mirror();
-            annotatable.addAnnotation(new AnnotationSpec(
-                imports.simplifyOrImport(processingEnv, annotationMirror.getAnnotationType())
-            ).also(annotationSpec ->
-                annotationMirror.getElementValues().forEach((executableElement, annotationValue) ->
-                    annotationSpec.addArgument(executableElement.getSimpleName().toString(), annotationValue.toString()))));
-        });
+    protected static void addAnnotationSpec(List<AnnotationData> list, Annotatable annotatable) {
+        addAnnotationSpec(list, annotatable, false);
     }
 
     /**
@@ -230,11 +258,12 @@ public abstract sealed class BaseData permits DowncallData, StructData {
     /**
      * {@return skipAnnotated}
      *
-     * @param stream stream
-     * @param <T>    type
+     * @param collection collection
+     * @param aClass     aClass
+     * @param <T>        type
      */
-    protected static <T extends Element> Stream<T> skipAnnotated(Stream<T> stream) {
-        return stream.filter(t -> t.getAnnotation(Skip.class) == null);
+    protected static <T extends Element> Stream<T> skipAnnotated(Collection<T> collection, Class<? extends Annotation> aClass) {
+        return collection.stream().filter(t -> t.getAnnotation(aClass) == null);
     }
 
     /**
@@ -244,6 +273,40 @@ public abstract sealed class BaseData permits DowncallData, StructData {
      * @param <T>        type
      */
     protected static <T extends Element> Stream<T> skipAnnotated(Collection<T> collection) {
-        return skipAnnotated(collection.stream());
+        return skipAnnotated(collection, Skip.class);
+    }
+
+    private Stream<? extends AnnotationMirror> findElementAnnotations(
+        List<? extends AnnotationMirror> annotationMirrors,
+        Class<? extends Annotation> aClass
+    ) {
+        return annotationMirrors.stream()
+            .filter(mirror -> isAExtendsB(processingEnv,
+                mirror.getAnnotationType(),
+                aClass));
+    }
+
+    /**
+     * {@return getElementAnnotations}
+     *
+     * @param list list
+     * @param e    e
+     */
+    protected List<AnnotationData> getElementAnnotations(List<Class<? extends Annotation>> list, Element e) {
+        final var mirrors = e.getAnnotationMirrors();
+        return list.stream()
+            .filter(aClass -> e.getAnnotation(aClass) != null)
+            .flatMap(aClass -> findElementAnnotations(mirrors, aClass)
+                .map(mirror -> new AnnotationData(imports.simplifyOrImport(processingEnv, mirror.getAnnotationType()),
+                    mapAnnotationMirrorValues(mirror.getElementValues()))))
+            .toList();
+    }
+
+    private static Map<String, String> mapAnnotationMirrorValues(Map<? extends ExecutableElement, ? extends AnnotationValue> map) {
+        return map.entrySet().stream()
+            .collect(Collectors.toUnmodifiableMap(
+                entry -> entry.getKey().getSimpleName().toString(),
+                entry -> entry.getValue().toString()
+            ));
     }
 }

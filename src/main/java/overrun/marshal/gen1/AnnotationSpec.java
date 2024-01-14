@@ -30,14 +30,27 @@ import java.util.stream.Collectors;
 public final class AnnotationSpec implements Spec {
     private final String type;
     private final Map<String, String> arguments = new LinkedHashMap<>();
+    private final boolean escapeAtCharacter;
 
     /**
      * Constructor
      *
      * @param type type
      */
+    @Deprecated(since = "0.1.0")
     public AnnotationSpec(Class<?> type) {
         this(type.getSimpleName());
+    }
+
+    /**
+     * Constructor
+     *
+     * @param type              type
+     * @param escapeAtCharacter escapeAtCharacter
+     */
+    public AnnotationSpec(String type, boolean escapeAtCharacter) {
+        this.type = type;
+        this.escapeAtCharacter = escapeAtCharacter;
     }
 
     /**
@@ -46,11 +59,11 @@ public final class AnnotationSpec implements Spec {
      * @param type type
      */
     public AnnotationSpec(String type) {
-        this.type = type;
+        this(type, false);
     }
 
     /**
-     * Add a argument
+     * Add an argument
      *
      * @param name  name
      * @param value value
@@ -74,7 +87,12 @@ public final class AnnotationSpec implements Spec {
 
     @Override
     public void append(StringBuilder builder, int indent) {
-        builder.append('@').append(type);
+        if (escapeAtCharacter) {
+            builder.append("&#64;");
+        } else {
+            builder.append('@');
+        }
+        builder.append(type);
         if (!arguments.isEmpty()) {
             builder.append('(');
             if (arguments.size() == 1 && "value".equals(arguments.keySet().stream().findFirst().orElse(null))) {

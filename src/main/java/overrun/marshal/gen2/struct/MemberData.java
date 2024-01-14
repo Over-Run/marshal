@@ -14,34 +14,16 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen2;
-
-import overrun.marshal.gen.AccessModifier;
-
-import java.util.List;
+package overrun.marshal.gen2.struct;
 
 /**
- * Holds downcall function
+ * Holds member
  *
- * @param document       the document
- * @param annotations    the annotations
- * @param accessModifier the access modifier
- * @param staticMethod   static method
- * @param returnType     the return type
- * @param name           the name
- * @param parameters     the parameters
- * @param statements     the statement
  * @author squid233
  * @since 0.1.0
  */
-public record FunctionData(
-    String document,
-    List<AnnotationData> annotations,
-    AccessModifier accessModifier,
-    boolean staticMethod,
-    TypeUse returnType,
-    String name,
-    List<ParameterData> parameters,
-    List<TypeUse> statements
+public record MemberData(
+    String pathElementName,
+    String varHandleName
 ) {
 }

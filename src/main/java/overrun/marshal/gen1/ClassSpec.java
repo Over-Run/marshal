@@ -124,11 +124,6 @@ public final class ClassSpec implements Annotatable, Spec {
         methodSpecs.add(methodSpec);
     }
 
-    /**
-     * Add annotation
-     *
-     * @param annotationSpec annotation
-     */
     @Override
     public void addAnnotation(AnnotationSpec annotationSpec) {
         annotationSpecs.add(annotationSpec);
