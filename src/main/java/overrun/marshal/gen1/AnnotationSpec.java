@@ -18,7 +18,6 @@ package overrun.marshal.gen1;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -71,17 +70,6 @@ public final class AnnotationSpec implements Spec {
      */
     public AnnotationSpec addArgument(String name, String value) {
         arguments.put(name, value);
-        return this;
-    }
-
-    /**
-     * Also runs the action
-     *
-     * @param consumer the action
-     * @return this
-     */
-    public AnnotationSpec also(Consumer<AnnotationSpec> consumer) {
-        consumer.accept(this);
         return this;
     }
 

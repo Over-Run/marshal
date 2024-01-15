@@ -18,7 +18,6 @@ package overrun.marshal.gen1;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * try-with-resource
@@ -42,17 +41,6 @@ public final class TryWithResourceStatement implements Spec, StatementBlock {
     @Override
     public void addStatement(Spec spec) {
         statements.add(spec);
-    }
-
-    /**
-     * Also runs the action
-     *
-     * @param consumer the action
-     * @return this
-     */
-    public TryWithResourceStatement also(Consumer<TryWithResourceStatement> consumer) {
-        consumer.accept(this);
-        return this;
     }
 
     @Override

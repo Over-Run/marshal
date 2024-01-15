@@ -140,18 +140,20 @@ public final class DowncallData extends BaseData {
                                     }
                                     return invokeSpec.addArgument(new InvokeSpec(
                                         importData.simplifyOrImport(MemoryLayout.class),
-                                        "sequenceLayout"
-                                    ).also(invokeSpec1 -> {
-                                        invokeSpec1.addArgument(getConstExp(sized.value()));
-                                        final Optional<TypeUse> seqLayout;
-                                        if (returnType.getKind() == TypeKind.ARRAY &&
-                                            returnType instanceof ArrayType arrayType) {
-                                            seqLayout = TypeUse.valueLayout(processingEnv, arrayType.getComponentType());
-                                        } else {
-                                            seqLayout = TypeUse.valueLayout(byte.class);
-                                        }
-                                        invokeSpec1.addArgument(seqLayout.orElseThrow().apply(importData));
-                                    }));
+                                        "sequenceLayout")
+                                        .addArgument(getConstExp(sized.value()))
+                                        .addArgument(switch (0) {
+                                            default -> {
+                                                final Optional<TypeUse> seqLayout;
+                                                if (returnType.getKind() == TypeKind.ARRAY &&
+                                                    returnType instanceof ArrayType arrayType) {
+                                                    seqLayout = TypeUse.valueLayout(processingEnv, arrayType.getComponentType());
+                                                } else {
+                                                    seqLayout = TypeUse.valueLayout(byte.class);
+                                                }
+                                                yield seqLayout.orElseThrow().apply(importData);
+                                            }
+                                        }));
                                 }
                                 return spec;
                             }),
@@ -196,22 +198,27 @@ public final class DowncallData extends BaseData {
                 ).addArgument(new LambdaSpec("s")
                     .addStatementThis(new InvokeSpec(linkerName, "downcallHandle")
                         .addArgument("s")
-                        .also(downcallHandle -> {
-                            final var returnType = methodHandleData.returnType();
-                            final String methodName = returnType.isPresent() ? "of" : "ofVoid";
-                            downcallHandle.addArgument(new InvokeSpec(importData.simplifyOrImport(FunctionDescriptor.class), methodName)
-                                .also(fdOf -> {
-                                    returnType.ifPresent(typeUse -> {
-                                        final Spec spec = typeUse.apply(importData);
-                                        fdOf.addArgument(spec);
-                                    });
-                                    methodHandleData.parameterTypes().forEach(typeUse ->
-                                        fdOf.addArgument(typeUse.apply(importData)));
-                                }));
-                            final Critical critical = methodHandleData.executableElement().getAnnotation(Critical.class);
-                            if (critical != null) {
-                                downcallHandle.addArgument(new InvokeSpec(importData.simplifyOrImport(Linker.Option.class), "critical")
-                                    .addArgument(getConstExp(critical.allowHeapAccess())));
+                        .addArgument(switch (0) {
+                            default -> {
+                                final var returnType = methodHandleData.returnType();
+                                final String methodName = returnType.isPresent() ? "of" : "ofVoid";
+                                final InvokeSpec fdOf = new InvokeSpec(importData.simplifyOrImport(FunctionDescriptor.class), methodName);
+                                returnType.ifPresent(typeUse -> {
+                                    final Spec spec = typeUse.apply(importData);
+                                    fdOf.addArgument(spec);
+                                });
+                                methodHandleData.parameterTypes().forEach(typeUse ->
+                                    fdOf.addArgument(typeUse.apply(importData)));
+                                yield fdOf;
+                            }
+                        })
+                        .addArgument(switch (0) {
+                            default -> {
+                                final Critical critical = methodHandleData.executableElement().getAnnotation(Critical.class);
+                                yield critical != null ?
+                                    new InvokeSpec(importData.simplifyOrImport(Linker.Option.class), "critical")
+                                        .addArgument(getConstExp(critical.allowHeapAccess())) :
+                                    null;
                             }
                         })));
                 if (methodHandleData.optional()) {
@@ -437,16 +444,18 @@ public final class DowncallData extends BaseData {
             methodName,
             parameterDataList,
             shouldWrapWithMemoryStack ?
-                List.of(importData -> new TryWithResourceStatement(
-                    new VariableStatement("var",
-                        memoryStackName,
-                        new InvokeSpec(importData.simplifyOrImport(MemoryStack.class), "stackPush"))
-                        .setAccessModifier(AccessModifier.PACKAGE_PRIVATE)
-                        .setFinal(true)
-                        .setAddSemicolon(false)
-                ).also(tryWithResourceStatement ->
+                List.of(importData -> {
+                    final TryWithResourceStatement tryWithResourceStatement = new TryWithResourceStatement(
+                        new VariableStatement("var",
+                            memoryStackName,
+                            new InvokeSpec(importData.simplifyOrImport(MemoryStack.class), "stackPush"))
+                            .setAccessModifier(AccessModifier.PACKAGE_PRIVATE)
+                            .setAddSemicolon(false)
+                    );
                     statements.forEach(typeUse ->
-                        tryWithResourceStatement.addStatement(typeUse.apply(importData))))) :
+                        tryWithResourceStatement.addStatement(typeUse.apply(importData)));
+                    return tryWithResourceStatement;
+                }) :
                 statements
         ));
     }
@@ -493,7 +502,8 @@ public final class DowncallData extends BaseData {
             methodName,
             parameterDataList,
             List.of(
-                importData -> new TryCatchStatement().also(tryCatchStatement -> {
+                importData -> {
+                    final TryCatchStatement tryCatchStatement = new TryCatchStatement();
                     final InvokeSpec invokeSpec = new InvokeSpec(shouldAddInvoker ?
                         Spec.accessSpec(simpleClassName, methodHandleName) :
                         Spec.literal(methodHandleName), "invokeExact");
@@ -535,7 +545,8 @@ public final class DowncallData extends BaseData {
                     ), catchClause ->
                         catchClause.addStatement(Spec.throwStatement(new ConstructSpec(importData.simplifyOrImport(RuntimeException.class))
                             .addArgument(Spec.literal(catchClause.name())))));
-                })
+                    return tryCatchStatement;
+                }
             )
         ));
     }

@@ -149,57 +149,51 @@ public final class StructData extends BaseData {
             true,
             TypeData.fromClass(StructLayout.class),
             LAYOUT_NAME,
-            importData -> new InvokeSpec(importData.simplifyOrImport(MemoryLayout.class), "structLayout")
-                .also(invokeSpec -> fields.forEach(element -> {
-                    final Padding padding = element.getAnnotation(Padding.class);
-                    if (padding != null) {
-                        invokeSpec.addArgument(new InvokeSpec(importData.simplifyOrImport(MemoryLayout.class), "paddingLayout")
-                            .addArgument(getConstExp(padding.value())));
-                    } else {
-                        final SizedSeg sizedSeg = element.getAnnotation(SizedSeg.class);
-                        final Sized sized = element.getAnnotation(Sized.class);
-                        final TypeMirror type = element.asType();
-
-                        final InvokeSpec valueLayout = new InvokeSpec(TypeUse.valueLayout(processingEnv, type)
-                            .orElseThrow()
-                            .apply(importData), "withName"
-                        ).addArgument(getConstExp(element.getSimpleName().toString()));
-                        final Spec finalSpec;
-                        if (sizedSeg != null) {
-                            finalSpec = new InvokeSpec(valueLayout, "withTargetLayout")
-                                .addArgument(new InvokeSpec(importData.simplifyOrImport(MemoryLayout.class), "sequenceLayout")
-                                    .addArgument(getConstExp(sizedSeg.value()))
-                                    .addArgument(TypeUse.valueLayout(byte.class).orElseThrow().apply(importData)));
-                        } else if (sized != null) {
-                            finalSpec = new InvokeSpec(valueLayout, "withTargetLayout")
-                                .addArgument(new InvokeSpec(importData.simplifyOrImport(MemoryLayout.class), "sequenceLayout")
-                                    .addArgument(getConstExp(sized.value()))
-                                    .addArgument(TypeUse.valueLayout(processingEnv, getArrayComponentType(type)).orElseThrow().apply(importData)));
+            importData -> switch (0) {
+                default -> {
+                    final InvokeSpec invokeSpec = new InvokeSpec(importData.simplifyOrImport(MemoryLayout.class), "structLayout");
+                    fields.forEach(element -> {
+                        final Padding padding = element.getAnnotation(Padding.class);
+                        if (padding != null) {
+                            invokeSpec.addArgument(new InvokeSpec(importData.simplifyOrImport(MemoryLayout.class), "paddingLayout")
+                                .addArgument(getConstExp(padding.value())));
                         } else {
-                            finalSpec = valueLayout;
+                            final SizedSeg sizedSeg = element.getAnnotation(SizedSeg.class);
+                            final Sized sized = element.getAnnotation(Sized.class);
+                            final TypeMirror type = element.asType();
+
+                            final InvokeSpec valueLayout = new InvokeSpec(TypeUse.valueLayout(processingEnv, type)
+                                .orElseThrow()
+                                .apply(importData), "withName"
+                            ).addArgument(getConstExp(element.getSimpleName().toString()));
+                            final Spec finalSpec;
+                            if (sizedSeg != null) {
+                                finalSpec = new InvokeSpec(valueLayout, "withTargetLayout")
+                                    .addArgument(new InvokeSpec(importData.simplifyOrImport(MemoryLayout.class), "sequenceLayout")
+                                        .addArgument(getConstExp(sizedSeg.value()))
+                                        .addArgument(TypeUse.valueLayout(byte.class).orElseThrow().apply(importData)));
+                            } else if (sized != null) {
+                                finalSpec = new InvokeSpec(valueLayout, "withTargetLayout")
+                                    .addArgument(new InvokeSpec(importData.simplifyOrImport(MemoryLayout.class), "sequenceLayout")
+                                        .addArgument(getConstExp(sized.value()))
+                                        .addArgument(TypeUse.valueLayout(processingEnv, getArrayComponentType(type)).orElseThrow().apply(importData)));
+                            } else {
+                                finalSpec = valueLayout;
+                            }
+                            invokeSpec.addArgument(finalSpec);
                         }
-                        invokeSpec.addArgument(finalSpec);
-                    }
-                }))
+                    });
+                    yield invokeSpec;
+                }
+            }
         ));
     }
 
     private void addPathElements(List<VariableElement> ignorePadding, Map<String, String> memberPathElementNameMap) {
-        peSequenceElementName = tryInsertUnderline("PE_SEQUENCE_ELEMENT", insertPredicate);
-        fieldDataList.add(new FieldData(
-            null,
-            List.of(),
-            AccessModifier.PRIVATE,
-            true,
-            true,
-            TypeData.fromClass(MemoryLayout.PathElement.class),
-            peSequenceElementName,
-            importData -> new InvokeSpec(importData.simplifyOrImport(MemoryLayout.PathElement.class), "sequenceElement")
-        ));
         ignorePadding.stream()
             .map(element -> element.getSimpleName().toString())
             .forEach(s -> {
-                final String name = tryInsertUnderline("PE_" + s, insertPredicate);
+                final String name = "PE_" + s;
                 fieldDataList.add(new FieldData(
                     null,
                     List.of(),
@@ -213,25 +207,42 @@ public final class StructData extends BaseData {
                 ));
                 memberPathElementNameMap.put(s, name);
             });
+        peSequenceElementName = tryInsertUnderline("PE_SEQUENCE_ELEMENT", insertPredicate);
+        fieldDataList.add(new FieldData(
+            null,
+            List.of(),
+            AccessModifier.PRIVATE,
+            true,
+            true,
+            TypeData.fromClass(MemoryLayout.PathElement.class),
+            peSequenceElementName,
+            importData -> new InvokeSpec(importData.simplifyOrImport(MemoryLayout.PathElement.class), "sequenceElement")
+        ));
     }
 
     private void addVarHandles(List<VariableElement> ignorePadding, Map<String, String> memberVarHandleNameMap) {
-        ignorePadding.stream()
-            .map(element -> element.getSimpleName().toString())
-            .forEach(s -> {
-                final String name = tryInsertUnderline(s, insertPredicate);
-                fieldDataList.add(new FieldData(
-                    null,
-                    List.of(),
-                    AccessModifier.PRIVATE,
-                    false,
-                    true,
-                    TypeData.fromClass(VarHandle.class),
-                    name,
-                    null
-                ));
-                memberVarHandleNameMap.put(s, name);
-            });
+        ignorePadding.forEach(element -> {
+            final String s = element.getSimpleName().toString();
+            final StringBuilder vhDocument = new StringBuilder(" The var handle of {@code " + s + "}.");
+            final String docComment = getDocComment(element);
+            if (docComment != null) {
+                vhDocument.append("\n <div>\n")
+                    .append(docComment)
+                    .append(" </div>");
+            }
+            final String name = "vh_" + s;
+            fieldDataList.add(new FieldData(
+                vhDocument.toString(),
+                List.of(),
+                AccessModifier.PUBLIC,
+                false,
+                true,
+                TypeData.fromClass(VarHandle.class),
+                name,
+                null
+            ));
+            memberVarHandleNameMap.put(s, name);
+        });
     }
 
     private void addStructInfo() {
@@ -304,7 +315,7 @@ public final class StructData extends BaseData {
             _ -> null,
             simpleClassName,
             List.of(new ParameterData(List.of(), TypeUse.of(MemorySegment.class), PARAMETER_SEGMENT_NAME)),
-            List.of(importData -> Spec.statement(new InvokeSpec((Spec) null, "this")
+            List.of(importData -> Spec.statement(InvokeSpec.invokeThis()
                 .addArgument(PARAMETER_SEGMENT_NAME)
                 .addArgument(new InvokeSpec(importData.simplifyOrImport(IStruct.class), "inferCount")
                     .addArgument(PARAMETER_SEGMENT_NAME)

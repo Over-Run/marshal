@@ -57,17 +57,6 @@ public final class TryCatchStatement implements Spec, StatementBlock {
         consumer.accept(catchClause);
     }
 
-    /**
-     * Also runs the action
-     *
-     * @param consumer the action
-     * @return this
-     */
-    public TryCatchStatement also(Consumer<TryCatchStatement> consumer) {
-        consumer.accept(this);
-        return this;
-    }
-
     @Override
     public void append(StringBuilder builder, int indent) {
         final String indentString = Spec.indentString(indent);

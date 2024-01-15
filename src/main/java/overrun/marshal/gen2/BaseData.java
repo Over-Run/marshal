@@ -203,10 +203,11 @@ public abstract sealed class BaseData permits DowncallData, StructData {
                 addAnnotationSpec(functionData.annotations(), methodSpec);
                 methodSpec.setAccessModifier(functionData.accessModifier());
                 methodSpec.setStatic(functionData.staticMethod());
-                functionData.parameters().forEach(parameterData ->
-                    methodSpec.addParameter(new ParameterSpec(parameterData.type().apply(imports), parameterData.name()).also(parameterSpec ->
-                        addAnnotationSpec(parameterData.annotations(), parameterSpec)))
-                );
+                functionData.parameters().forEach(parameterData -> {
+                    final ParameterSpec parameterSpec = new ParameterSpec(parameterData.type().apply(imports), parameterData.name());
+                    addAnnotationSpec(parameterData.annotations(), parameterSpec);
+                    methodSpec.addParameter(parameterSpec);
+                });
                 functionData.statements().forEach(typeUse ->
                     methodSpec.addStatement(typeUse.apply(imports)));
             }));
@@ -220,11 +221,14 @@ public abstract sealed class BaseData permits DowncallData, StructData {
      * @param escapeAtCharacter escapeAtCharacter
      */
     protected static void addAnnotationSpec(List<AnnotationData> list, Annotatable annotatable, boolean escapeAtCharacter) {
-        list.forEach(annotationData -> annotatable.addAnnotation(new AnnotationSpec(
-            annotationData.type(),
-            escapeAtCharacter
-        ).also(annotationSpec ->
-            annotationData.map().forEach(annotationSpec::addArgument))));
+        list.forEach(annotationData -> {
+            final AnnotationSpec annotationSpec = new AnnotationSpec(
+                annotationData.type(),
+                escapeAtCharacter
+            );
+            annotationData.map().forEach(annotationSpec::addArgument);
+            annotatable.addAnnotation(annotationSpec);
+        });
     }
 
     /**

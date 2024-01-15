@@ -77,6 +77,9 @@ public final class InvokeSpec implements Spec {
      * @return this
      */
     public InvokeSpec addArgument(Spec spec) {
+        if (spec == null) {
+            return this;
+        }
         arguments.add(spec);
         return this;
     }
@@ -88,6 +91,9 @@ public final class InvokeSpec implements Spec {
      * @return this
      */
     public InvokeSpec addArgument(String spec) {
+        if (spec == null) {
+            return this;
+        }
         return addArgument(Spec.literal(spec));
     }
 
