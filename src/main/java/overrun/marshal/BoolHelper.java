@@ -26,6 +26,7 @@ import java.lang.foreign.ValueLayout;
  * @author squid233
  * @since 0.1.0
  */
+@Deprecated(since = "0.1.0")
 public final class BoolHelper {
     private BoolHelper() {
         //no instance

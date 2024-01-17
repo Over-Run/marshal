@@ -16,6 +16,8 @@
 
 package overrun.marshal.internal;
 
+import overrun.marshal.Upcall;
+
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -300,9 +302,38 @@ public final class Util {
      * @param aClass     the class
      */
     public static boolean isSameClass(TypeMirror typeMirror, Class<?> aClass) {
-        return ((typeMirror.getKind().isPrimitive() && aClass.isPrimitive()) ||
-                (typeMirror.getKind() == TypeKind.ARRAY && aClass.isArray()) ||
-                isDeclared(typeMirror)) &&
-               aClass.getCanonicalName().equals(typeMirror.toString());
+        if (((typeMirror.getKind().isPrimitive() && aClass.isPrimitive()) ||
+             isDeclared(typeMirror)) &&
+            aClass.getCanonicalName().equals(typeMirror.toString())) {
+            return true;
+        }
+        if (typeMirror.getKind() == TypeKind.ARRAY && typeMirror instanceof ArrayType arrayType &&
+            aClass.isArray()) {
+            return isSameClass(arrayType.getComponentType(), aClass.getComponentType());
+        }
+        return false;
+    }
+
+    /**
+     * {@return requireArena}
+     *
+     * @param env        env
+     * @param typeMirror typeMirror
+     */
+    public static boolean requireArena(ProcessingEnvironment env, TypeMirror typeMirror) {
+        return isAExtendsB(env, typeMirror, Upcall.class);
+    }
+
+    /**
+     * {@return requireAllocator}
+     *
+     * @param typeMirror typeMirror
+     */
+    public static boolean requireAllocator(TypeMirror typeMirror) {
+        return switch (typeMirror.getKind()) {
+            case ARRAY -> true;
+            case DECLARED -> isSameClass(typeMirror, String.class);
+            default -> false;
+        };
     }
 }

@@ -16,6 +16,8 @@
 
 package overrun.marshal.struct;
 
+import overrun.marshal.Addressable;
+
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
 
@@ -25,10 +27,11 @@ import java.lang.foreign.StructLayout;
  * @author squid233
  * @since 0.1.0
  */
-public interface IStruct {
+public interface IStruct extends Addressable {
     /**
      * {@return the memory segment of this struct}
      */
+    @Override
     MemorySegment segment();
 
     /**
