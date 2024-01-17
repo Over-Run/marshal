@@ -143,17 +143,6 @@ public interface TypeUse {
     /**
      * Converts to the downcall type
      *
-     * @param env     the processing environment
-     * @param element the element
-     * @return the downcall type
-     */
-    static Optional<TypeUse> toDowncallType(ProcessingEnvironment env, Element element) {
-        return toDowncallType(env, element, Element::asType);
-    }
-
-    /**
-     * Converts to the downcall type
-     *
      * @param env      the processing environment
      * @param element  the element
      * @param function the function
@@ -169,7 +158,53 @@ public interface TypeUse {
     }
 
     /**
-     * {@return literal type use}
+     * Converts to the processed type
+     *
+     * @param env        the processing environment
+     * @param typeMirror the type mirror
+     * @return the processed type
+     */
+    static Optional<TypeUse> toProcessedType(ProcessingEnvironment env, TypeMirror typeMirror) {
+        final TypeKind typeKind = typeMirror.getKind();
+        if (typeKind.isPrimitive()) {
+            return Optional.of(literal(typeMirror.toString()));
+        }
+        return switch (typeKind) {
+            case ARRAY, DECLARED -> Optional.of(of(env, typeMirror));
+            default -> Optional.empty();
+        };
+    }
+
+    /**
+     * Converts to the processed type
+     *
+     * @param env      the processing environment
+     * @param element  the element
+     * @param function the function
+     * @param <T>      the element type
+     * @return the processed type
+     */
+    static <T extends Element> Optional<TypeUse> toProcessedType(ProcessingEnvironment env, T element, Function<T, TypeMirror> function) {
+        final StructRef structRef = element.getAnnotation(StructRef.class);
+        if (structRef != null) {
+            return Optional.of(literal(structRef.value()));
+        }
+        return toProcessedType(env, function.apply(element));
+    }
+
+    /**
+     * Converts to the processed type
+     *
+     * @param env     the processing environment
+     * @param element the element
+     * @return the processed type
+     */
+    static Optional<TypeUse> toProcessedType(ProcessingEnvironment env, Element element) {
+        return toProcessedType(env, element, Element::asType);
+    }
+
+    /**
+     * {@return import type use}
      *
      * @param aClass class
      */
@@ -178,7 +213,7 @@ public interface TypeUse {
     }
 
     /**
-     * {@return literal type use}
+     * {@return import type use}
      *
      * @param env        env
      * @param typeMirror typeMirror

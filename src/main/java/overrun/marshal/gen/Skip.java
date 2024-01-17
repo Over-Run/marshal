@@ -19,7 +19,7 @@ package overrun.marshal.gen;
 import java.lang.annotation.*;
 
 /**
- * Skips generating a marked field, parameter or method.
+ * Skips generating a marked field or method.
  * <h2>Example</h2>
  * <pre>{@code
  * @Skip
@@ -30,7 +30,7 @@ import java.lang.annotation.*;
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.SOURCE)
 public @interface Skip {
 }

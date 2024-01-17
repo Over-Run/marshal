@@ -83,45 +83,44 @@ interface CDowncallTest {
 
     void testWithArray(int i, MemorySegment arr, MemorySegment nullableArr);
 
-    @Overload
     void testWithArray(int i, int[] arr, @NullableRef int[] nullableArr);
 
-    void testWithOneRef(@Ref MemorySegment arr);
+    void testWithArray(SegmentAllocator allocator, int i, int[] arr, @NullableRef int[] nullableArr);
+
+    void testWithArray(Arena arena, int i, int[] arr, @NullableRef int[] nullableArr);
+
+    void testWithArray(MemoryStack stack, int i, int[] arr, @NullableRef int[] nullableArr);
+
+    void testWithOneRef(MemorySegment arr);
 
     /**
      * Test with ref
      *
      * @param arr arr
      */
-    @Overload
     void testWithOneRef(@Ref int[] arr);
 
     void testWithRefArray(MemorySegment arr0, MemorySegment arr1, MemorySegment arr2, MemorySegment arr3, MemorySegment arr4, MemorySegment arr5);
 
-    @Overload
     void testWithRefArray(int[] arr0, @Ref int[] arr1, @NullableRef @Ref int[] arr2, boolean[] arr3, @Ref boolean[] arr4, @Sized(3) int[] arr5);
 
     void testWithString(MemorySegment str1, MemorySegment str2, MemorySegment nullableStr);
 
-    @Overload
     void testWithString(String str1, @StrCharset("UTF-16") String str2, @NullableRef String nullableStr);
 
     @Entrypoint("testReturnString")
     MemorySegment ntestReturnString();
 
-    @Overload("ntestReturnString")
     String testReturnString();
 
     @Entrypoint("testReturnStringUTF16")
     MemorySegment ntestReturnStringUTF16();
 
-    @Overload("ntestReturnStringUTF16")
     @StrCharset("UTF-16")
     String testReturnStringUTF16();
 
     MemorySegment testStringArray(MemorySegment arr, MemorySegment refArr);
 
-    @Overload
     String[] testStringArray(String[] arr, @Ref String[] refArr);
 
     @StrCharset("UTF-16")
@@ -130,12 +129,10 @@ interface CDowncallTest {
     @Entrypoint("testWithReturnArray")
     MemorySegment ntestWithReturnArray();
 
-    @Overload("ntestWithReturnArray")
     boolean[] testWithReturnArray();
 
     void testMixArrSeg(MemorySegment segment, MemorySegment arr);
 
-    @Overload
     void testMixArrSeg(MemorySegment segment, @Ref int[] arr);
 
     @Critical(allowHeapAccess = true)
@@ -148,7 +145,6 @@ interface CDowncallTest {
     @SizedSeg(4 * Integer.BYTES)
     MemorySegment ntestReturnSizedArr();
 
-    @Overload("ntestReturnSizedArr")
     @Sized(4)
     int[] testReturnSizedArr();
 
@@ -157,18 +153,15 @@ interface CDowncallTest {
 
     void testUpcall(MemorySegment cb, MemorySegment nullableCb);
 
-    @Overload
     void testUpcall(Arena arena, GLFWErrorCallback cb, @NullableRef GLFWErrorCallback nullableCb);
 
     @Entrypoint("testReturnUpcall")
     MemorySegment ntestReturnUpcall();
 
-    @Overload("ntestReturnUpcall")
     GLFWErrorCallback testReturnUpcall(Arena arena);
 
     void testStruct(MemorySegment struct, MemorySegment nullableStruct);
 
-    @Overload
     void testStruct(@StructRef("overrun.marshal.test.Vector3") Object struct, @NullableRef @StructRef("overrun.marshal.test.Vector3") Object nullableStruct);
 
     @StructRef("overrun.marshal.test.StructTest")
@@ -184,45 +177,22 @@ interface CDowncallTest {
 
     int testEnumValue(int value);
 
-    @Overload
     MyEnum testEnumValue(MyEnum value);
 
     int testEnumValueWithRef(int value, MemorySegment ref);
 
-    @Overload
     MyEnum testEnumValueWithRef(MyEnum value, @Ref int[] ref);
 
     void testNameMemoryStack(MemorySegment stack, MemorySegment arr);
 
-    @Overload
     void testNameMemoryStack(MemorySegment stack, int[] arr);
 
     @Entrypoint("_testAnotherEntrypoint")
     void testAnotherEntrypoint(MemorySegment segment);
 
-    @Overload
     void testAnotherEntrypoint(int[] segment);
 
-    void testWithoutOverload(int[] arr);
-
     void testDuplicateName(int[] testDuplicateName);
-
-    MyEnum testReturnEnumWithoutOverload();
-
-    @Sized(4)
-    int[] testReturnSizedArrWithoutOverload();
-
-    void testWithArrWithoutOverload(int[] arr);
-
-    void testWithArrWithoutOverload(SegmentAllocator allocator, int[] arr);
-
-    void testWithArrWithoutOverload(Arena arena, int[] arr);
-
-    void testWithArrWithoutOverload(MemoryStack stack, int[] arr);
-
-    void testStructWithoutOverload(@StructRef("overrun.marshal.test.StructTest") Object struct);
-
-    void testUpcallWithoutOverload(Arena arena, GLFWErrorCallback cb);
 
     /**
      * This is a test that tests all features.

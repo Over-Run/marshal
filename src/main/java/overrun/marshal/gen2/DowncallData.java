@@ -104,67 +104,65 @@ public final class DowncallData extends BaseData {
         }
         // collect method handles
         final Map<String, MethodHandleData> methodHandleDataMap = LinkedHashMap.newLinkedHashMap(methods.size());
-        skipAnnotated(methods)
-            .filter(executableElement -> executableElement.getAnnotation(Overload.class) == null)
-            .forEach(executableElement -> {
-                final Access access = executableElement.getAnnotation(Access.class);
-                final String entrypoint = getMethodEntrypoint(executableElement);
-                final TypeMirror returnType = executableElement.getReturnType();
-                methodHandleDataMap.put(entrypoint,
-                    new MethodHandleData(
-                        executableElement,
-                        access != null ? access.value() : AccessModifier.PUBLIC,
-                        entrypoint,
-                        TypeUse.valueLayout(processingEnv, returnType)
-                            .map(typeUse -> importData -> {
-                                final ByValue byValue = executableElement.getAnnotation(ByValue.class);
-                                final StructRef structRef = executableElement.getAnnotation(StructRef.class);
-                                final SizedSeg sizedSeg = executableElement.getAnnotation(SizedSeg.class);
-                                final Sized sized = executableElement.getAnnotation(Sized.class);
-                                final boolean structRefNotNull = structRef != null;
-                                final boolean sizedSegNotNull = sizedSeg != null;
-                                final boolean sizedNotNull = sized != null;
-                                final Spec spec = typeUse.apply(importData);
-                                if (structRefNotNull || sizedSegNotNull || sizedNotNull) {
-                                    final InvokeSpec invokeSpec = new InvokeSpec(spec, "withTargetLayout");
-                                    if (structRefNotNull) {
-                                        final Spec layout = Spec.accessSpec(structRef.value(), "LAYOUT");
-                                        return byValue != null ? layout : invokeSpec.addArgument(layout);
-                                    }
-                                    if (sizedSegNotNull) {
-                                        return invokeSpec.addArgument(new InvokeSpec(
-                                            importData.simplifyOrImport(MemoryLayout.class),
-                                            "sequenceLayout"
-                                        ).addArgument(getConstExp(sizedSeg.value()))
-                                            .addArgument(TypeUse.valueLayout(byte.class).orElseThrow().apply(importData)));
-                                    }
+        skipAnnotated(methods).forEach(executableElement -> {
+            final Access access = executableElement.getAnnotation(Access.class);
+            final String entrypoint = getMethodEntrypoint(executableElement);
+            final TypeMirror returnType = executableElement.getReturnType();
+            methodHandleDataMap.put(entrypoint,
+                new MethodHandleData(
+                    executableElement,
+                    access != null ? access.value() : AccessModifier.PUBLIC,
+                    entrypoint,
+                    TypeUse.valueLayout(processingEnv, returnType)
+                        .map(typeUse -> importData -> {
+                            final ByValue byValue = executableElement.getAnnotation(ByValue.class);
+                            final StructRef structRef = executableElement.getAnnotation(StructRef.class);
+                            final SizedSeg sizedSeg = executableElement.getAnnotation(SizedSeg.class);
+                            final Sized sized = executableElement.getAnnotation(Sized.class);
+                            final boolean structRefNotNull = structRef != null;
+                            final boolean sizedSegNotNull = sizedSeg != null;
+                            final boolean sizedNotNull = sized != null;
+                            final Spec spec = typeUse.apply(importData);
+                            if (structRefNotNull || sizedSegNotNull || sizedNotNull) {
+                                final InvokeSpec invokeSpec = new InvokeSpec(spec, "withTargetLayout");
+                                if (structRefNotNull) {
+                                    final Spec layout = Spec.accessSpec(structRef.value(), "LAYOUT");
+                                    return byValue != null ? layout : invokeSpec.addArgument(layout);
+                                }
+                                if (sizedSegNotNull) {
                                     return invokeSpec.addArgument(new InvokeSpec(
                                         importData.simplifyOrImport(MemoryLayout.class),
-                                        "sequenceLayout")
-                                        .addArgument(getConstExp(sized.value()))
-                                        .addArgument(switch (0) {
-                                            default -> {
-                                                final Optional<TypeUse> seqLayout;
-                                                if (returnType.getKind() == TypeKind.ARRAY &&
-                                                    returnType instanceof ArrayType arrayType) {
-                                                    seqLayout = TypeUse.valueLayout(processingEnv, arrayType.getComponentType());
-                                                } else {
-                                                    seqLayout = TypeUse.valueLayout(byte.class);
-                                                }
-                                                yield seqLayout.orElseThrow().apply(importData);
-                                            }
-                                        }));
+                                        "sequenceLayout"
+                                    ).addArgument(getConstExp(sizedSeg.value()))
+                                        .addArgument(TypeUse.valueLayout(byte.class).orElseThrow().apply(importData)));
                                 }
-                                return spec;
-                            }),
-                        skipAnnotated(executableElement.getParameters())
-                            .map(element -> TypeUse.valueLayout(processingEnv, element))
-                            .filter(Optional::isPresent)
-                            .map(Optional::get)
-                            .toList(),
-                        executableElement.getAnnotation(Default.class) != null
-                    ));
-            });
+                                return invokeSpec.addArgument(new InvokeSpec(
+                                    importData.simplifyOrImport(MemoryLayout.class),
+                                    "sequenceLayout")
+                                    .addArgument(getConstExp(sized.value()))
+                                    .addArgument(switch (0) {
+                                        default -> {
+                                            final Optional<TypeUse> seqLayout;
+                                            if (returnType.getKind() == TypeKind.ARRAY &&
+                                                returnType instanceof ArrayType arrayType) {
+                                                seqLayout = TypeUse.valueLayout(processingEnv, arrayType.getComponentType());
+                                            } else {
+                                                seqLayout = TypeUse.valueLayout(byte.class);
+                                            }
+                                            yield seqLayout.orElseThrow().apply(importData);
+                                        }
+                                    }));
+                            }
+                            return spec;
+                        }),
+                    skipAnnotated(executableElement.getParameters())
+                        .map(element -> TypeUse.valueLayout(processingEnv, element))
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .toList(),
+                    executableElement.getAnnotation(Default.class) != null
+                ));
+        });
 
         // add linker and lookup
         final Predicate<String> containsKey = methodHandleDataMap::containsKey;
@@ -234,7 +232,6 @@ public final class DowncallData extends BaseData {
         final var fieldNames = fieldDataList.stream().map(FieldData::name).toList();
         final List<MethodHandleData> addedMethodHandleInvoker = new ArrayList<>(methodHandleDataMap.size());
         skipAnnotated(methods).forEach(executableElement -> {
-            final Overload overload = executableElement.getAnnotation(Overload.class);
             final MethodHandleData methodHandleData = methodHandleDataMap.get(getMethodEntrypoint(executableElement));
             if (methodHandleData == null) {
                 return;
@@ -244,54 +241,10 @@ public final class DowncallData extends BaseData {
             if (custom != null) {
                 addCustomMethod(executableElement, methodHandleData, custom);
             } else {
-                final String methodName = executableElement.getSimpleName().toString();
-                final boolean containsNonDowncallType = containsNonDowncallType(executableElement);
-                final boolean shouldGenOverload = overload != null || containsNonDowncallType;
-
-                String finalMethodName = methodName;
-                if (overload == null && !addedMethodHandleInvoker.contains(methodHandleData)) {
-                    addedMethodHandleInvoker.add(methodHandleData);
-                    if (containsNonDowncallType) {
-                        boolean shouldAddPrefix = true;
-                        if (parameterContainsNonDowncallType(executableElement)) {
-                            shouldAddPrefix = false;
-                        } else {
-                            final var rawParameterList = skipAnnotated(executableElement.getParameters()).toList();
-                            if (executableElement.getAnnotation(ByValue.class) == null &&
-                                !rawParameterList.isEmpty() &&
-                                isAExtendsB(processingEnv, rawParameterList.getFirst().asType(), SegmentAllocator.class)) {
-                                shouldAddPrefix = false;
-                            }
-                        }
-                        if (shouldAddPrefix) {
-                            final String prefixed = "n" + methodName;
-                            finalMethodName = "n" + tryInsertUnderline(methodName, _ -> functionDataList.stream()
-                                .anyMatch(functionData -> prefixed.equals(functionData.name())));
-                        }
-                    }
-
-                    addDowncallMethod(simpleClassName,
-                        executableElement,
-                        finalMethodName,
-                        fieldNames,
-                        methodHandleData);
-                }
-
-                if (shouldGenOverload) {
-                    final String downcallName;
-                    if (overload == null) {
-                        downcallName = finalMethodName;
-                    } else {
-                        downcallName = getMethodAnnotationString(executableElement, Overload.class, Overload::value);
-                    }
-
-                    addOverloadMethod(simpleClassName,
-                        executableElement,
-                        methodName,
-                        downcallName,
-                        fieldNames,
-                        methodHandleData);
-                }
+                addDowncallMethod(simpleClassName,
+                    executableElement,
+                    fieldNames,
+                    methodHandleData);
             }
         });
     }
@@ -312,48 +265,54 @@ public final class DowncallData extends BaseData {
         generate(generatedClassName);
     }
 
-    private void addOverloadMethod(
+    private void addDowncallMethod(
         String simpleClassName,
         ExecutableElement executableElement,
-        String methodName,
-        String downcallName,
         List<String> fieldNames,
         MethodHandleData methodHandleData) {
-        final var rawParameterList = skipAnnotated(executableElement.getParameters()).toList();
-        final var parameterDataList = parametersToParameterDataList(rawParameterList);
-        final var parameterNames = parameterDataList.stream()
-            .map(ParameterData::name)
-            .toList();
+        final var returnType = TypeUse.toProcessedType(processingEnv, executableElement, ExecutableElement::getReturnType);
 
-        final int skipFirst = shouldSkipFirstParameter(executableElement, rawParameterList, false);
+        final var parameters = executableElement.getParameters();
+        final int skipFirst = shouldSkipFirstParameter(executableElement, parameters);
         if (skipFirst < 0) {
             return;
         }
+        final var parameterDataList = parameters.stream()
+            .map(element -> new ParameterData(
+                getElementAnnotations(PARAMETER_ANNOTATIONS, element),
+                TypeUse.toProcessedType(processingEnv, element).orElseThrow(),
+                element.getSimpleName().toString()
+            ))
+            .toList();
+        final var parameterNames = parameterDataList.stream()
+            .skip(skipFirst > 0 ? 1 : 0)
+            .map(ParameterData::name)
+            .toList();
 
         final List<String> variablesInScope = new ArrayList<>(parameterNames);
 
         final String memoryStackName = tryInsertUnderline("stack", s -> variablesInScope.stream().anyMatch(s::equals));
         final boolean hasAllocatorParameter =
             !parameterDataList.isEmpty() &&
-            isAExtendsB(processingEnv, rawParameterList.getFirst().asType(), SegmentAllocator.class);
+            isAExtendsB(processingEnv, parameters.getFirst().asType(), SegmentAllocator.class);
         final String allocatorParameter = hasAllocatorParameter ?
             parameterDataList.getFirst().name() :
             memoryStackName;
         final boolean shouldWrapWithMemoryStack =
-            rawParameterList.stream().anyMatch(element -> useAllocator(element.asType())) &&
+            parameters.stream().anyMatch(element -> useAllocator(element.asType())) &&
             !hasAllocatorParameter;
         if (shouldWrapWithMemoryStack) {
             variablesInScope.add(memoryStackName);
         }
 
-        final boolean shouldAddInvoker = variablesInScope.stream().anyMatch(fieldNames::contains);
-        final TypeMirror returnType = executableElement.getReturnType();
-        final boolean returnVoid = returnType.getKind() == TypeKind.VOID;
+        final boolean shouldAddInvoker = parameterNames.stream().anyMatch(fieldNames::contains);
 
         final List<TypeUse> statements = new ArrayList<>();
+        final List<TypeUse> tryStatements = new ArrayList<>();
+        final List<TypeUse> invocationStatements = new ArrayList<>();
 
         // check array size of @Sized array
-        rawParameterList.stream()
+        parameters.stream()
             .filter(element -> element.getAnnotation(Sized.class) != null)
             .forEach(element -> {
                 final Sized sized = element.getAnnotation(Sized.class);
@@ -364,12 +323,12 @@ public final class DowncallData extends BaseData {
             });
 
         // ref segments
-        final Map<String, String> refNameMap = HashMap.newHashMap(Math.toIntExact(rawParameterList.stream()
+        final Map<String, String> refNameMap = HashMap.newHashMap((int) parameters.stream()
             .filter(element -> element.getAnnotation(Ref.class) != null)
-            .count()));
-        rawParameterList.stream()
+            .count());
+        parameters.stream()
             .filter(element -> element.getAnnotation(Ref.class) != null)
-            .forEach(element -> statements.add(importData -> {
+            .forEach(element -> invocationStatements.add(importData -> {
                 final String elementName = element.getSimpleName().toString();
                 final String refSegName = tryInsertUnderline(elementName,
                     s -> variablesInScope.stream().anyMatch(s::equals));
@@ -384,11 +343,19 @@ public final class DowncallData extends BaseData {
             }));
 
         // invocation
+        final String methodHandleName = methodHandleData.name();
         final TypeUse invokeTypeUse = importData -> {
-            final InvokeSpec invokeSpec = new InvokeSpec(shouldAddInvoker ? Spec.literal(simpleClassName) : null, downcallName);
+            final InvokeSpec invokeSpec = new InvokeSpec(shouldAddInvoker ?
+                Spec.accessSpec(simpleClassName, methodHandleName) :
+                Spec.literal(methodHandleName), "invokeExact");
             // wrap parameters
-            var stream = rawParameterList.stream();
+            var stream = parameters.stream();
             if (skipFirst > 0) {
+                stream = stream.skip(1);
+            } else if (executableElement.getAnnotation(ByValue.class) != null &&
+                       !isSameClass(parameters.getFirst().asType(), SegmentAllocator.class)) {
+                invokeSpec.addArgument(Spec.cast(importData.simplifyOrImport(SegmentAllocator.class),
+                    Spec.literal(allocatorParameter)));
                 stream = stream.skip(1);
             }
             stream.map(element -> wrapParameter(importData, allocatorParameter, element, true, refNameMap::get))
@@ -397,101 +364,91 @@ public final class DowncallData extends BaseData {
         };
 
         // store result
+        final var downcallReturnType = TypeUse.toDowncallType(processingEnv, executableElement, ExecutableElement::getReturnType);
         final boolean shouldStoreResult =
-            canConvertToAddress(executableElement, ExecutableElement::getReturnType) ||
-            (!returnVoid &&
-             rawParameterList.stream().anyMatch(element -> element.getAnnotation(Ref.class) != null));
+            downcallReturnType.isPresent() &&
+            (canConvertToAddress(executableElement, ExecutableElement::getReturnType) ||
+             parameters.stream().anyMatch(element -> element.getAnnotation(Ref.class) != null));
         final String resultVarName;
         if (shouldStoreResult) {
             resultVarName = tryInsertUnderline("result", s -> variablesInScope.stream().anyMatch(s::equals));
             variablesInScope.add(resultVarName);
-            statements.add(importData -> new VariableStatement("var", resultVarName, invokeTypeUse.apply(importData))
+            invocationStatements.add(importData -> new VariableStatement("var",
+                resultVarName,
+                Spec.cast(downcallReturnType.get().apply(importData), invokeTypeUse.apply(importData)))
                 .setAccessModifier(AccessModifier.PACKAGE_PRIVATE)
                 .setFinal(true));
         } else {
             resultVarName = null;
-            if (returnVoid) {
-                statements.add(importData -> Spec.statement(invokeTypeUse.apply(importData)));
-            } else {
-                statements.add(importData -> Spec.returnStatement(wrapReturnValue(importData,
-                    invokeTypeUse.apply(importData),
+            if (downcallReturnType.isPresent()) {
+                invocationStatements.add(importData -> Spec.returnStatement(wrapReturnValue(importData,
+                    Spec.cast(downcallReturnType.get().apply(importData), invokeTypeUse.apply(importData)),
                     executableElement)));
+            } else {
+                invocationStatements.add(importData -> Spec.statement(invokeTypeUse.apply(importData)));
             }
         }
 
         // passing to ref
-        rawParameterList.stream()
+        parameters.stream()
             .filter(element -> element.getAnnotation(Ref.class) != null)
-            .forEach(element -> statements.add(importData ->
+            .forEach(element -> invocationStatements.add(importData ->
                 copyRefResult(importData, element, refNameMap::get)));
 
         // return result
         if (shouldStoreResult) {
-            statements.add(importData -> Spec.returnStatement(wrapReturnValue(importData,
+            invocationStatements.add(importData -> Spec.returnStatement(wrapReturnValue(importData,
                 Spec.literal(resultVarName),
                 executableElement)));
         }
 
-        final StructRef structRef = executableElement.getAnnotation(StructRef.class);
-        functionDataList.add(new FunctionData(
-            getDocComment(executableElement),
-            getElementAnnotations(METHOD_ANNOTATIONS, executableElement),
-            methodHandleData.accessModifier(),
-            true,
-            structRef != null ?
-                TypeUse.literal(structRef.value()) :
-                TypeUse.of(processingEnv, returnType),
-            methodName,
-            parameterDataList,
-            shouldWrapWithMemoryStack ?
-                List.of(importData -> {
-                    final TryWithResourceStatement tryWithResourceStatement = new TryWithResourceStatement(
-                        new VariableStatement("var",
-                            memoryStackName,
-                            new InvokeSpec(importData.simplifyOrImport(MemoryStack.class), "stackPush"))
-                            .setAccessModifier(AccessModifier.PACKAGE_PRIVATE)
-                            .setAddSemicolon(false)
+        statements.add(importData -> {
+            final TryStatement tryStatement = new TryStatement();
+
+            if (shouldWrapWithMemoryStack) {
+                tryStatement.addResource(new VariableStatement(
+                    "var",
+                    memoryStackName,
+                    new InvokeSpec(importData.simplifyOrImport(MemoryStack.class), "stackPush")
+                ).setAccessModifier(AccessModifier.PACKAGE_PRIVATE)
+                    .setAddSemicolon(false));
+            }
+
+            final Default defaultAnnotation = executableElement.getAnnotation(Default.class);
+            if (defaultAnnotation != null) {
+                final TypeUse ifTypeUse = importData1 -> {
+                    final IfStatement ifStatement = new IfStatement(Spec.notNullSpec(methodHandleName));
+                    invocationStatements.forEach(typeUse -> ifStatement.addStatement(typeUse.apply(importData1)));
+                    final String defaultValue = defaultAnnotation.value();
+                    if (!defaultValue.isBlank()) {
+                        ifStatement.addElseClause(ElseClause.of(), elseClause ->
+                            elseClause.addStatement(Spec.returnStatement(Spec.indentCodeBlock(defaultValue)))
+                        );
+                    }
+                    return ifStatement;
+                };
+                tryStatements.add(ifTypeUse);
+            } else {
+                tryStatements.addAll(invocationStatements);
+            }
+
+            tryStatements.forEach(typeUse -> tryStatement.addStatement(typeUse.apply(importData)));
+
+            tryStatement.addCatchClause(switch (0) {
+                default -> {
+                    final CatchClause catchClause = new CatchClause(
+                        importData.simplifyOrImport(Throwable.class),
+                        tryInsertUnderline("e", s -> fieldNames.contains(s) || parameterNames.contains(s))
                     );
-                    statements.forEach(typeUse ->
-                        tryWithResourceStatement.addStatement(typeUse.apply(importData)));
-                    return tryWithResourceStatement;
-                }) :
-                statements
-        ));
-    }
-
-    private void addDowncallMethod(
-        String simpleClassName,
-        ExecutableElement executableElement,
-        String methodName,
-        List<String> fieldNames,
-        MethodHandleData methodHandleData) {
-        final String methodHandleName = methodHandleData.name();
-        final var returnType = TypeUse.toDowncallType(processingEnv, executableElement, ExecutableElement::getReturnType);
-        final boolean returnByValue = executableElement.getAnnotation(ByValue.class) != null;
-
-        final var rawParameterList = skipAnnotated(executableElement.getParameters()).toList();
-        final int skipFirst = shouldSkipFirstParameter(executableElement, rawParameterList, true);
-        if (skipFirst < 0) {
-            return;
-        }
-        var stream = rawParameterList.stream();
-        if (skipFirst > 0) {
-            stream = stream.skip(1);
-        }
-        final var parameters = stream.toList();
-        final var parameterDataList = parameters.stream()
-            .map(element -> new ParameterData(
-                getElementAnnotations(PARAMETER_ANNOTATIONS, element),
-                TypeUse.toDowncallType(processingEnv, element).orElseThrow(),
-                element.getSimpleName().toString()
-            ))
-            .toList();
-        final var parameterNames = parameterDataList.stream()
-            .map(ParameterData::name)
-            .toList();
-
-        final boolean shouldAddInvoker = parameterNames.stream().anyMatch(fieldNames::contains);
+                    catchClause.addStatement(Spec.throwStatement(
+                        new ConstructSpec(importData.simplifyOrImport(RuntimeException.class))
+                            .addArgument(Spec.literal(catchClause.name()))
+                    ));
+                    yield catchClause;
+                }
+            });
+            return tryStatement;
+        });
 
         functionDataList.add(new FunctionData(
             getDocComment(executableElement),
@@ -499,61 +456,14 @@ public final class DowncallData extends BaseData {
             methodHandleData.accessModifier(),
             true,
             returnType.orElseGet(() -> TypeUse.literal(void.class)),
-            methodName,
+            executableElement.getSimpleName().toString(),
             parameterDataList,
-            List.of(
-                importData -> {
-                    final TryCatchStatement tryCatchStatement = new TryCatchStatement();
-                    final InvokeSpec invokeSpec = new InvokeSpec(shouldAddInvoker ?
-                        Spec.accessSpec(simpleClassName, methodHandleName) :
-                        Spec.literal(methodHandleName), "invokeExact");
-                    var stream1 = parameterNames.stream();
-                    if (returnByValue) {
-                        if (!isSameClass(parameters.getFirst().asType(), SegmentAllocator.class)) {
-                            invokeSpec.addArgument(Spec.cast(importData.simplifyOrImport(SegmentAllocator.class),
-                                Spec.literal(parameterDataList.getFirst().name())));
-                            stream1 = stream1.skip(1);
-                        }
-                    }
-                    stream1.forEach(invokeSpec::addArgument);
-
-                    final Spec returnSpec = returnType
-                        .map(typeUse -> Spec.returnStatement(Spec.cast(typeUse.apply(importData), invokeSpec)))
-                        .orElseGet(() -> Spec.statement(invokeSpec));
-
-                    final Spec optionalSpec;
-                    final Default defaultAnnotation = executableElement.getAnnotation(Default.class);
-                    if (defaultAnnotation != null) {
-                        final IfStatement ifStatement = new IfStatement(Spec.notNullSpec(methodHandleName));
-                        ifStatement.addStatement(returnSpec);
-                        final String defaultValue = defaultAnnotation.value();
-                        if (!defaultValue.isBlank()) {
-                            ifStatement.addElseClause(ElseClause.of(), elseClause ->
-                                elseClause.addStatement(Spec.returnStatement(Spec.indentCodeBlock(defaultValue)))
-                            );
-                        }
-                        optionalSpec = ifStatement;
-                    } else {
-                        optionalSpec = returnSpec;
-                    }
-
-                    final String exceptionName = tryInsertUnderline("e", s -> fieldNames.contains(s) || parameterNames.contains(s));
-                    tryCatchStatement.addStatement(optionalSpec);
-                    tryCatchStatement.addCatchClause(new CatchClause(
-                        importData.simplifyOrImport(Throwable.class),
-                        exceptionName
-                    ), catchClause ->
-                        catchClause.addStatement(Spec.throwStatement(new ConstructSpec(importData.simplifyOrImport(RuntimeException.class))
-                            .addArgument(Spec.literal(catchClause.name())))));
-                    return tryCatchStatement;
-                }
-            )
+            statements
         ));
     }
 
     private int shouldSkipFirstParameter(ExecutableElement executableElement,
-                                         List<? extends VariableElement> rawParameterList,
-                                         boolean printError) {
+                                         List<? extends VariableElement> rawParameterList) {
         final boolean returnByValue = executableElement.getAnnotation(ByValue.class) != null;
         final boolean rawParamListNotEmpty = !rawParameterList.isEmpty();
         final boolean firstParamArena =
@@ -568,18 +478,14 @@ public final class DowncallData extends BaseData {
             if (firstParamArena) {
                 return 1;
             }
-            if (printError) {
-                processingEnv.getMessager().printError("The first parameter of method with upcall must be Arena", executableElement);
-            }
+            processingEnv.getMessager().printError("The first parameter of method with upcall must be Arena", executableElement);
             return -1;
         }
         if (returnByValue) {
             if (firstParamSegmentAllocator) {
                 return 0;
             }
-            if (printError) {
-                processingEnv.getMessager().printError("The first parameter of method marked as @ByValue must be SegmentAllocator", executableElement);
-            }
+            processingEnv.getMessager().printError("The first parameter of method marked as @ByValue must be SegmentAllocator", executableElement);
             return -1;
         }
         return firstParamSegmentAllocator ? 1 : 0;
@@ -887,16 +793,9 @@ public final class DowncallData extends BaseData {
     }
 
     private static String getMethodEntrypoint(ExecutableElement executableElement) {
-        return getMethodAnnotationString(executableElement, Entrypoint.class, Entrypoint::value);
-    }
-
-    private static <T extends Annotation> String getMethodAnnotationString(
-        ExecutableElement executableElement,
-        Class<T> aClass,
-        Function<T, String> function) {
-        final T annotation = executableElement.getAnnotation(aClass);
-        if (annotation != null) {
-            final String value = function.apply(annotation);
+        final Entrypoint entrypoint = executableElement.getAnnotation(Entrypoint.class);
+        if (entrypoint != null) {
+            final String value = entrypoint.value();
             if (!value.isBlank()) {
                 return value;
             }
@@ -919,35 +818,5 @@ public final class DowncallData extends BaseData {
               isAExtendsB(processingEnv, type, CEnum.class))
             );
         return !nonAddressType;
-    }
-
-    private <T extends Element> boolean isNotDowncallType(T element, Function<T, TypeMirror> function) {
-        if (element.getAnnotation(StructRef.class) != null) {
-            return true;
-        }
-        final TypeMirror type = function.apply(element);
-        final TypeKind typeKind = type.getKind();
-        final boolean downcallType =
-            (typeKind.isPrimitive()) ||
-            (typeKind == TypeKind.VOID) ||
-            (typeKind == TypeKind.DECLARED &&
-             (isSameClass(type, MemorySegment.class) ||
-              isAExtendsB(processingEnv, type, SegmentAllocator.class))
-            );
-        return !downcallType;
-    }
-
-    private boolean returnNonDowncallType(ExecutableElement executableElement) {
-        return isNotDowncallType(executableElement, ExecutableElement::getReturnType);
-    }
-
-    private boolean parameterContainsNonDowncallType(ExecutableElement executableElement) {
-        return executableElement.getParameters().stream()
-            .anyMatch(element -> isNotDowncallType(element, VariableElement::asType));
-    }
-
-    private boolean containsNonDowncallType(ExecutableElement executableElement) {
-        return returnNonDowncallType(executableElement) ||
-               parameterContainsNonDowncallType(executableElement);
     }
 }

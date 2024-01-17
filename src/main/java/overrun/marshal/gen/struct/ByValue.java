@@ -21,18 +21,12 @@ import java.lang.annotation.*;
 /**
  * Marks a method that returns a struct by value.
  * <p>
- * This makes the generator insert a segment allocator before the first parameter.
+ * The annotated method must contain a segment allocator as the first parameter.
  * <h2>Example</h2>
  * <pre>{@code
  * @ByValue
- * @Entrypoint("returnStruct")
  * @StructRef("org.example.MyStruct")
- * MemorySegment nreturnStruct();
- *
- * @ByValue
- * @Overload("nreturnStruct")
- * @StructRef("org.example.MyStruct")
- * Object returnStruct();
+ * Object returnStruct(SegmentAllocator allocator);
  * }</pre>
  *
  * @author squid233

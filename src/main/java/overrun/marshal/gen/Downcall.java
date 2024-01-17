@@ -24,6 +24,8 @@ import java.lang.annotation.*;
  * The generated file will include constants of primitive
  * (boolean, byte, short, int, long, float, double) and String types in the marked class or interface.
  * <h2>Methods</h2>
+ * Methods annotated with {@link Skip @Skip} will be skipped while generating.
+ * <p>
  * The javadoc of the original method will be copied.
  * <p>
  * The access modifier of the method can be changed by marking methods with {@link Access @Access}.
@@ -31,18 +33,15 @@ import java.lang.annotation.*;
  * The {@link Custom @Custom} annotation overwrite <strong>all</strong> generated method body with the custom code.
  * <p>
  * The {@link Default @Default} annotation makes a method
- * not to throw an exception if it was not found from the native library.
+ * not to throw an exception but return {@code null} if it was not found from the native library.
+ * <p>
+ * The {@link Critical @Critical} annotation indicates
+ * that the annotated method is {@linkplain java.lang.foreign.Linker.Option#critical(boolean) critical}.
  * <p>
  * The generator tries to generate <strong>static</strong> methods that invoke native functions,
  * which has the same name or is specified by {@link Entrypoint @Entrypoint}.
- * <h3>Overload Methods</h3>
- * An overload method, marked with {@link Overload @Overload}, automatically invokes another method with the same name.
- * See the {@linkplain Overload documentation} for more information.
- * <p>
- * Methods without {@link Overload @Overload} marked
- * converts parameters of {@link String} and array types into {@link java.lang.foreign.MemorySegment MemorySegment}.
  * <h3>Parameter Annotations</h3>
- * See {@link Sized @Sized}, {@link SizedSeg @SizedSeg} and {@link Ref @Ref}.
+ * See {@link NullableRef @NullableRef}, {@link Ref @Ref}, {@link Sized @Sized} and {@link SizedSeg @SizedSeg} .
  * <h2>Example</h2>
  * <pre>{@code
  * @Downcall(libname = "libGL.so", name = "GL")
@@ -54,13 +53,14 @@ import java.lang.annotation.*;
  *
  * @author squid233
  * @see Access
+ * @see Critical
  * @see Custom
  * @see Default
  * @see Entrypoint
- * @see Overload
+ * @see NullableRef
+ * @see Ref
  * @see Sized
  * @see SizedSeg
- * @see Ref
  * @since 0.1.0
  */
 @Documented
@@ -82,8 +82,10 @@ public @interface Downcall {
 
     /**
      * {@return the library loader}
+     *
+     * @see Loader
      */
-    Class<?> loader() default Loader.class;
+    Class<?> loader() default Object.class;
 
     /**
      * {@return {@code true} if the generated class should not be {@code final}; {@code false} otherwise}

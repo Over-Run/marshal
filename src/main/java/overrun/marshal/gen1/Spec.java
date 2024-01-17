@@ -278,12 +278,13 @@ public interface Spec {
     static Spec indentCodeBlock(String s) {
         return (builder, indent) -> s.lines().findFirst().ifPresent(first -> {
             final String indentString = indentString(indent);
-            builder.append(first)
-                .append('\n')
-                .append(s.lines()
+            builder.append(first);
+            if (s.lines().count() > 1) {
+                builder.append('\n').append(s.lines()
                     .skip(1)
                     .map(s1 -> indentString + s1)
                     .collect(Collectors.joining("\n")));
+            }
         });
     }
 

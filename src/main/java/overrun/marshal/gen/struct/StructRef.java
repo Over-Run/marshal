@@ -19,7 +19,7 @@ package overrun.marshal.gen.struct;
 import java.lang.annotation.*;
 
 /**
- * Marks a field as a reference of a struct.
+ * Marks a field, a parameter, or the return type of method as a reference of a struct.
  * <h2>Example</h2>
  * <pre>{@code
  * @StructRef("org.example.Vector3")
