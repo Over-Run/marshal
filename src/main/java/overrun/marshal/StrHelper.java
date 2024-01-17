@@ -25,7 +25,7 @@ import java.nio.charset.Charset;
  * @author squid233
  * @since 0.1.0
  */
-@Deprecated(since = "0.1.0")
+@Deprecated(since = "0.1.0", forRemoval = true)
 public final class StrHelper {
     private static final SequenceLayout STR_LAYOUT = MemoryLayout.sequenceLayout(Integer.MAX_VALUE - 8, ValueLayout.JAVA_BYTE);
 

@@ -17,8 +17,10 @@
 package overrun.marshal.internal;
 
 import overrun.marshal.Upcall;
+import overrun.marshal.gen.struct.StructRef;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ArrayType;
@@ -27,6 +29,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -315,24 +318,36 @@ public final class Util {
     }
 
     /**
-     * {@return requireArena}
+     * {@return shouldMarshal}
      *
-     * @param env        env
-     * @param typeMirror typeMirror
+     * @param env     env
+     * @param element element
      */
-    public static boolean requireArena(ProcessingEnvironment env, TypeMirror typeMirror) {
-        return isAExtendsB(env, typeMirror, Upcall.class);
+    public static boolean shouldMarshal(ProcessingEnvironment env, Element element) {
+        if (element.getAnnotation(StructRef.class) != null) {
+            return true;
+        }
+        final TypeMirror typeMirror = element.asType();
+        final TypeKind typeKind = typeMirror.getKind();
+        final boolean shouldNotMarshal =
+            typeKind.isPrimitive() ||
+            (typeKind == TypeKind.DECLARED &&
+             (isSameClass(typeMirror, MemorySegment.class) ||
+             isAExtendsB(env, typeMirror, SegmentAllocator.class)));
+        return !shouldNotMarshal;
     }
 
     /**
      * {@return requireAllocator}
      *
+     * @param env        env
      * @param typeMirror typeMirror
      */
-    public static boolean requireAllocator(TypeMirror typeMirror) {
+    public static boolean requireAllocator(ProcessingEnvironment env, TypeMirror typeMirror) {
         return switch (typeMirror.getKind()) {
             case ARRAY -> true;
-            case DECLARED -> isSameClass(typeMirror, String.class);
+            case DECLARED -> isSameClass(typeMirror, String.class) ||
+                             isAExtendsB(env, typeMirror, Upcall.class);
             default -> false;
         };
     }

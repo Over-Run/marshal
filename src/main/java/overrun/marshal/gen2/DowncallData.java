@@ -230,7 +230,6 @@ public final class DowncallData extends BaseData {
 
         // methods
         final var fieldNames = fieldDataList.stream().map(FieldData::name).toList();
-        final List<MethodHandleData> addedMethodHandleInvoker = new ArrayList<>(methodHandleDataMap.size());
         skipAnnotated(methods).forEach(executableElement -> {
             final MethodHandleData methodHandleData = methodHandleDataMap.get(getMethodEntrypoint(executableElement));
             if (methodHandleData == null) {
@@ -571,37 +570,24 @@ public final class DowncallData extends BaseData {
         final TypeMirror typeMirror = element.asType();
         final String name = element.getSimpleName().toString();
         final Spec spec;
-        if (isBooleanArray(typeMirror)) {
-            spec = new InvokeSpec(importData.simplifyOrImport(BoolHelper.class), "copy")
+        if (isBooleanArray(typeMirror) || isPrimitiveArray(typeMirror)) {
+            spec = new InvokeSpec(importData.simplifyOrImport(Unmarshal.class), "copy")
                 .addArgument(refFunction.apply(name))
                 .addArgument(name);
-        } else if (isPrimitiveArray(typeMirror)) {
-            spec = new InvokeSpec(importData.simplifyOrImport(MemorySegment.class), "copy")
-                .addArgument(refFunction.apply(name))
-                .addArgument(TypeUse.valueLayout(processingEnv, getArrayComponentType(typeMirror))
-                    .orElseThrow()
-                    .apply(importData))
-                .addArgument(getConstExp(0L))
-                .addArgument(name)
-                .addArgument(getConstExp(0))
-                .addArgument(Spec.accessSpec(name, "length"));
         } else if (isStringArray(typeMirror)) {
-            spec = new InvokeSpec(importData.simplifyOrImport(StrHelper.class), "copy")
+            final InvokeSpec invokeSpec = new InvokeSpec(importData.simplifyOrImport(Unmarshal.class), "copy")
                 .addArgument(refFunction.apply(name))
-                .addArgument(name)
-                .addArgument(createCharset(getCharset(element)).apply(importData));
+                .addArgument(name);
+            if (element.getAnnotation(StrCharset.class) != null) {
+                invokeSpec.addArgument(createCharset(getCharset(element)).apply(importData));
+            }
+            spec = invokeSpec;
         } else {
             processingEnv.getMessager().printWarning("Using @Ref on unknown type %s".formatted(typeMirror), element);
             spec = null;
         }
 
-        final Spec statement = spec != null ? Spec.statement(spec) : Spec.literal("");
-        if (element.getAnnotation(NullableRef.class) != null) {
-            final IfStatement ifStatement = new IfStatement(Spec.notNullSpec(name));
-            ifStatement.addStatement(statement);
-            return ifStatement;
-        }
-        return statement;
+        return spec != null ? Spec.statement(spec) : Spec.literal("");
     }
 
     private Spec wrapReturnValue(
@@ -615,19 +601,24 @@ public final class DowncallData extends BaseData {
             spec = new ConstructSpec(structRef.value()).addArgument(resultSpec);
         } else {
             final TypeMirror typeMirror = executableElement.getReturnType();
-            if (isBooleanArray(typeMirror)) {
-                spec = new InvokeSpec(importData.simplifyOrImport(BoolHelper.class), "toArray").addArgument(resultSpec);
-            } else if (isPrimitiveArray(typeMirror)) {
-                spec = new InvokeSpec(resultSpec, "toArray")
+            if (isBooleanArray(typeMirror) ||
+                isPrimitiveArray(typeMirror)) {
+                spec = new InvokeSpec(importData.simplifyOrImport(Unmarshal.class), "unmarshal")
                     .addArgument(TypeUse.valueLayout(processingEnv, getArrayComponentType(typeMirror))
                         .orElseThrow()
-                        .apply(importData));
+                        .apply(importData))
+                    .addArgument(resultSpec);
             } else if (isStringArray(typeMirror)) {
-                spec = new InvokeSpec(importData.simplifyOrImport(StrHelper.class), "toArray")
-                    .addArgument(resultSpec)
-                    .addArgument(createCharset(getCharset(executableElement)).apply(importData));
+                final InvokeSpec invokeSpec = new InvokeSpec(importData.simplifyOrImport(Unmarshal.class), "unmarshalAsString")
+                    .addArgument(TypeUse.valueLayout(MemorySegment.class).orElseThrow().apply(importData))
+                    .addArgument(resultSpec);
+                spec = invokeSpec;
+                if (executableElement.getAnnotation(StrCharset.class) != null) {
+                    invokeSpec.addArgument(createCharset(getCharset(executableElement)).apply(importData));
+                }
             } else if (isSameClass(typeMirror, String.class)) {
-                final InvokeSpec invokeSpec = new InvokeSpec(resultSpec, "getString").addArgument(getConstExp(0L));
+                final InvokeSpec invokeSpec = new InvokeSpec(importData.simplifyOrImport(Unmarshal.class), "unmarshalAsString")
+                    .addArgument(resultSpec);
                 if (executableElement.getAnnotation(StrCharset.class) != null) {
                     invokeSpec.addArgument(createCharset(getCharset(executableElement)).apply(importData));
                 }
@@ -694,49 +685,27 @@ public final class DowncallData extends BaseData {
         boolean usingRef,
         Function<String, String> refFunction
     ) {
-        final Spec spec;
         final String name = element.getSimpleName().toString();
-        if (element.getAnnotation(StructRef.class) != null) {
-            spec = new InvokeSpec(name, "segment");
-        } else if (usingRef && element.getAnnotation(Ref.class) != null) {
+        final Spec spec;
+        if (usingRef && element.getAnnotation(Ref.class) != null) {
             spec = Spec.literal(refFunction.apply(name));
         } else {
             final TypeMirror typeMirror = element.asType();
-            if (isBooleanArray(typeMirror)) {
-                spec = new InvokeSpec(importData.simplifyOrImport(BoolHelper.class), "of")
-                    .addArgument(allocatorParameter)
-                    .addArgument(name);
-            } else if (isPrimitiveArray(typeMirror)) {
-                spec = new InvokeSpec(allocatorParameter, "allocateFrom")
-                    .addArgument(TypeUse.valueLayout(processingEnv, getArrayComponentType(typeMirror))
-                        .orElseThrow()
-                        .apply(importData))
-                    .addArgument(name);
-            } else if (isStringArray(typeMirror)) {
-                spec = new InvokeSpec(importData.simplifyOrImport(StrHelper.class), "of")
-                    .addArgument(allocatorParameter)
-                    .addArgument(name)
-                    .addArgument(createCharset(getCharset(element)).apply(importData));
-            } else if (isSameClass(typeMirror, String.class)) {
-                final InvokeSpec invokeSpec = new InvokeSpec(allocatorParameter, "allocateFrom")
-                    .addArgument(name);
-                if (element.getAnnotation(StrCharset.class) != null) {
-                    invokeSpec.addArgument(createCharset(getCharset(element)).apply(importData));
+            if (shouldMarshal(processingEnv, element)) {
+                final InvokeSpec invokeMarshal = new InvokeSpec(importData.simplifyOrImport(Marshal.class), "marshal");
+                if (requireAllocator(processingEnv, typeMirror)) {
+                    invokeMarshal.addArgument(allocatorParameter);
                 }
-                spec = invokeSpec;
-            } else if (isAExtendsB(processingEnv, typeMirror, Upcall.class)) {
-                spec = new InvokeSpec(name, "stub").addArgument(allocatorParameter);
-            } else if (isAExtendsB(processingEnv, typeMirror, CEnum.class)) {
-                spec = new InvokeSpec(name, "value");
+                invokeMarshal.addArgument(name);
+                if (element.getAnnotation(StrCharset.class) != null) {
+                    invokeMarshal.addArgument(createCharset(getCharset(element)).apply(importData));
+                }
+                spec = invokeMarshal;
             } else {
                 spec = Spec.literal(name);
             }
         }
-        return element.getAnnotation(NullableRef.class) != null ?
-            Spec.ternaryOp(Spec.notNullSpec(name),
-                spec,
-                Spec.accessSpec(importData.simplifyOrImport(MemorySegment.class), "NULL")) :
-            spec;
+        return spec;
     }
 
     private boolean useAllocator(TypeMirror typeMirror) {

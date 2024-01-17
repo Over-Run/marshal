@@ -43,15 +43,17 @@ public final class Marshal {
     private Marshal() {
     }
 
-    private static VarHandle arrayVarHandle(ValueLayout valueLayout) {
+    static VarHandle arrayVarHandle(ValueLayout valueLayout) {
         return MethodHandles.insertCoordinates(valueLayout.arrayElementVarHandle(), 1, 0L);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, String string) {
+        if (string == null) return MemorySegment.NULL;
         return allocator.allocateFrom(string);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, String string, Charset charset) {
+        if (string == null) return MemorySegment.NULL;
         return allocator.allocateFrom(string, charset);
     }
 
@@ -60,14 +62,17 @@ public final class Marshal {
     }
 
     public static MemorySegment marshal(Addressable addressable) {
+        if (addressable == null) return MemorySegment.NULL;
         return addressable.segment();
     }
 
     public static MemorySegment marshal(Arena arena, Upcall upcall) {
+        if (upcall == null) return MemorySegment.NULL;
         return upcall.stub(arena);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, boolean[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(JAVA_BOOLEAN, arr.length);
         for (int i = 0, l = arr.length; i < l; i++) {
             vh_booleanArray.set(segment, (long) i, segment, arr[i]);
@@ -76,34 +81,42 @@ public final class Marshal {
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, char[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_CHAR, arr);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, byte[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_BYTE, arr);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, short[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_SHORT, arr);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, int[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_INT, arr);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, long[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_LONG, arr);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, float[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_FLOAT, arr);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, double[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_DOUBLE, arr);
     }
 
     public static <T, A extends SegmentAllocator> MemorySegment marshal(A allocator, T[] arr, BiFunction<A, T, MemorySegment> function) {
+        if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(ADDRESS, arr.length);
         for (int i = 0, l = arr.length; i < l; i++) {
             vh_addressArray.set(segment, (long) i, function.apply(allocator, arr[i]));
@@ -112,18 +125,22 @@ public final class Marshal {
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, MemorySegment[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return marshal(allocator, arr, (_, segment) -> segment);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, String[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return marshal(allocator, arr, SegmentAllocator::allocateFrom);
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, String[] arr, Charset charset) {
+        if (arr == null) return MemorySegment.NULL;
         return marshal(allocator, arr, (segmentAllocator, str) -> segmentAllocator.allocateFrom(str, charset));
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, CEnum[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(JAVA_INT, arr.length);
         for (int i = 0; i < arr.length; i++) {
             vh_intArray.set(segment, (long) i, arr[i].value());
@@ -132,10 +149,12 @@ public final class Marshal {
     }
 
     public static MemorySegment marshal(SegmentAllocator allocator, Addressable[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return marshal(allocator, arr, (_, addressable) -> addressable.segment());
     }
 
     public static MemorySegment marshal(Arena arena, Upcall[] arr) {
+        if (arr == null) return MemorySegment.NULL;
         return marshal(arena, arr, (arena1, upcall) -> upcall.stub(arena1));
     }
 }

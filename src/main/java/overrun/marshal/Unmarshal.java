@@ -21,10 +21,12 @@ import overrun.marshal.gen.CEnum;
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
+import java.lang.invoke.VarHandle;
 import java.nio.charset.Charset;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+
+import static java.lang.foreign.ValueLayout.*;
 
 /**
  * C-to-Java helper.
@@ -33,6 +35,11 @@ import java.util.function.IntFunction;
  * @since 0.1.0
  */
 public final class Unmarshal {
+    private static final AddressLayout STRING_LAYOUT = ADDRESS.withTargetLayout(
+        MemoryLayout.sequenceLayout(Integer.MAX_VALUE - 8, JAVA_BYTE)
+    );
+    private static final VarHandle vh_stringArray = Marshal.arrayVarHandle(STRING_LAYOUT);
+
     private Unmarshal() {
     }
 
@@ -44,7 +51,7 @@ public final class Unmarshal {
         return segment.getString(0L, charset);
     }
 
-    public static boolean[] unmarshal(ValueLayout.OfBoolean elementLayout, MemorySegment segment) {
+    public static boolean[] unmarshal(OfBoolean elementLayout, MemorySegment segment) {
         final boolean[] arr = new boolean[checkArraySize(boolean[].class.getSimpleName(), segment.byteSize(), (int) elementLayout.byteSize())];
         for (int i = 0, l = arr.length; i < l; i++) {
             arr[i] = (boolean) Marshal.vh_booleanArray.get(segment, (long) i);
@@ -52,31 +59,31 @@ public final class Unmarshal {
         return arr;
     }
 
-    public static char[] unmarshal(ValueLayout.OfChar elementLayout, MemorySegment segment) {
+    public static char[] unmarshal(OfChar elementLayout, MemorySegment segment) {
         return segment.toArray(elementLayout);
     }
 
-    public static byte[] unmarshal(ValueLayout.OfByte elementLayout, MemorySegment segment) {
+    public static byte[] unmarshal(OfByte elementLayout, MemorySegment segment) {
         return segment.toArray(elementLayout);
     }
 
-    public static short[] unmarshal(ValueLayout.OfShort elementLayout, MemorySegment segment) {
+    public static short[] unmarshal(OfShort elementLayout, MemorySegment segment) {
         return segment.toArray(elementLayout);
     }
 
-    public static int[] unmarshal(ValueLayout.OfInt elementLayout, MemorySegment segment) {
+    public static int[] unmarshal(OfInt elementLayout, MemorySegment segment) {
         return segment.toArray(elementLayout);
     }
 
-    public static long[] unmarshal(ValueLayout.OfLong elementLayout, MemorySegment segment) {
+    public static long[] unmarshal(OfLong elementLayout, MemorySegment segment) {
         return segment.toArray(elementLayout);
     }
 
-    public static float[] unmarshal(ValueLayout.OfFloat elementLayout, MemorySegment segment) {
+    public static float[] unmarshal(OfFloat elementLayout, MemorySegment segment) {
         return segment.toArray(elementLayout);
     }
 
-    public static double[] unmarshal(ValueLayout.OfDouble elementLayout, MemorySegment segment) {
+    public static double[] unmarshal(OfDouble elementLayout, MemorySegment segment) {
         return segment.toArray(elementLayout);
     }
 
@@ -89,14 +96,14 @@ public final class Unmarshal {
     }
 
     public static String[] unmarshalAsString(AddressLayout elementLayout, MemorySegment segment) {
-        return unmarshal(elementLayout, segment, String[]::new, s -> s.reinterpret(Long.MAX_VALUE).getString(0L));
+        return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STRING_LAYOUT, 0L).getString(0L));
     }
 
     public static String[] unmarshalAsString(AddressLayout elementLayout, MemorySegment segment, Charset charset) {
-        return unmarshal(elementLayout, segment, String[]::new, s -> s.reinterpret(Long.MAX_VALUE).getString(0L, charset));
+        return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STRING_LAYOUT, 0L).getString(0L, charset));
     }
 
-    public static <T extends CEnum> T[] unmarshalAsCEnum(ValueLayout.OfInt elementLayout, MemorySegment segment, IntFunction<T[]> generator, IntFunction<T> function) {
+    public static <T extends CEnum> T[] unmarshalAsCEnum(OfInt elementLayout, MemorySegment segment, IntFunction<T[]> generator, IntFunction<T> function) {
         return segment.elements(elementLayout).mapToInt(s -> s.get(elementLayout, 0L)).mapToObj(function).toArray(generator);
     }
 
@@ -109,5 +116,61 @@ public final class Unmarshal {
             throw new IllegalStateException(String.format("Segment is too large to wrap as %s. Size: %d", typeName, byteSize));
         }
         return (int) arraySize;
+    }
+
+    public static void copy(MemorySegment src, boolean[] dst) {
+        if (dst == null) return;
+        for (int i = 0; i < dst.length; i++) {
+            dst[i] = (boolean) Marshal.vh_booleanArray.get(src, (long) i);
+        }
+    }
+
+    public static void copy(MemorySegment src, char[] dst) {
+        if (dst == null) return;
+        MemorySegment.copy(src, JAVA_CHAR, 0L, dst, 0, dst.length);
+    }
+
+    public static void copy(MemorySegment src, byte[] dst) {
+        if (dst == null) return;
+        MemorySegment.copy(src, JAVA_BYTE, 0L, dst, 0, dst.length);
+    }
+
+    public static void copy(MemorySegment src, short[] dst) {
+        if (dst == null) return;
+        MemorySegment.copy(src, JAVA_SHORT, 0L, dst, 0, dst.length);
+    }
+
+    public static void copy(MemorySegment src, int[] dst) {
+        if (dst == null) return;
+        MemorySegment.copy(src, JAVA_INT, 0L, dst, 0, dst.length);
+    }
+
+    public static void copy(MemorySegment src, long[] dst) {
+        if (dst == null) return;
+        MemorySegment.copy(src, JAVA_LONG, 0L, dst, 0, dst.length);
+    }
+
+    public static void copy(MemorySegment src, float[] dst) {
+        if (dst == null) return;
+        MemorySegment.copy(src, JAVA_FLOAT, 0L, dst, 0, dst.length);
+    }
+
+    public static void copy(MemorySegment src, double[] dst) {
+        if (dst == null) return;
+        MemorySegment.copy(src, JAVA_DOUBLE, 0L, dst, 0, dst.length);
+    }
+
+    public static void copy(MemorySegment src, String[] dst) {
+        if (dst == null) return;
+        for (int i = 0; i < dst.length; i++) {
+            dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L);
+        }
+    }
+
+    public static void copy(MemorySegment src, String[] dst, Charset charset) {
+        if (dst == null) return;
+        for (int i = 0; i < dst.length; i++) {
+            dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L, charset);
+        }
     }
 }
