@@ -80,14 +80,9 @@ class Main {
                 MemorySegment.NULL,
                 MemorySegment.NULL);
 
-            // ref
-            // 1. by array
+            // ref by array
             int[] ax = {0}, ay = {0};
             glfwGetWindowPos(windowHandle, ax, ay);
-            // 2. by segment
-            var sx = arena.allocate(ValueLayout.JAVA_INT),
-                sy = arena.allocate(ValueLayout.JAVA_INT);
-            glfwGetWindowPos(windowHandle, sx, sy);
         }
     }
 }

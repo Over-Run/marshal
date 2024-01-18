@@ -41,6 +41,8 @@ final class CStructTest {
     @Const
     int y;
     int index;
+    @Padding(4)
+    int padding0;
     int[] segmentAllocator;
     GLFWErrorCallback arena;
     /**

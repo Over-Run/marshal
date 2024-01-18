@@ -69,6 +69,7 @@ public final class StructProcessor extends Processor {
         ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(Struct.class)).forEach(e -> {
             try {
                 new StructData(processingEnv).generate(e);
+//                writeFile(e, ElementFilter.fieldsIn(e.getEnclosedElements()));
             } catch (IOException ex) {
                 printStackTrace(ex);
             }

@@ -107,6 +107,10 @@ public final class StructData extends BaseData {
         addConstructors(simpleClassName, memberDataMap);
         addAllocators(simpleClassName);
         addSlices(simpleClassName);
+        addGetters(ignorePadding, memberDataMap);
+        if (structConst == null) {
+            addSetters();
+        }
         addStructImpl();
     }
 
@@ -162,10 +166,18 @@ public final class StructData extends BaseData {
                             final Sized sized = element.getAnnotation(Sized.class);
                             final TypeMirror type = element.asType();
 
-                            final InvokeSpec valueLayout = new InvokeSpec(TypeUse.valueLayout(processingEnv, type)
-                                .orElseThrow()
-                                .apply(importData), "withName"
-                            ).addArgument(getConstExp(element.getSimpleName().toString()));
+                            final InvokeSpec valueLayout;
+                            if (element.getAnnotation(StructRef.class) != null) {
+                                valueLayout = new InvokeSpec(TypeUse.valueLayout(MemorySegment.class)
+                                    .orElseThrow()
+                                    .apply(importData), "withName");
+                            } else {
+                                valueLayout = new InvokeSpec(TypeUse.valueLayout(processingEnv, type)
+                                    .orElseThrow()
+                                    .apply(importData), "withName"
+                                );
+                            }
+                            valueLayout.addArgument(getConstExp(element.getSimpleName().toString()));
                             final Spec finalSpec;
                             if (sizedSeg != null) {
                                 finalSpec = new InvokeSpec(valueLayout, "withTargetLayout")
@@ -388,8 +400,12 @@ public final class StructData extends BaseData {
             ),
             List.of(_ -> Spec.returnStatement(new ConstructSpec(simpleClassName)
                 .addArgument(new InvokeSpec(segmentName, "asSlice")
-                    .addArgument(Spec.operatorSpec("*", Spec.literal(PARAMETER_INDEX_NAME), new InvokeSpec(LAYOUT_NAME, "byteSize")))
-                    .addArgument(Spec.operatorSpec("*", Spec.literal(PARAMETER_COUNT_NAME), new InvokeSpec(LAYOUT_NAME, "byteSize")))
+                    .addArgument(new InvokeSpec(LAYOUT_NAME, "scale")
+                        .addArgument(getConstExp(0L))
+                        .addArgument(PARAMETER_INDEX_NAME))
+                    .addArgument(new InvokeSpec(LAYOUT_NAME, "scale")
+                        .addArgument(getConstExp(0L))
+                        .addArgument(PARAMETER_COUNT_NAME))
                     .addArgument(new InvokeSpec(LAYOUT_NAME, "byteAlignment")))
                 .addArgument(Spec.literal(PARAMETER_COUNT_NAME))))
         ));
@@ -413,6 +429,13 @@ public final class StructData extends BaseData {
                 .addArgument(PARAMETER_INDEX_NAME)
                 .addArgument(getConstExp(1L))))
         ));
+    }
+
+    private void addGetters(List<VariableElement> ignorePadding, Map<String, MemberData> memberDataMap) {
+        // indexed
+    }
+
+    private void addSetters() {
     }
 
     private void addStructImpl() {
