@@ -41,7 +41,7 @@ import static overrun.marshal.internal.Util.isAExtendsB;
  * @author squid233
  * @since 0.1.0
  */
-public abstract sealed class BaseData permits DowncallData, StructData {
+public abstract sealed class BaseData permits StructData {
     /**
      * the processing environment
      */
