@@ -355,6 +355,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Single value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @return the segment
      */
     public MemorySegment bytes(byte x) {
         return allocateFrom(JAVA_BYTE, x);
@@ -362,6 +365,10 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Two value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @return the segment
      */
     public MemorySegment bytes(byte x, byte y) {
         final var segment = malloc(2, JAVA_BYTE);
@@ -372,6 +379,11 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Three value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @return the segment
      */
     public MemorySegment bytes(byte x, byte y, byte z) {
         final var segment = malloc(3, JAVA_BYTE);
@@ -383,6 +395,12 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Four value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @param w the fourth value
+     * @return the segment
      */
     public MemorySegment bytes(byte x, byte y, byte z, byte w) {
         final var segment = malloc(4, JAVA_BYTE);
@@ -395,6 +413,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Vararg version of {@link #malloc}.
+     *
+     * @param values the values
+     * @return the segment
      */
     public MemorySegment bytes(byte... values) {
         return allocateFrom(JAVA_BYTE, values);
@@ -404,6 +425,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Single value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @return the segment
      */
     public MemorySegment shorts(short x) {
         return allocateFrom(JAVA_SHORT, x);
@@ -411,6 +435,10 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Two value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @return the segment
      */
     public MemorySegment shorts(short x, short y) {
         final var segment = malloc(4, JAVA_SHORT);
@@ -421,6 +449,11 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Three value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @return the segment
      */
     public MemorySegment shorts(short x, short y, short z) {
         final var segment = malloc(6, JAVA_SHORT);
@@ -432,6 +465,12 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Four value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @param w the fourth value
+     * @return the segment
      */
     public MemorySegment shorts(short x, short y, short z, short w) {
         final var segment = malloc(8, JAVA_SHORT);
@@ -444,6 +483,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Vararg version of {@link #malloc}.
+     *
+     * @param values the values
+     * @return the segment
      */
     public MemorySegment shorts(short... values) {
         return allocateFrom(JAVA_SHORT, values);
@@ -453,6 +495,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Single value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @return the segment
      */
     public MemorySegment ints(int x) {
         return allocateFrom(JAVA_INT, x);
@@ -460,6 +505,10 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Two value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @return the segment
      */
     public MemorySegment ints(int x, int y) {
         final var segment = malloc(8, JAVA_INT);
@@ -470,6 +519,11 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Three value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @return the segment
      */
     public MemorySegment ints(int x, int y, int z) {
         final var segment = malloc(12, JAVA_INT);
@@ -481,6 +535,12 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Four value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @param w the fourth value
+     * @return the segment
      */
     public MemorySegment ints(int x, int y, int z, int w) {
         final var segment = malloc(16, JAVA_INT);
@@ -493,6 +553,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Vararg version of {@link #malloc}.
+     *
+     * @param values the values
+     * @return the segment
      */
     public MemorySegment ints(int... values) {
         return allocateFrom(JAVA_INT, values);
@@ -502,6 +565,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Single value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @return the segment
      */
     public MemorySegment longs(long x) {
         return allocateFrom(JAVA_LONG, x);
@@ -509,6 +575,10 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Two value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @return the segment
      */
     public MemorySegment longs(long x, long y) {
         final var segment = malloc(16, JAVA_LONG);
@@ -519,6 +589,11 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Three value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @return the segment
      */
     public MemorySegment longs(long x, long y, long z) {
         final var segment = malloc(24, JAVA_LONG);
@@ -530,6 +605,12 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Four value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @param w the fourth value
+     * @return the segment
      */
     public MemorySegment longs(long x, long y, long z, long w) {
         final var segment = malloc(32, JAVA_LONG);
@@ -542,6 +623,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Vararg version of {@link #malloc}.
+     *
+     * @param values the values
+     * @return the segment
      */
     public MemorySegment longs(long... values) {
         return allocateFrom(JAVA_LONG, values);
@@ -551,6 +635,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Single value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @return the segment
      */
     public MemorySegment floats(float x) {
         return allocateFrom(JAVA_FLOAT, x);
@@ -558,6 +645,10 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Two value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @return the segment
      */
     public MemorySegment floats(float x, float y) {
         final var segment = malloc(8, JAVA_FLOAT);
@@ -568,6 +659,11 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Three value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @return the segment
      */
     public MemorySegment floats(float x, float y, float z) {
         final var segment = malloc(12, JAVA_FLOAT);
@@ -579,6 +675,12 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Four value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @param w the fourth value
+     * @return the segment
      */
     public MemorySegment floats(float x, float y, float z, float w) {
         final var segment = malloc(16, JAVA_FLOAT);
@@ -591,6 +693,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Vararg version of {@link #malloc}.
+     *
+     * @param values the values
+     * @return the segment
      */
     public MemorySegment floats(float... values) {
         return allocateFrom(JAVA_FLOAT, values);
@@ -600,6 +705,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Single value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @return the segment
      */
     public MemorySegment doubles(double x) {
         return allocateFrom(JAVA_DOUBLE, x);
@@ -607,6 +715,10 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Two value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @return the segment
      */
     public MemorySegment doubles(double x, double y) {
         final var segment = malloc(16, JAVA_DOUBLE);
@@ -617,6 +729,11 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Three value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @return the segment
      */
     public MemorySegment doubles(double x, double y, double z) {
         final var segment = malloc(24, JAVA_DOUBLE);
@@ -628,6 +745,12 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Four value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @param w the fourth value
+     * @return the segment
      */
     public MemorySegment doubles(double x, double y, double z, double w) {
         final var segment = malloc(32, JAVA_DOUBLE);
@@ -640,6 +763,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Vararg version of {@link #malloc}.
+     *
+     * @param values the values
+     * @return the segment
      */
     public MemorySegment doubles(double... values) {
         return allocateFrom(JAVA_DOUBLE, values);
@@ -649,6 +775,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Single value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @return the segment
      */
     public MemorySegment segments(MemorySegment x) {
         return allocateFrom(ADDRESS, x);
@@ -656,6 +785,10 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Two value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @return the segment
      */
     public MemorySegment segments(MemorySegment x, MemorySegment y) {
         final var segment = malloc(ADDRESS.byteSize() * 2, ADDRESS);
@@ -666,6 +799,11 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Three value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @return the segment
      */
     public MemorySegment segments(MemorySegment x, MemorySegment y, MemorySegment z) {
         final var segment = malloc(ADDRESS.byteSize() * 3, ADDRESS);
@@ -677,6 +815,12 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Four value version of {@link #malloc}.
+     *
+     * @param x the first value
+     * @param y the second value
+     * @param z the third value
+     * @param w the fourth value
+     * @return the segment
      */
     public MemorySegment segments(MemorySegment x, MemorySegment y, MemorySegment z, MemorySegment w) {
         final var segment = malloc(ADDRESS.byteSize() * 4, ADDRESS);
@@ -689,6 +833,9 @@ public sealed class MemoryStack implements Arena {
 
     /**
      * Vararg version of {@link #malloc}.
+     *
+     * @param values the values
+     * @return the segment
      */
     public MemorySegment segments(MemorySegment... values) {
         final var segment = malloc(ADDRESS.byteSize() * values.length, ADDRESS);

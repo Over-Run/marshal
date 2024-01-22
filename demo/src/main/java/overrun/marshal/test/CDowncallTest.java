@@ -42,11 +42,6 @@ interface CDowncallTest {
     @Skip
     int SKIPPED = -1;
 
-    void test();
-
-    @Entrypoint("test")
-    void testWithEntrypoint();
-
     /**
      * This is a test method with javadoc.
      *
@@ -55,15 +50,6 @@ interface CDowncallTest {
     int testWithDocAndReturnValue();
 
     int testWithReturnValue();
-
-    @Default
-    void testWithOptional();
-
-    @Default("""
-        Math.sqrt(
-            2
-        )""")
-    double testDefaultWithMultiline();
 
     void testWithArgument(int i, MemorySegment holder);
 

@@ -22,6 +22,12 @@ import java.util.List;
 /**
  * Holds downcall method name
  *
+ * @param entrypoint      the entrypoint
+ * @param handleName      the handleName
+ * @param loaderName      the loaderName
+ * @param exceptionString the exceptionString
+ * @param parameters      the parameters
+ * @param skipFirstParam  the skipFirstParam
  * @author squid233
  * @since 0.1.0
  */

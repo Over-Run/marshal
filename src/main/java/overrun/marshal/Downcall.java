@@ -47,7 +47,35 @@ import static java.lang.constant.ConstantDescs.*;
 
 /**
  * Downcall library loader.
+ * <h2>Loading native library</h2>
+ * You can load native libraries with {@link #load(Class, SymbolLookup)}.
+ * This method generates a hidden class that loads method handle with the given symbol lookup.
+ * <h2>Methods</h2>
+ * The loader skips static methods and methods annotated with {@link Skip @Skip} while generating.
+ * <p>
+ * {@link Entrypoint @Entrypoint} specifies the entrypoint of the annotated method.
+ * <p>
+ * THe loader will not throw an exception
+ * if the method is modified with {@code default} and the native function is not found;
+ * instead, it will return {@code null} and automatically invokes the original method declared in the target class.
+ * <p>
+ * {@link Critical @Critical} indicates that the annotated method is {@linkplain java.lang.foreign.Linker.Option#critical(boolean) critical}.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * public interface GL {
+ *     GL gl = Downcall.load("libGL.so");
+ *     int COLOR_BUFFER_BIT = 0x00004000;
+ *     void glClear(int mask);
+ * }
+ * }</pre>
  *
+ * @see Critical
+ * @see Entrypoint
+ * @see Ref
+ * @see Sized
+ * @see SizedSeg
+ * @see Skip
+ * @see StrCharset
  * @author squid233
  * @since 0.1.0
  */
