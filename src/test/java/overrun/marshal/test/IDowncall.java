@@ -14,26 +14,41 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen.struct;
+package overrun.marshal.test;
 
-import java.lang.annotation.*;
+import overrun.marshal.Downcall;
+import overrun.marshal.gen.*;
 
 /**
- * Marks a method that returns a struct by value.
- * <p>
- * The annotated method must contain a segment allocator as the first parameter.
- * <h2>Example</h2>
- * <pre>{@code
- * @ByValue
- * @StructRef("org.example.MyStruct")
- * Object returnStruct(SegmentAllocator allocator);
- * }</pre>
+ * Downcall interface
  *
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface ByValue {
+public interface IDowncall {
+    static IDowncall getInstance(boolean testDefaultNull) {
+        return Downcall.load(DowncallProvider.lookup(testDefaultNull));
+    }
+
+    void test();
+
+    @Entrypoint("test")
+    void testWithEntrypoint();
+
+    @Skip
+    default void testSkip() {
+        System.out.print("testSkip");
+    }
+
+    default void testDefault() {
+        System.out.print("testDefault in interface");
+    }
+
+    void test_int(int i);
+
+    void test_String(String s);
+
+    void test_UTF16String(@StrCharset("UTF-16") String s);
+
+    void test_CEnum(MyEnum myEnum);
 }

@@ -16,8 +16,6 @@
 
 package overrun.marshal;
 
-import overrun.marshal.gen.CEnum;
-
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -101,10 +99,6 @@ public final class Unmarshal {
 
     public static String[] unmarshalAsString(AddressLayout elementLayout, MemorySegment segment, Charset charset) {
         return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STRING_LAYOUT, 0L).getString(0L, charset));
-    }
-
-    public static <T extends CEnum> T[] unmarshalAsCEnum(OfInt elementLayout, MemorySegment segment, IntFunction<T[]> generator, IntFunction<T> function) {
-        return segment.elements(elementLayout).mapToInt(s -> s.get(elementLayout, 0L)).mapToObj(function).toArray(generator);
     }
 
     private static int checkArraySize(String typeName, long byteSize, int elemSize) {

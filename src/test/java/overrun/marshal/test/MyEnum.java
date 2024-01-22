@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,29 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.test;
 
-import java.lang.annotation.*;
+import overrun.marshal.gen.CEnum;
 
 /**
- * Specifies the entrypoint of a method.
- * <h2>Example</h2>
- * <pre>{@code
- * @Entrypoint("getStatus")
- * int ngetStatus(MemorySegment dst);
- * }</pre>
+ * Enum
  *
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Entrypoint {
-    /**
-     * Uses the specified entrypoint (the native name of the function), instead of the method name.
-     *
-     * @return the entrypoint name of the method
-     */
-    String value();
+public enum MyEnum implements CEnum {
+    A(0),
+    B(2),
+    C(4);
+    private final int value;
+
+    MyEnum(int value) {
+        this.value = value;
+    }
+
+    @Override
+    public int value() {
+        return value;
+    }
 }

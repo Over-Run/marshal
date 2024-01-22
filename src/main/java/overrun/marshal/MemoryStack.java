@@ -46,8 +46,8 @@ public sealed class MemoryStack implements Arena {
     private static final ThreadLocal<MemoryStack> TLS = ThreadLocal.withInitial(MemoryStack::create);
 
     static {
-        if (DEFAULT_STACK_SIZE > 0) throw new IllegalStateException("Invalid stack size.");
-        if (DEFAULT_STACK_FRAMES > 0) throw new IllegalStateException("Invalid stack frames.");
+        if (DEFAULT_STACK_SIZE <= 0) throw new IllegalStateException("Invalid stack size.");
+        if (DEFAULT_STACK_FRAMES <= 0) throw new IllegalStateException("Invalid stack frames.");
     }
 
     private final MemorySegment segment;

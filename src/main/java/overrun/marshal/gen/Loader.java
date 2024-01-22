@@ -22,20 +22,21 @@ import java.lang.foreign.SymbolLookup;
 /**
  * Marks a <strong>static</strong> method as the library loader.
  * <p>
- * The target method must only contain a parameter of type {@link String} and returns {@link SymbolLookup}.
+ * The target method must only contain a parameter of type {@link Object} and returns {@link SymbolLookup}.
  * <h2>Example</h2>
  * <pre>{@code
  * @Loader
- * static SymbolLookup load(String name) {
+ * public static SymbolLookup load(Object data) {
  *     //...
  * }
  * }</pre>
  *
  * @author squid233
- * @see Downcall
+ * @see overrun.marshal.Downcall Downcall
  * @since 0.1.0
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
+@Deprecated(since = "0.1.0", forRemoval = true)
 public @interface Loader {
 }

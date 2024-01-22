@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,29 +14,23 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.gen2;
 
-import java.lang.annotation.*;
+import java.lang.reflect.Parameter;
+import java.util.List;
 
 /**
- * Specifies the entrypoint of a method.
- * <h2>Example</h2>
- * <pre>{@code
- * @Entrypoint("getStatus")
- * int ngetStatus(MemorySegment dst);
- * }</pre>
+ * Holds downcall method name
  *
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Entrypoint {
-    /**
-     * Uses the specified entrypoint (the native name of the function), instead of the method name.
-     *
-     * @return the entrypoint name of the method
-     */
-    String value();
+public record DowncallMethodData(
+    String entrypoint,
+    String handleName,
+    String loaderName,
+    String exceptionString,
+    List<Parameter> parameters,
+    boolean skipFirstParam
+) {
 }

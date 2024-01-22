@@ -17,13 +17,11 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.Downcall;
-import overrun.marshal.gen2.DowncallData;
 import overrun.marshal.internal.Processor;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
-import java.io.IOException;
 import java.util.Set;
 
 /**
@@ -51,11 +49,11 @@ public final class DowncallProcessor extends Processor {
 
     private void processClasses(RoundEnvironment roundEnv) {
         ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(Downcall.class)).forEach(e -> {
-            try {
-                new DowncallData(processingEnv).generate(e);
-            } catch (IOException ex) {
-                printStackTrace(ex);
-            }
+//            try {
+//                new DowncallData(processingEnv).generate(e);
+//            } catch (IOException ex) {
+//                printStackTrace(ex);
+//            }
         });
     }
 

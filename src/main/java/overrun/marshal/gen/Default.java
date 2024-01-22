@@ -38,6 +38,7 @@ import java.lang.annotation.*;
 @Documented
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.SOURCE)
+@Deprecated(since = "0.1.0", forRemoval = true)
 public @interface Default {
     /**
      * {@return the default value of the method}

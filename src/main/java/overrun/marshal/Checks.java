@@ -30,11 +30,11 @@ public final class Checks {
      * Checks the array size.
      *
      * @param expected the expected size
-     * @param got      the got size
+     * @param actual   the actual size
      */
-    public static void checkArraySize(int expected, int got) {
-        if (Configurations.CHECK_ARRAY_SIZE.get() && expected != got) {
-            throw new IllegalArgumentException("Expected array of size " + expected + ", got " + got);
+    public static void checkArraySize(int expected, int actual) {
+        if (Configurations.CHECK_ARRAY_SIZE.get() && expected != actual) {
+            throw new IllegalArgumentException("Expected array of size " + expected + ", got " + actual);
         }
     }
 }

@@ -66,6 +66,7 @@ import java.lang.annotation.*;
 @Documented
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
+@Deprecated(since = "0.1.0", forRemoval = true)
 public @interface Downcall {
     /**
      * {@return the name of the native library}

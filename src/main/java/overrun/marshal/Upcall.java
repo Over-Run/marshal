@@ -147,7 +147,7 @@ public interface Upcall {
      * @since 0.1.0
      */
     @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(RetentionPolicy.RUNTIME)
     @interface Wrapper {
     }
 

@@ -18,6 +18,7 @@ package overrun.marshal.gen2;
 
 import overrun.marshal.*;
 import overrun.marshal.gen.*;
+import overrun.marshal.gen.Downcall;
 import overrun.marshal.gen.struct.ByValue;
 import overrun.marshal.gen.struct.StructRef;
 import overrun.marshal.gen1.*;
