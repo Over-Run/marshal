@@ -30,11 +30,6 @@ import java.lang.annotation.*;
  * <p>
  * The access modifier of the method can be changed by marking methods with {@link Access @Access}.
  * <p>
- * The {@link Custom @Custom} annotation overwrite <strong>all</strong> generated method body with the custom code.
- * <p>
- * The {@link Default @Default} annotation makes a method
- * not to throw an exception but return {@code null} if it was not found from the native library.
- * <p>
  * The {@link Critical @Critical} annotation indicates
  * that the annotated method is {@linkplain java.lang.foreign.Linker.Option#critical(boolean) critical}.
  * <p>
@@ -54,8 +49,6 @@ import java.lang.annotation.*;
  * @author squid233
  * @see Access
  * @see Critical
- * @see Custom
- * @see Default
  * @see Entrypoint
  * @see NullableRef
  * @see Ref
@@ -83,8 +76,6 @@ public @interface Downcall {
 
     /**
      * {@return the library loader}
-     *
-     * @see Loader
      */
     Class<?> loader() default Object.class;
 

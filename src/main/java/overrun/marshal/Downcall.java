@@ -60,6 +60,8 @@ import static java.lang.constant.ConstantDescs.*;
  * instead, it will return {@code null} and automatically invokes the original method declared in the target class.
  * <p>
  * {@link Critical @Critical} indicates that the annotated method is {@linkplain java.lang.foreign.Linker.Option#critical(boolean) critical}.
+ * <h3>Parameter Annotations</h3>
+ * See {@link Ref @Ref}, {@link Sized @Sized} {@link SizedSeg @SizedSeg} and {@link StrCharset @StrCharset}.
  * <h2>Example</h2>
  * <pre>{@code
  * public interface GL {
@@ -69,6 +71,7 @@ import static java.lang.constant.ConstantDescs.*;
  * }
  * }</pre>
  *
+ * @author squid233
  * @see Critical
  * @see Entrypoint
  * @see Ref
@@ -76,7 +79,6 @@ import static java.lang.constant.ConstantDescs.*;
  * @see SizedSeg
  * @see Skip
  * @see StrCharset
- * @author squid233
  * @since 0.1.0
  */
 public final class Downcall {
@@ -242,23 +244,23 @@ public final class Downcall {
                 "Couldn't find wrapper method in \{aClass}; mark it with @\{annotation.getSimpleName()}"));
     }
 
-    private static Method findSingleParamWrapper(
-        Class<?> aClass,
-        Class<? extends Annotation> annotation,
-        Class<?> paramType,
-        Class<?> returnType) {
-        return findWrapper(aClass, annotation, method -> {
+    private static Method findCEnumWrapper(Class<?> aClass) {
+        return findWrapper(aClass, CEnum.Wrapper.class, method -> {
             final var types = method.getParameterTypes();
-            return types.length == 1 && types[0] == paramType && returnType.isAssignableFrom(method.getReturnType());
+            return types.length == 1 &&
+                   types[0] == int.class &&
+                   CEnum.class.isAssignableFrom(method.getReturnType());
         });
     }
 
-    private static Method findCEnumWrapper(Class<?> aClass) {
-        return findSingleParamWrapper(aClass, CEnum.Wrapper.class, int.class, CEnum.class);
-    }
-
     private static Method findUpcallWrapper(Class<?> aClass) {
-        return findSingleParamWrapper(aClass, Upcall.Wrapper.class, MemorySegment.class, Upcall.class);
+        return findWrapper(aClass, Upcall.Wrapper.class, method -> {
+            final var types = method.getParameterTypes();
+            return types.length == 2 &&
+                   types[0] == Arena.class &&
+                   types[1] == MemorySegment.class &&
+                   Upcall.class.isAssignableFrom(method.getReturnType());
+        });
     }
 
     @SuppressWarnings("unchecked")
@@ -271,6 +273,21 @@ public final class Downcall {
                     method.getDeclaredAnnotation(Skip.class) == null &&
                     !Modifier.isStatic(method.getModifiers()))
                 .toList();
+
+            // check method parameter
+            methodList.forEach(method -> {
+                final Class<?>[] types = method.getParameterTypes();
+                final boolean isFirstArena = types.length > 0 && Arena.class.isAssignableFrom(types[0]);
+                if (Upcall.class.isAssignableFrom(method.getReturnType()) && !isFirstArena) {
+                    throw new IllegalStateException(STR."The first parameter of method \{method} is not an arena; however, the return type is an upcall");
+                }
+                for (Parameter parameter : method.getParameters()) {
+                    if (Upcall.class.isAssignableFrom(parameter.getType()) && !isFirstArena) {
+                        throw new IllegalStateException(STR."The first parameter of method \{method} is not an arena; however, the parameter \{parameter.toString()} is an upcall");
+                    }
+                }
+            });
+
             final Map<Method, DowncallMethodData> methodDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
             final Map<Method, DowncallMethodData> handleDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
             final List<String> addedHandleList = new ArrayList<>(methodList.size());
@@ -537,10 +554,13 @@ public final class Downcall {
                                 final Method wrapper = findUpcallWrapper(returnType);
                                 blockCodeBuilder.aload(resultSlot)
                                     .ifThenElse(Opcode.IFNONNULL,
-                                        blockCodeBuilder1 -> blockCodeBuilder1.aload(resultSlot)
+                                        blockCodeBuilder1 -> blockCodeBuilder1.aload(allocatorSlot)
+                                            .aload(resultSlot)
                                             .invokestatic(cd_returnType,
                                                 wrapper.getName(),
-                                                MethodTypeDesc.of(cd_returnType, CD_MemorySegment)),
+                                                MethodTypeDesc.of(ClassDesc.ofDescriptor(wrapper.getReturnType().descriptorString()),
+                                                    CD_Arena,
+                                                    CD_MemorySegment)),
                                         CodeBuilder::aconst_null);
                             } else if (returnType == String.class) {
                                 final boolean hasCharset = getCharset(blockCodeBuilder, method);

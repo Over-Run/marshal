@@ -55,15 +55,6 @@ interface CDowncallTest {
 
     MemorySegment testWithArgAndReturnValue(MemorySegment segment);
 
-    @Custom("""
-        return testWithArgAndReturnValue(MemorySegment.NULL);""")
-    MemorySegment testWithCustomBody();
-
-    @Custom("""
-        System.out.println("Hello world");
-        return testWithArgAndReturnValue(MemorySegment.NULL);""")
-    MemorySegment testWithCustomBodyMultiline();
-
     @Access(AccessModifier.PRIVATE)
     int testWithPrivate(int i);
 
@@ -179,15 +170,4 @@ interface CDowncallTest {
     void testAnotherEntrypoint(int[] segment);
 
     void testDuplicateName(int[] testDuplicateName);
-
-    /**
-     * This is a test that tests all features.
-     *
-     * @param segment A memory segment
-     * @return Another memory segment
-     */
-    @Access(AccessModifier.PROTECTED)
-    @Default("MemorySegment.NULL")
-    @Entrypoint("testAllFeatures")
-    MemorySegment testAll(MemorySegment segment);
 }

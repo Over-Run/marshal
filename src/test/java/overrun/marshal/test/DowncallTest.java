@@ -42,14 +42,14 @@ public final class DowncallTest {
     }
 
     @BeforeEach
-    void beforeEach() {
+    void setUp() {
         stdout = System.out;
         outputStream = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outputStream));
     }
 
     @AfterEach
-    void afterEach() {
+    void tearDown() {
         System.setOut(stdout);
         outputStream.reset();
     }
