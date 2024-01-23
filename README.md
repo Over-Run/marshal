@@ -11,6 +11,7 @@ This library requires JDK 22 or newer.
 ## Overview
 
 ```java
+import overrun.marshal.*;
 import overrun.marshal.gen.*;
 
 import java.lang.foreign.Arena;
@@ -20,14 +21,13 @@ import java.lang.foreign.ValueLayout;
 
 /**
  * GLFW constants and functions
- * <p>
- * The documentation will be automatically copied
- * into the generated file
- * <p>
- * You don't have to specify the name if the name of the class or interface starts with 'C'
  */
-@Downcall(libname = "libglfw.so")
-interface CGLFW {
+interface GLFW {
+    /**
+     * The instance of the loaded library
+     */
+    GLFW INSTANCE = Downcall.load("libglfw3.so");
+
     /**
      * A field
      */
@@ -68,12 +68,13 @@ interface CGLFW {
 
 class Main {
     public static void main(String[] args) {
+        GLFW glfw = GLFW.INSTANCE;
         int key = GLFW.GLFW_KEY_A;
-        GLFW.glfwSwapInterval(1);
+        glfw.glfwSwapInterval(1);
 
         // Arena
         try (var arena = Arena.ofConfined()) {
-            MemorySegment windowHandle = glfwCreateWindow(arena,
+            MemorySegment windowHandle = glfw.glfwCreateWindow(arena,
                 800,
                 600,
                 "The title",
@@ -82,7 +83,7 @@ class Main {
 
             // ref by array
             int[] ax = {0}, ay = {0};
-            glfwGetWindowPos(windowHandle, ax, ay);
+            glfw.glfwGetWindowPos(windowHandle, ax, ay);
         }
     }
 }

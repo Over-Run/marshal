@@ -19,12 +19,14 @@ package overrun.marshal.test;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import overrun.marshal.MemoryStack;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 
@@ -133,9 +135,16 @@ public final class DowncallTest {
     @Test
     void testIntArray() {
         d.testIntArray(new int[]{4, 2});
+        try (Arena arena = Arena.ofConfined()) {
+            d.testIntArray((SegmentAllocator) arena, new int[]{4, 2});
+            d.testIntArray(arena, new int[]{4, 2});
+        }
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            d.testIntArray(stack, new int[]{4, 2});
+        }
         d.testVarArgsJava(2, 4, 2);
         d.testVarArgsJava(0);
-        assertEquals("[4, 2][4, 2][]", outputStream.toString());
+        assertEquals("[4, 2][4, 2][4, 2][4, 2][4, 2][]", outputStream.toString());
     }
 
     @Test

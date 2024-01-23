@@ -17,10 +17,12 @@
 package overrun.marshal.test;
 
 import overrun.marshal.Downcall;
+import overrun.marshal.MemoryStack;
 import overrun.marshal.gen.*;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
 
 /**
  * Downcall interface
@@ -58,6 +60,12 @@ public interface IDowncall {
     int testUpcall(Arena arena, SimpleUpcall upcall);
 
     void testIntArray(int[] arr);
+
+    void testIntArray(SegmentAllocator allocator, int[] arr);
+
+    void testIntArray(Arena arena, int[] arr);
+
+    void testIntArray(MemoryStack stack, int[] arr);
 
     void testVarArgsJava(int c, int... arr);
 
