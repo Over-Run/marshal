@@ -38,4 +38,14 @@ public enum MyEnum implements CEnum {
     public int value() {
         return value;
     }
+
+    @Wrapper
+    public static MyEnum wrap(int value) {
+        return switch (value) {
+            case 0 -> A;
+            case 2 -> B;
+            case 4 -> C;
+            default -> throw new IllegalStateException("Unexpected value: " + value);
+        };
+    }
 }

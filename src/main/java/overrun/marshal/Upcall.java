@@ -221,6 +221,7 @@ public interface Upcall {
          * @return the downcall type
          */
         public T wrap(MemorySegment stub, Function<MethodHandle, T> function) {
+            if (stub.address() == 0L) return null;
             return function.apply(downcall(stub));
         }
 

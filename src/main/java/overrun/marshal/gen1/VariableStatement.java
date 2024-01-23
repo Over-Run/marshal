@@ -111,6 +111,7 @@ public final class VariableStatement implements Annotatable, Spec {
      * setAddSemicolon
      *
      * @param addSemicolon addSemicolon
+     * @return this
      */
     public VariableStatement setAddSemicolon(boolean addSemicolon) {
         this.addSemicolon = addSemicolon;

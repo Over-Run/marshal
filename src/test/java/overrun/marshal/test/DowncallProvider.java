@@ -16,11 +16,14 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.MemoryStack;
+
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +38,8 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
  * @since 0.1.0
  */
 public final class DowncallProvider {
+    public static final String TEST_STRING = "Hello world";
+    public static final String TEST_UTF16_STRING = "Hello UTF-16 world";
     private static final Linker LINKER = Linker.nativeLinker();
     private static final Arena ARENA = Arena.ofAuto();
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
@@ -44,10 +49,24 @@ public final class DowncallProvider {
         try {
             seg("test", LOOKUP.findStatic(DowncallProvider.class, "test", MethodType.methodType(void.class)), FunctionDescriptor.ofVoid());
             seg("testDefault", LOOKUP.findStatic(DowncallProvider.class, "testDefault", MethodType.methodType(void.class)), FunctionDescriptor.ofVoid());
-            seg("test_int", LOOKUP.findStatic(DowncallProvider.class, "test_int", MethodType.methodType(void.class, int.class)), FunctionDescriptor.ofVoid(JAVA_INT));
-            seg("test_String", LOOKUP.findStatic(DowncallProvider.class, "test_String", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
-            seg("test_UTF16String", LOOKUP.findStatic(DowncallProvider.class, "test_UTF16String", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
-            seg("test_CEnum", LOOKUP.findStatic(DowncallProvider.class, "test_CEnum", MethodType.methodType(void.class, int.class)), FunctionDescriptor.ofVoid(JAVA_INT));
+            seg("testInt", LOOKUP.findStatic(DowncallProvider.class, "testInt", MethodType.methodType(void.class, int.class)), FunctionDescriptor.ofVoid(JAVA_INT));
+            seg("testString", LOOKUP.findStatic(DowncallProvider.class, "testString", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
+            seg("testUTF16String", LOOKUP.findStatic(DowncallProvider.class, "testUTF16String", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
+            seg("testCEnum", LOOKUP.findStatic(DowncallProvider.class, "testCEnum", MethodType.methodType(void.class, int.class)), FunctionDescriptor.ofVoid(JAVA_INT));
+            seg("testUpcall", LOOKUP.findStatic(DowncallProvider.class, "testUpcall", MethodType.methodType(int.class, MemorySegment.class)), FunctionDescriptor.of(JAVA_INT, ADDRESS));
+            seg("testIntArray", LOOKUP.findStatic(DowncallProvider.class, "testIntArray", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
+            seg("testVarArgsJava", LOOKUP.findStatic(DowncallProvider.class, "testVarArgsJava", MethodType.methodType(void.class, int.class, MemorySegment.class)), FunctionDescriptor.ofVoid(JAVA_INT, ADDRESS));
+            seg("testReturnInt", LOOKUP.findStatic(DowncallProvider.class, "testReturnInt", MethodType.methodType(int.class)), FunctionDescriptor.of(JAVA_INT));
+            seg("testReturnString", LOOKUP.findStatic(DowncallProvider.class, "testReturnString", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
+            seg("testReturnUTF16String", LOOKUP.findStatic(DowncallProvider.class, "testReturnUTF16String", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
+            seg("testReturnCEnum", LOOKUP.findStatic(DowncallProvider.class, "testReturnCEnum", MethodType.methodType(int.class)), FunctionDescriptor.of(JAVA_INT));
+            seg("testReturnUpcall", LOOKUP.findStatic(DowncallProvider.class, "testReturnUpcall", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
+            seg("testReturnIntArray", LOOKUP.findStatic(DowncallProvider.class, "testReturnIntArray", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
+            seg("testSizedIntArray", LOOKUP.findStatic(DowncallProvider.class, "testSizedIntArray", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
+            seg("testReturnSizedSeg", LOOKUP.findStatic(DowncallProvider.class, "testReturnSizedSeg", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
+            seg("testRefIntArray", LOOKUP.findStatic(DowncallProvider.class, "testRefIntArray", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
+            seg("testCriticalFalse", MethodHandles.empty(MethodType.methodType(void.class)), FunctionDescriptor.ofVoid());
+            seg("testCriticalTrue", LOOKUP.findStatic(DowncallProvider.class, "testCriticalTrue", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -70,20 +89,74 @@ public final class DowncallProvider {
         System.out.print("testDefault");
     }
 
-    private static void test_int(int i) {
+    private static void testInt(int i) {
         System.out.print(i);
     }
 
-    private static void test_String(MemorySegment s) {
+    private static void testString(MemorySegment s) {
         System.out.print(s.reinterpret(12).getString(0));
     }
 
-    private static void test_UTF16String(MemorySegment s) {
+    private static void testUTF16String(MemorySegment s) {
         System.out.print(s.reinterpret(40).getString(0, StandardCharsets.UTF_16));
     }
 
-    private static void test_CEnum(int i) {
+    private static void testCEnum(int i) {
         System.out.print(i);
+    }
+
+    private static int testUpcall(MemorySegment upcall) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            return SimpleUpcall.wrap(stack, upcall).invoke(42);
+        }
+    }
+
+    private static void testIntArray(MemorySegment arr) {
+        testVarArgsJava(2, arr);
+    }
+
+    private static void testVarArgsJava(int c, MemorySegment arr) {
+        System.out.print(Arrays.toString(arr.reinterpret(JAVA_INT.scale(0, c)).toArray(JAVA_INT)));
+    }
+
+    private static int testReturnInt() {
+        return 42;
+    }
+
+    private static MemorySegment testReturnString() {
+        return ARENA.allocateFrom(TEST_STRING);
+    }
+
+    private static MemorySegment testReturnUTF16String() {
+        return ARENA.allocateFrom(new String(TEST_UTF16_STRING.getBytes(StandardCharsets.UTF_16), StandardCharsets.UTF_16), StandardCharsets.UTF_16);
+    }
+
+    private static int testReturnCEnum() {
+        return 2;
+    }
+
+    private static MemorySegment testReturnUpcall() {
+        return ((SimpleUpcall) (i -> i * 2)).stub(ARENA);
+    }
+
+    private static MemorySegment testReturnIntArray() {
+        return ARENA.allocateFrom(JAVA_INT, 4, 2);
+    }
+
+    private static void testSizedIntArray(MemorySegment arr) {
+        testIntArray(arr);
+    }
+
+    private static MemorySegment testReturnSizedSeg() {
+        return ARENA.allocateFrom(JAVA_INT, 8);
+    }
+
+    private static void testRefIntArray(MemorySegment arr) {
+        arr.reinterpret(JAVA_INT.byteSize()).set(JAVA_INT, 0, 8);
+    }
+
+    private static void testCriticalTrue(MemorySegment arr) {
+        testRefIntArray(arr);
     }
 
     private static void seg(String name, MethodHandle mh, FunctionDescriptor fd) {

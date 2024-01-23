@@ -72,6 +72,8 @@ public sealed class MemoryStack implements Arena {
      * Creates a new {@code MemoryStack} with the default size.
      *
      * <p>In the initial state, there is no active stack frame. The {@link #push} method must be used before any allocations.</p>
+     *
+     * @return the memory stack
      */
     public static MemoryStack create() {
         return create(DEFAULT_STACK_SIZE);
@@ -83,6 +85,7 @@ public sealed class MemoryStack implements Arena {
      * <p>In the initial state, there is no active stack frame. The {@link #push} method must be used before any allocations.</p>
      *
      * @param byteSize the maximum number of bytes that may be allocated on the stack
+     * @return the memory stack
      */
     public static MemoryStack create(long byteSize) {
         return create(Arena.ofAuto(), byteSize);
@@ -95,6 +98,7 @@ public sealed class MemoryStack implements Arena {
      *
      * @param arena    the arena for allocating buffer
      * @param byteSize the maximum number of bytes that may be allocated on the stack
+     * @return the memory stack
      */
     public static MemoryStack create(Arena arena, long byteSize) {
         return create(arena.allocate(byteSize));
@@ -106,6 +110,7 @@ public sealed class MemoryStack implements Arena {
      * <p>In the initial state, there is no active stack frame. The {@link #push} method must be used before any allocations.</p>
      *
      * @param segment the backing memory segment
+     * @return the memory stack
      */
     public static MemoryStack create(MemorySegment segment) {
         return DEBUG_STACK ?
@@ -193,6 +198,8 @@ public sealed class MemoryStack implements Arena {
      *
      * <p>This method directly manipulates the stack pointer. Using it irresponsibly may break the internal state of the stack. It should only be used in rare
      * cases or in auto-generated code.</p>
+     *
+     * @param pointer the pointer
      */
     public void setPointer(long pointer) {
         if (CHECKS) {

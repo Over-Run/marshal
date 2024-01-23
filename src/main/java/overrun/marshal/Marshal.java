@@ -209,9 +209,11 @@ public final class Marshal {
      * @param allocator the allocator
      * @param arr       the array
      * @param function  a function to apply to each element
+     * @param <A>       the type of the allocator
+     * @param <T>       the type of the element
      * @return the segment
      */
-    public static <T, A extends SegmentAllocator> MemorySegment marshal(A allocator, T[] arr, BiFunction<A, T, MemorySegment> function) {
+    public static <A extends SegmentAllocator, T> MemorySegment marshal(A allocator, T[] arr, BiFunction<A, T, MemorySegment> function) {
         if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(ADDRESS, arr.length);
         for (int i = 0, l = arr.length; i < l; i++) {

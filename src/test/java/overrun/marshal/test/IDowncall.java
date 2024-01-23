@@ -19,6 +19,9 @@ package overrun.marshal.test;
 import overrun.marshal.Downcall;
 import overrun.marshal.gen.*;
 
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+
 /**
  * Downcall interface
  *
@@ -44,11 +47,44 @@ public interface IDowncall {
         System.out.print("testDefault in interface");
     }
 
-    void test_int(int i);
+    void testInt(int i);
 
-    void test_String(String s);
+    void testString(String s);
 
-    void test_UTF16String(@StrCharset("UTF-16") String s);
+    void testUTF16String(@StrCharset("UTF-16") String s);
 
-    void test_CEnum(MyEnum myEnum);
+    void testCEnum(MyEnum myEnum);
+
+    int testUpcall(Arena arena, SimpleUpcall upcall);
+
+    void testIntArray(int[] arr);
+
+    void testVarArgsJava(int c, int... arr);
+
+    int testReturnInt();
+
+    @SizedSeg(12)
+    String testReturnString();
+
+    @SizedSeg(40)
+    @StrCharset("UTF-16")
+    String testReturnUTF16String();
+
+    MyEnum testReturnCEnum();
+
+    SimpleUpcall testReturnUpcall(Arena arena);
+
+    @Sized(2)
+    int[] testReturnIntArray();
+
+    void testSizedIntArray(@Sized(2) int[] arr);
+
+    @SizedSeg(4L)
+    MemorySegment testReturnSizedSeg();
+
+    void testRefIntArray(@Ref int[] arr);
+
+    void testCriticalFalse();
+
+    void testCriticalTrue(@Ref int[] arr);
 }

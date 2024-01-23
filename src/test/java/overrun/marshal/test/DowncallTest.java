@@ -23,7 +23,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static overrun.marshal.test.DowncallProvider.TEST_STRING;
+import static overrun.marshal.test.DowncallProvider.TEST_UTF16_STRING;
 
 /**
  * Test downcall
@@ -64,19 +71,19 @@ public final class DowncallTest {
     @Test
     void test() {
         d.test();
-        Assertions.assertEquals("test", outputStream.toString());
+        assertEquals("test", outputStream.toString());
     }
 
     @Test
     void testWithEntrypoint() {
         d.testWithEntrypoint();
-        Assertions.assertEquals("test", outputStream.toString());
+        assertEquals("test", outputStream.toString());
     }
 
     @Test
     void testSkip() {
         d.testSkip();
-        Assertions.assertEquals("testSkip", outputStream.toString());
+        assertEquals("testSkip", outputStream.toString());
     }
 
     @ParameterizedTest(name = "testDefault(testDefaultNull = [" + ParameterizedTest.INDEX_PLACEHOLDER + "] " + ParameterizedTest.ARGUMENTS_WITH_NAMES_PLACEHOLDER + ")")
@@ -84,35 +91,108 @@ public final class DowncallTest {
     void testDefault(boolean testDefaultNull) {
         IDowncall.getInstance(testDefaultNull).testDefault();
         if (testDefaultNull) {
-            Assertions.assertEquals("testDefault in interface", outputStream.toString());
+            assertEquals("testDefault in interface", outputStream.toString());
         } else {
-            Assertions.assertEquals("testDefault", outputStream.toString());
+            assertEquals("testDefault", outputStream.toString());
         }
     }
 
     @Test
-    void test_int() {
-        d.test_int(42);
-        Assertions.assertEquals("42", outputStream.toString());
+    void testInt() {
+        d.testInt(42);
+        assertEquals("42", outputStream.toString());
     }
 
     @Test
-    void test_String() {
-        d.test_String("Hello world");
-        Assertions.assertEquals("Hello world", outputStream.toString());
+    void testString() {
+        d.testString(TEST_STRING);
+        assertEquals(TEST_STRING, outputStream.toString());
     }
 
     @Test
-    void test_UTF16String() {
-        d.test_UTF16String(new String("Hello UTF-16 world".getBytes(StandardCharsets.UTF_16), StandardCharsets.UTF_16));
-        Assertions.assertEquals("Hello UTF-16 world", outputStream.toString());
+    void testUTF16String() {
+        d.testUTF16String(new String(TEST_UTF16_STRING.getBytes(StandardCharsets.UTF_16), StandardCharsets.UTF_16));
+        assertEquals(TEST_UTF16_STRING, outputStream.toString());
     }
 
     @Test
-    void test_CEnum() {
-        d.test_CEnum(MyEnum.A);
-        d.test_CEnum(MyEnum.B);
-        d.test_CEnum(MyEnum.C);
-        Assertions.assertEquals("024", outputStream.toString());
+    void testCEnum() {
+        d.testCEnum(MyEnum.A);
+        d.testCEnum(MyEnum.B);
+        d.testCEnum(MyEnum.C);
+        assertEquals("024", outputStream.toString());
+    }
+
+    @Test
+    void testUpcall() {
+        try (Arena arena = Arena.ofConfined()) {
+            assertEquals(84, d.testUpcall(arena, i -> i * 2));
+        }
+    }
+
+    @Test
+    void testIntArray() {
+        d.testIntArray(new int[]{4, 2});
+        d.testVarArgsJava(2, 4, 2);
+        d.testVarArgsJava(0);
+        assertEquals("[4, 2][4, 2][]", outputStream.toString());
+    }
+
+    @Test
+    void testReturnInt() {
+        assertEquals(42, d.testReturnInt());
+    }
+
+    @Test
+    void testReturnString() {
+        assertEquals(TEST_STRING, d.testReturnString());
+        assertEquals(TEST_UTF16_STRING, d.testReturnUTF16String());
+    }
+
+    @Test
+    void testReturnCEnum() {
+        assertEquals(MyEnum.B, d.testReturnCEnum());
+    }
+
+    @Test
+    void testReturnUpcall() {
+        try (Arena arena = Arena.ofConfined()) {
+            final SimpleUpcall upcall = d.testReturnUpcall(arena);
+            assertEquals(84, upcall.invoke(42));
+        }
+    }
+
+    @Test
+    void testReturnIntArray() {
+        assertArrayEquals(new int[]{4, 2}, d.testReturnIntArray());
+    }
+
+    @Test
+    void testSizedIntArray() {
+        assertThrowsExactly(IllegalArgumentException.class, () -> d.testSizedIntArray(new int[0]));
+        assertDoesNotThrow(() -> d.testSizedIntArray(new int[]{4, 2}));
+        assertEquals("[4, 2]", outputStream.toString());
+    }
+
+    @Test
+    void testReturnSizedSeg() {
+        final MemorySegment segment = d.testReturnSizedSeg();
+        assertEquals(4L, segment.byteSize());
+        assertEquals(8, segment.get(ValueLayout.JAVA_INT, 0));
+    }
+
+    @Test
+    void testRefIntArray() {
+        int[] arr = {0};
+        d.testRefIntArray(arr);
+        assertArrayEquals(new int[]{8}, arr);
+    }
+
+    @Test
+    void testCritical() {
+        d.testCriticalFalse();
+        int[] arr = {0};
+        d.testCriticalTrue(arr);
+        assertArrayEquals(new int[]{8}, arr);
     }
 }

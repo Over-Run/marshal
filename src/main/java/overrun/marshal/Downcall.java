@@ -551,7 +551,8 @@ public final class Downcall {
                                 final Method wrapper = findCEnumWrapper(returnType);
                                 blockCodeBuilder.invokestatic(cd_returnType,
                                     wrapper.getName(),
-                                    MethodTypeDesc.of(cd_returnType, CD_int));
+                                    MethodTypeDesc.of(ClassDesc.ofDescriptor(wrapper.getReturnType().descriptorString()), CD_int),
+                                    wrapper.getDeclaringClass().isInterface());
                             } else if (Upcall.class.isAssignableFrom(returnType)) {
                                 final Method wrapper = findUpcallWrapper(returnType);
                                 blockCodeBuilder.aload(resultSlot)
@@ -562,7 +563,8 @@ public final class Downcall {
                                                 wrapper.getName(),
                                                 MethodTypeDesc.of(ClassDesc.ofDescriptor(wrapper.getReturnType().descriptorString()),
                                                     CD_Arena,
-                                                    CD_MemorySegment)),
+                                                    CD_MemorySegment),
+                                                wrapper.getDeclaringClass().isInterface()),
                                         CodeBuilder::aconst_null);
                             } else if (returnType == String.class) {
                                 final boolean hasCharset = getCharset(blockCodeBuilder, method);
@@ -586,7 +588,7 @@ public final class Downcall {
                                     blockCodeBuilder.invokestatic(CD_Unmarshal,
                                         "unmarshal",
                                         MethodTypeDesc.of(cd_returnType,
-                                            convertToValueLayoutCD(returnType),
+                                            convertToValueLayoutCD(componentType),
                                             CD_MemorySegment));
                                 }
                             }
