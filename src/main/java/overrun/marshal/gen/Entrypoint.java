@@ -31,7 +31,7 @@ import java.lang.annotation.*;
  */
 @Documented
 @Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface Entrypoint {
     /**
      * Uses the specified entrypoint (the native name of the function), instead of the method name.

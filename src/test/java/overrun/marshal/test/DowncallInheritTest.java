@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -16,17 +16,24 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.gen.Downcall;
+import org.junit.jupiter.api.Test;
 
-import java.lang.foreign.MemorySegment;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Test with loader
+ * test inherit downcall
  *
  * @author squid233
  * @since 0.1.0
  */
-@Downcall(libname = "NativeLib", name = "DowncallTestWithLoader", loader = NativeLibLoader.class)
-interface CDowncallTestWithLoader {
-    MemorySegment testWithArgAndReturnValue(MemorySegment segment);
+public final class DowncallInheritTest {
+    @Test
+    void testInheritDowncall() {
+        final ID3 d = ID3.INSTANCE;
+        assertEquals(84, d.mul2(42));
+        int[] arr = {0};
+        d.get(arr);
+        assertArrayEquals(new int[]{42}, arr);
+    }
 }

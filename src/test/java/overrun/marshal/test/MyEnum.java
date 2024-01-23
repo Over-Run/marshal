@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,28 +14,38 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.test;
 
-import java.lang.annotation.*;
+import overrun.marshal.CEnum;
 
 /**
- * Changes the access modifier of a method.
- * <h2>Example</h2>
- * <pre>{@code
- * @Access(AccessModifier.PROTECTED)
- * int ngetStatus(MemorySegment dst);
- * }</pre>
+ * Enum
  *
  * @author squid233
- * @see AccessModifier
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
-public @interface Access {
-    /**
-     * {@return the access modifier of the method}
-     */
-    AccessModifier value() default AccessModifier.PUBLIC;
+public enum MyEnum implements CEnum {
+    A(0),
+    B(2),
+    C(4);
+    private final int value;
+
+    MyEnum(int value) {
+        this.value = value;
+    }
+
+    @Override
+    public int value() {
+        return value;
+    }
+
+    @Wrapper
+    public static MyEnum wrap(int value) {
+        return switch (value) {
+            case 0 -> A;
+            case 2 -> B;
+            case 4 -> C;
+            default -> throw new IllegalStateException("Unexpected value: " + value);
+        };
+    }
 }

@@ -19,6 +19,8 @@ package overrun.marshal.gen2.struct;
 /**
  * Holds member
  *
+ * @param pathElementName the pathElementName
+ * @param varHandleName   the varHandleName
  * @author squid233
  * @since 0.1.0
  */

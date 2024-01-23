@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -63,7 +63,7 @@ public interface CEnum {
      * @since 0.1.0
      */
     @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(RetentionPolicy.RUNTIME)
     @interface Wrapper {
     }
 }

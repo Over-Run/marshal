@@ -14,28 +14,14 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
-
-import java.lang.annotation.*;
-import java.lang.foreign.SymbolLookup;
+package overrun.marshal.test;
 
 /**
- * Marks a <strong>static</strong> method as the library loader.
- * <p>
- * The target method must only contain a parameter of type {@link String} and returns {@link SymbolLookup}.
- * <h2>Example</h2>
- * <pre>{@code
- * @Loader
- * static SymbolLookup load(String name) {
- *     //...
- * }
- * }</pre>
+ * downcall interface 1
  *
  * @author squid233
- * @see Downcall
  * @since 0.1.0
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
-public @interface Loader {
+public interface ID1 {
+    int mul2(int i);
 }

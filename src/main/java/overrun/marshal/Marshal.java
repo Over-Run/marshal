@@ -16,8 +16,6 @@
 
 package overrun.marshal;
 
-import overrun.marshal.gen.CEnum;
-
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -47,30 +45,71 @@ public final class Marshal {
         return MethodHandles.insertCoordinates(valueLayout.arrayElementVarHandle(), 1, 0L);
     }
 
+    /**
+     * Converts the given string to a segment.
+     *
+     * @param allocator the allocator
+     * @param string    the string
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, String string) {
         if (string == null) return MemorySegment.NULL;
         return allocator.allocateFrom(string);
     }
 
+    /**
+     * Converts the given string to a segment.
+     *
+     * @param allocator the allocator
+     * @param string    the string
+     * @param charset   the charset
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, String string, Charset charset) {
         if (string == null) return MemorySegment.NULL;
         return allocator.allocateFrom(string, charset);
     }
 
+    /**
+     * Converts the given CEnum to an integer.
+     *
+     * @param cEnum the CEnum
+     * @return the integer
+     */
     public static int marshal(CEnum cEnum) {
         return cEnum.value();
     }
 
+    /**
+     * Converts the given addressable to a segment.
+     *
+     * @param addressable the addressable
+     * @return the segment
+     */
     public static MemorySegment marshal(Addressable addressable) {
         if (addressable == null) return MemorySegment.NULL;
         return addressable.segment();
     }
 
+    /**
+     * Converts the given upcall to a segment.
+     *
+     * @param arena  the arena
+     * @param upcall the upcall
+     * @return the segment
+     */
     public static MemorySegment marshal(Arena arena, Upcall upcall) {
         if (upcall == null) return MemorySegment.NULL;
         return upcall.stub(arena);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, boolean[] arr) {
         if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(JAVA_BOOLEAN, arr.length);
@@ -80,42 +119,101 @@ public final class Marshal {
         return segment;
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, char[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_CHAR, arr);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, byte[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_BYTE, arr);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, short[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_SHORT, arr);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, int[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_INT, arr);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, long[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_LONG, arr);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, float[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_FLOAT, arr);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, double[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_DOUBLE, arr);
     }
 
-    public static <T, A extends SegmentAllocator> MemorySegment marshal(A allocator, T[] arr, BiFunction<A, T, MemorySegment> function) {
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @param function  a function to apply to each element
+     * @param <A>       the type of the allocator
+     * @param <T>       the type of the element
+     * @return the segment
+     */
+    public static <A extends SegmentAllocator, T> MemorySegment marshal(A allocator, T[] arr, BiFunction<A, T, MemorySegment> function) {
         if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(ADDRESS, arr.length);
         for (int i = 0, l = arr.length; i < l; i++) {
@@ -124,21 +222,50 @@ public final class Marshal {
         return segment;
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, MemorySegment[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return marshal(allocator, arr, (_, segment) -> segment);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, String[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return marshal(allocator, arr, SegmentAllocator::allocateFrom);
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @param charset   the charset
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, String[] arr, Charset charset) {
         if (arr == null) return MemorySegment.NULL;
         return marshal(allocator, arr, (segmentAllocator, str) -> segmentAllocator.allocateFrom(str, charset));
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, CEnum[] arr) {
         if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(JAVA_INT, arr.length);
@@ -148,11 +275,25 @@ public final class Marshal {
         return segment;
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param allocator the allocator
+     * @param arr       the array
+     * @return the segment
+     */
     public static MemorySegment marshal(SegmentAllocator allocator, Addressable[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return marshal(allocator, arr, (_, addressable) -> addressable.segment());
     }
 
+    /**
+     * Converts the given array to a segment.
+     *
+     * @param arena the arena
+     * @param arr   the array
+     * @return the segment
+     */
     public static MemorySegment marshal(Arena arena, Upcall[] arr) {
         if (arr == null) return MemorySegment.NULL;
         return marshal(arena, arr, (arena1, upcall) -> upcall.stub(arena1));

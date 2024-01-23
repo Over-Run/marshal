@@ -16,6 +16,7 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.MemoryStack;
 import overrun.marshal.gen.SizedSeg;
 import overrun.marshal.Upcall;
 
@@ -46,9 +47,9 @@ public interface GLFWErrorCallback extends Upcall {
 
     @Wrapper
     static GLFWErrorCallback wrap(MemorySegment stub) {
-        return TYPE.wrap(stub, (arena, methodHandle) -> (error, description) -> {
-            try {
-                methodHandle.invokeExact(error, arena.get().allocateFrom(description));
+        return TYPE.wrap(stub, methodHandle -> (error, description) -> {
+            try (MemoryStack stack = MemoryStack.stackPush()) {
+                methodHandle.invokeExact(error, stack.allocateFrom(description));
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }

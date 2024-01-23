@@ -32,7 +32,7 @@ import java.lang.annotation.*;
  */
 @Documented
 @Target({ElementType.PARAMETER, ElementType.METHOD, ElementType.FIELD})
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface StrCharset {
     /**
      * {@return the charset}

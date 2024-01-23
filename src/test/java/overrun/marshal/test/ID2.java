@@ -14,22 +14,16 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.test;
 
-import java.lang.annotation.*;
+import overrun.marshal.gen.Ref;
 
 /**
- * Marks a parameter as nullable. Not to confuse with {@link Ref}.
- * <h2>Example</h2>
- * <pre>{@code
- * void test(@NullableRef int[] arr);
- * }</pre>
+ * downcall interface 2
  *
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.PARAMETER)
-@Retention(RetentionPolicy.SOURCE)
-public @interface NullableRef {
+public interface ID2 {
+    void get(@Ref int[] arr);
 }

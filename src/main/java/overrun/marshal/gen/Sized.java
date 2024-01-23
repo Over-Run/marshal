@@ -35,7 +35,7 @@ import java.lang.annotation.*;
  */
 @Documented
 @Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface Sized {
     /**
      * {@return the size of the array}

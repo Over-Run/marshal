@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,28 +14,29 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.gen2;
 
-import java.lang.annotation.*;
+import java.lang.reflect.Parameter;
+import java.util.List;
 
 /**
- * Marks a method that uses custom code instead of generated code.
- * <h2>Example</h2>
- * <pre>{@code
- * @Custom("""
- *     System.out.println("Hello world");""")
- * void myCode();
- * }</pre>
+ * Holds downcall method name
  *
+ * @param entrypoint      the entrypoint
+ * @param handleName      the handleName
+ * @param loaderName      the loaderName
+ * @param exceptionString the exceptionString
+ * @param parameters      the parameters
+ * @param skipFirstParam  the skipFirstParam
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
-public @interface Custom {
-    /**
-     * {@return the custom code}
-     */
-    String value();
+public record DowncallMethodData(
+    String entrypoint,
+    String handleName,
+    String loaderName,
+    String exceptionString,
+    List<Parameter> parameters,
+    boolean skipFirstParam
+) {
 }

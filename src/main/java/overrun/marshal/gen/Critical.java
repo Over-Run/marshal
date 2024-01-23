@@ -32,7 +32,7 @@ import java.lang.annotation.*;
  */
 @Documented
 @Target(ElementType.METHOD)
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface Critical {
     /**
      * {@return whether the linked function should allow access to the Java heap}
