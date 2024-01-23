@@ -16,33 +16,24 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.CEnum;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
+ * test inherit downcall
+ *
  * @author squid233
  * @since 0.1.0
  */
-public enum MyEnum implements CEnum {
-    NO_ERROR(0x0),
-    SOME_ERROR(0x10);
-
-    private final int value;
-
-    MyEnum(int value) {
-        this.value = value;
-    }
-
-    @Wrapper
-    public static MyEnum of(int value) {
-        return switch (value) {
-            case 0x0 -> NO_ERROR;
-            case 0x10 -> SOME_ERROR;
-            default -> throw new IllegalArgumentException("Unexpected value: " + value);
-        };
-    }
-
-    @Override
-    public int value() {
-        return value;
+public final class DowncallInheritTest {
+    @Test
+    void testInheritDowncall() {
+        final ID3 d = ID3.INSTANCE;
+        assertEquals(84, d.mul2(42));
+        int[] arr = {0};
+        d.get(arr);
+        assertArrayEquals(new int[]{42}, arr);
     }
 }

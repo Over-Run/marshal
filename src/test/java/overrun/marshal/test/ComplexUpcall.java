@@ -89,7 +89,7 @@ public interface ComplexUpcall extends Upcall {
 
         @Override
         public int[] invoke(int[] arr) {
-            return invoke(arena.allocateFrom(ValueLayout.JAVA_INT, arr)).reinterpret(2 * Integer.BYTES).toArray(ValueLayout.JAVA_INT);
+            return invoke(arena.allocateFrom(ValueLayout.JAVA_INT, arr)).toArray(ValueLayout.JAVA_INT);
         }
     }
 

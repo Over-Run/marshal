@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.gen.CEnum;
+import overrun.marshal.CEnum;
 
 /**
  * Enum

@@ -46,13 +46,9 @@ import java.util.function.Supplier;
  *     Type<MyCallback> TYPE = Upcall.type();
  *
  *     // The function to be invoked in C
- *     int invoke(int i, String p);
- *
- *     // The stub provider
+ *     // Also the stub provider
  *     @Stub
- *     default int invoke(int i, MemorySegment p) {
- *         return invoke(error, description.reinterpret(Long.MAX_VALUE).getString(0));
- *     }
+ *     int invoke(int i);
  *
  *     // Create an upcall stub segment with Type
  *     @Override
@@ -62,10 +58,10 @@ import java.util.function.Supplier;
  *
  *     // Create an optional wrap method
  *     @Wrapper
- *     static MyCallback wrap(MemorySegment stub) {
- *         return TYPE.wrap(stub, mh -> (i, p) -> {
- *             try (var arena = Arena.ofConfined()) {
- *                 return mh.invokeExact(i, arena.allocateFrom(p));
+ *     static MyCallback wrap(Arena arena, MemorySegment stub) {
+ *         return TYPE.wrap(stub, mh -> i -> {
+ *             try {
+ *                 return (int) mh.invokeExact(i);
  *             } catch (Throwable e) {
  *                 throw new RuntimeException(e);
  *             }
@@ -74,7 +70,7 @@ import java.util.function.Supplier;
  * }
  *
  * // C downcall
- * setMyCallback((i, p) -> System.out.println(i + ": " + p));
+ * setMyCallback(i -> i * 2);
  * }</pre>
  *
  * @author squid233
@@ -177,20 +173,21 @@ public interface Upcall {
             }
             final var returnType = method.getReturnType();
             final MemoryLayout[] memoryLayouts = Arrays.stream(method.getParameters())
-                .map(p -> {
-                    final MemoryLayout layout = toMemoryLayout(p.getType());
-                    final SizedSeg sizedSeg = p.getDeclaredAnnotation(SizedSeg.class);
-                    if (sizedSeg != null && layout instanceof AddressLayout addressLayout) {
-                        return addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sizedSeg.value(), ValueLayout.JAVA_BYTE));
-                    }
-                    return layout;
-                })
+                .map(p -> withSizedSeg(toMemoryLayout(p.getType()), p.getDeclaredAnnotation(SizedSeg.class)))
                 .toArray(MemoryLayout[]::new);
             if (returnType == void.class) {
                 descriptor = FunctionDescriptor.ofVoid(memoryLayouts);
             } else {
-                descriptor = FunctionDescriptor.of(toMemoryLayout(returnType), memoryLayouts);
+                descriptor = FunctionDescriptor.of(withSizedSeg(toMemoryLayout(returnType), method.getDeclaredAnnotation(SizedSeg.class)),
+                    memoryLayouts);
             }
+        }
+
+        private static MemoryLayout withSizedSeg(MemoryLayout layout, SizedSeg sizedSeg) {
+            if (sizedSeg != null && layout instanceof AddressLayout addressLayout) {
+                return addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sizedSeg.value(), ValueLayout.JAVA_BYTE));
+            }
+            return layout;
         }
 
         /**

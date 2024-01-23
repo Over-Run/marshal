@@ -16,8 +16,6 @@
 
 package overrun.marshal;
 
-import overrun.marshal.gen.CEnum;
-
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;

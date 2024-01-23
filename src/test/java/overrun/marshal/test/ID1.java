@@ -16,33 +16,12 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.CEnum;
-
 /**
+ * downcall interface 1
+ *
  * @author squid233
  * @since 0.1.0
  */
-public enum MyEnum implements CEnum {
-    NO_ERROR(0x0),
-    SOME_ERROR(0x10);
-
-    private final int value;
-
-    MyEnum(int value) {
-        this.value = value;
-    }
-
-    @Wrapper
-    public static MyEnum of(int value) {
-        return switch (value) {
-            case 0x0 -> NO_ERROR;
-            case 0x10 -> SOME_ERROR;
-            default -> throw new IllegalArgumentException("Unexpected value: " + value);
-        };
-    }
-
-    @Override
-    public int value() {
-        return value;
-    }
+public interface ID1 {
+    int mul2(int i);
 }

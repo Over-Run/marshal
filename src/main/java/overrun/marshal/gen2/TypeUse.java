@@ -16,7 +16,7 @@
 
 package overrun.marshal.gen2;
 
-import overrun.marshal.gen.CEnum;
+import overrun.marshal.CEnum;
 import overrun.marshal.gen.struct.StructRef;
 import overrun.marshal.gen1.Spec;
 import overrun.marshal.internal.Util;

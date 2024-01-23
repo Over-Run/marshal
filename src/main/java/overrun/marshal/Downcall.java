@@ -51,6 +51,8 @@ import static java.lang.constant.ConstantDescs.*;
  * You can load native libraries with {@link #load(Class, SymbolLookup)}.
  * This method generates a hidden class that loads method handle with the given symbol lookup.
  * <h2>Methods</h2>
+ * The loader finds method from the target class and its superclasses.
+ * <p>
  * The loader skips static methods and methods annotated with {@link Skip @Skip} while generating.
  * <p>
  * {@link Entrypoint @Entrypoint} specifies the entrypoint of the annotated method.
@@ -86,7 +88,7 @@ public final class Downcall {
     private static final ClassDesc CD_Addressable = ClassDesc.of("overrun.marshal.Addressable");
     private static final ClassDesc CD_AddressLayout = ClassDesc.of("java.lang.foreign.AddressLayout");
     private static final ClassDesc CD_Arena = ClassDesc.of("java.lang.foreign.Arena");
-    private static final ClassDesc CD_CEnum = ClassDesc.of("overrun.marshal.gen.CEnum");
+    private static final ClassDesc CD_CEnum = ClassDesc.of("overrun.marshal.CEnum");
     private static final ClassDesc CD_Charset = ClassDesc.of("java.nio.charset.Charset");
     private static final ClassDesc CD_Checks = ClassDesc.of("overrun.marshal.Checks");
     private static final ClassDesc CD_FunctionDescriptor = ClassDesc.of("java.lang.foreign.FunctionDescriptor");
@@ -814,15 +816,39 @@ public final class Downcall {
         }
     }
 
-    public static <T> T load(Class<?> targetClass, SymbolLookup lookup) {
+    /**
+     * Loads the given class with the given symbol lookup.
+     *
+     * @param targetClass the target class
+     * @param lookup      the symbol lookup
+     * @param <T>         the type of the target class
+     * @return the loaded implementation instance of the target class
+     */
+    public static <T> T load(Class<T> targetClass, SymbolLookup lookup) {
         return loadBytecode(targetClass, lookup);
     }
 
+    /**
+     * Loads the caller class with the given library name.
+     *
+     * @param libname the library name
+     * @param <T>     the type of the caller class
+     * @return the loaded implementation instance of the caller class
+     */
+    @SuppressWarnings("unchecked")
     public static <T> T load(String libname) {
-        return load(STACK_WALKER.getCallerClass(), SymbolLookup.libraryLookup(libname, Arena.ofAuto()));
+        return load((Class<T>) STACK_WALKER.getCallerClass(), SymbolLookup.libraryLookup(libname, Arena.ofAuto()));
     }
 
+    /**
+     * Loads the caller class with the given symbol lookup.
+     *
+     * @param lookup the symbol lookup
+     * @param <T>    the type of the caller class
+     * @return the loaded implementation instance of the caller class
+     */
+    @SuppressWarnings("unchecked")
     public static <T> T load(SymbolLookup lookup) {
-        return load(STACK_WALKER.getCallerClass(), lookup);
+        return load((Class<T>) STACK_WALKER.getCallerClass(), lookup);
     }
 }

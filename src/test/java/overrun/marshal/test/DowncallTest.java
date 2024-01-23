@@ -79,7 +79,7 @@ public final class DowncallTest {
         Assertions.assertEquals("testSkip", outputStream.toString());
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "testDefault(testDefaultNull = [" + ParameterizedTest.INDEX_PLACEHOLDER + "] " + ParameterizedTest.ARGUMENTS_WITH_NAMES_PLACEHOLDER + ")")
     @ValueSource(booleans = {false, true})
     void testDefault(boolean testDefaultNull) {
         IDowncall.getInstance(testDefaultNull).testDefault();
