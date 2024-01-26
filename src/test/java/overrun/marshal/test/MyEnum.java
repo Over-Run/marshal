@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,13 +14,38 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.test;
+
+import overrun.marshal.CEnum;
+
 /**
- * The main package of marshal.
+ * Enum
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
-package overrun.marshal;
+public enum MyEnum implements CEnum {
+    A(0),
+    B(2),
+    C(4);
+    private final int value;
+
+    MyEnum(int value) {
+        this.value = value;
+    }
+
+    @Override
+    public int value() {
+        return value;
+    }
+
+    @Wrapper
+    public static MyEnum wrap(int value) {
+        return switch (value) {
+            case 0 -> A;
+            case 2 -> B;
+            case 4 -> C;
+            default -> throw new IllegalStateException("Unexpected value: " + value);
+        };
+    }
+}

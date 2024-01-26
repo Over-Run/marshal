@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,13 +14,30 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.test;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
- * The main package of marshal.
+ * test inherit downcall
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
-package overrun.marshal;
+public final class DowncallInheritTest {
+    @Test
+    void testInheritDowncall() {
+        final ID3 d = ID3.INSTANCE;
+        assertEquals(84, d.mul2(42));
+        int[] arr = {0};
+        d.get(arr);
+        assertArrayEquals(new int[]{42}, arr);
+
+        assertEquals(1, d.get1());
+        assertEquals(1, d.get2());
+        assertEquals(3, d.get3());
+    }
+}

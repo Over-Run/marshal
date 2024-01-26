@@ -52,6 +52,7 @@ public interface CEnum {
      * {@return the value of the enum}
      */
     int value();
+
     /**
      * Marks a <strong>static</strong> method as an enum value wrapper.
      * <p>
@@ -62,7 +63,7 @@ public interface CEnum {
      * @since 0.1.0
      */
     @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(RetentionPolicy.RUNTIME)
     @interface Wrapper {
     }
 }

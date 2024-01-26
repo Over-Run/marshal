@@ -14,13 +14,31 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen;
+
+import overrun.marshal.Configurations;
+
+import java.lang.annotation.*;
+
 /**
- * The main package of marshal.
+ * Marks an array parameter as a fixed size array.
+ * <p>
+ * The generated code will try to check the size of a passing array.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * void set(@Sized(3) int[] vec);
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct.Struct
+ * @see Configurations#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
-package overrun.marshal;
+@Documented
+@Target({ElementType.METHOD, ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Sized {
+    /**
+     * {@return the size of the array}
+     */
+    int value();
+}

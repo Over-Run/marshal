@@ -16,6 +16,10 @@
 
 package overrun.marshal;
 
+import overrun.marshal.gen.Sized;
+
+import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -26,6 +30,12 @@ import java.util.function.Supplier;
  */
 public final class Configurations {
     /**
+     * Enable checks.
+     * <p>
+     * The default value is {@code true}.
+     */
+    public static final Entry<Boolean> CHECKS = new Entry<>(() -> true);
+    /**
      * Check the size of a fixed size array argument.
      * <p>
      * The default value is {@code true}.
@@ -33,9 +43,59 @@ public final class Configurations {
      * @see Sized
      */
     public static final Entry<Boolean> CHECK_ARRAY_SIZE = new Entry<>(() -> true);
+    /**
+     * Enable debug messages and prints to {@link #apiLogger()}.
+     * <p>
+     * The default value is {@code false}.
+     */
+    public static final Entry<Boolean> DEBUG = new Entry<>(() -> false);
+    /**
+     * Enable using debug memory stack.
+     * <p>
+     * The default value is {@code false}.
+     */
+    public static final Entry<Boolean> DEBUG_STACK = new Entry<>(() -> false);
+    /**
+     * The default stack size in KiB of {@link MemoryStack}.
+     * <p>
+     * The default value is {@code 64}.
+     */
+    public static final Entry<Long> STACK_SIZE = new Entry<>(() -> 64L);
+    /**
+     * The default stack frames of {@link MemoryStack}.
+     * <p>
+     * The default value is {@code 8}.
+     */
+    public static final Entry<Integer> STACK_FRAMES = new Entry<>(() -> 8);
+    private static Consumer<String> apiLogger = System.err::println;
 
     private Configurations() {
         //no instance
+    }
+
+    /**
+     * Sets the API logger.
+     *
+     * @param logger the logger
+     */
+    public static void setApiLogger(Consumer<String> logger) {
+        apiLogger = Objects.requireNonNullElseGet(logger, () -> System.err::println);
+    }
+
+    /**
+     * {@return the API logger}
+     */
+    public static Consumer<String> apiLogger() {
+        return apiLogger;
+    }
+
+    /**
+     * Logs the given message.
+     *
+     * @param log the message
+     */
+    public static void apiLog(String log) {
+        apiLogger().accept(log);
     }
 
     /**
