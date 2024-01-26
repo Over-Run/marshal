@@ -20,7 +20,7 @@
  * @author squid233
  * @see overrun.marshal.Downcall
  * @see overrun.marshal.Upcall
- * @see overrun.marshal.gen.struct
+ * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
 package overrun.marshal;

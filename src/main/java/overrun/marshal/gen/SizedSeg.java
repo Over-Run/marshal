@@ -33,7 +33,7 @@ import java.lang.annotation.*;
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+@Target({ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SizedSeg {
     /**

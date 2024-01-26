@@ -16,6 +16,8 @@
 
 package overrun.marshal;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -46,13 +48,22 @@ public final class Unmarshal {
     }
 
     /**
+     * {@return {@code true} if the given segment is a null pointer; {@code false} otherwise}
+     *
+     * @param segment the native segment
+     */
+    public static boolean isNullPointer(@Nullable MemorySegment segment) {
+        return segment == null || segment.address() == 0L;
+    }
+
+    /**
      * Unmarshal the given segment as a string.
      *
      * @param segment the segment
      * @return the string
      */
-    public static String unmarshalAsString(MemorySegment segment) {
-        return segment.getString(0L);
+    public static @Nullable String unmarshalAsString(MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.getString(0L);
     }
 
     /**
@@ -62,8 +73,8 @@ public final class Unmarshal {
      * @param charset the charset
      * @return the string
      */
-    public static String unmarshalAsString(MemorySegment segment, Charset charset) {
-        return segment.getString(0L, charset);
+    public static @Nullable String unmarshalAsString(MemorySegment segment, Charset charset) {
+        return isNullPointer(segment) ? null : segment.getString(0L, charset);
     }
 
     /**
@@ -73,7 +84,8 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static boolean[] unmarshal(OfBoolean elementLayout, MemorySegment segment) {
+    public static boolean @Nullable [] unmarshal(OfBoolean elementLayout, MemorySegment segment) {
+        if (isNullPointer(segment)) return null;
         final boolean[] arr = new boolean[checkArraySize(boolean[].class.getSimpleName(), segment.byteSize(), (int) elementLayout.byteSize())];
         for (int i = 0, l = arr.length; i < l; i++) {
             arr[i] = (boolean) Marshal.vh_booleanArray.get(segment, (long) i);
@@ -88,8 +100,8 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static char[] unmarshal(OfChar elementLayout, MemorySegment segment) {
-        return segment.toArray(elementLayout);
+    public static char @Nullable [] unmarshal(OfChar elementLayout, MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.toArray(elementLayout);
     }
 
     /**
@@ -99,8 +111,8 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static byte[] unmarshal(OfByte elementLayout, MemorySegment segment) {
-        return segment.toArray(elementLayout);
+    public static byte @Nullable [] unmarshal(OfByte elementLayout, MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.toArray(elementLayout);
     }
 
     /**
@@ -110,8 +122,8 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static short[] unmarshal(OfShort elementLayout, MemorySegment segment) {
-        return segment.toArray(elementLayout);
+    public static short @Nullable [] unmarshal(OfShort elementLayout, MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.toArray(elementLayout);
     }
 
     /**
@@ -121,8 +133,8 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static int[] unmarshal(OfInt elementLayout, MemorySegment segment) {
-        return segment.toArray(elementLayout);
+    public static int @Nullable [] unmarshal(OfInt elementLayout, MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.toArray(elementLayout);
     }
 
     /**
@@ -132,8 +144,8 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static long[] unmarshal(OfLong elementLayout, MemorySegment segment) {
-        return segment.toArray(elementLayout);
+    public static long @Nullable [] unmarshal(OfLong elementLayout, MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.toArray(elementLayout);
     }
 
     /**
@@ -143,8 +155,8 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static float[] unmarshal(OfFloat elementLayout, MemorySegment segment) {
-        return segment.toArray(elementLayout);
+    public static float @Nullable [] unmarshal(OfFloat elementLayout, MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.toArray(elementLayout);
     }
 
     /**
@@ -154,8 +166,89 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static double[] unmarshal(OfDouble elementLayout, MemorySegment segment) {
-        return segment.toArray(elementLayout);
+    public static double @Nullable [] unmarshal(OfDouble elementLayout, MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.toArray(elementLayout);
+    }
+
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static boolean @Nullable [] unmarshalAsBooleanArray(MemorySegment segment) {
+        return unmarshal(JAVA_BOOLEAN, segment);
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static char @Nullable [] unmarshalAsCharArray(MemorySegment segment) {
+        return unmarshal(JAVA_CHAR, segment);
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static byte @Nullable [] unmarshalAsByteArray(MemorySegment segment) {
+        return unmarshal(JAVA_BYTE, segment);
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static short @Nullable [] unmarshalAsShortArray(MemorySegment segment) {
+        return unmarshal(JAVA_SHORT, segment);
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static int @Nullable [] unmarshalAsIntArray(MemorySegment segment) {
+        return unmarshal(JAVA_INT, segment);
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static long @Nullable [] unmarshalAsLongArray(MemorySegment segment) {
+        return unmarshal(JAVA_LONG, segment);
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static float @Nullable [] unmarshalAsFloatArray(MemorySegment segment) {
+        return unmarshal(JAVA_FLOAT, segment);
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static double @Nullable [] unmarshalAsDoubleArray(MemorySegment segment) {
+        return unmarshal(JAVA_DOUBLE, segment);
     }
 
     /**
@@ -168,8 +261,8 @@ public final class Unmarshal {
      * @param <T>           the type of the element
      * @return the array
      */
-    public static <T> T[] unmarshal(MemoryLayout elementLayout, MemorySegment segment, IntFunction<T[]> generator, Function<MemorySegment, T> function) {
-        return segment.elements(elementLayout).map(function).toArray(generator);
+    public static <T> T @Nullable [] unmarshal(MemoryLayout elementLayout, MemorySegment segment, IntFunction<T[]> generator, Function<MemorySegment, T> function) {
+        return isNullPointer(segment) ? null : segment.elements(elementLayout).map(function).toArray(generator);
     }
 
     /**
@@ -179,8 +272,18 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static MemorySegment[] unmarshal(AddressLayout elementLayout, MemorySegment segment) {
-        return unmarshal(elementLayout, segment, MemorySegment[]::new, Function.identity());
+    public static MemorySegment @Nullable [] unmarshal(AddressLayout elementLayout, MemorySegment segment) {
+        return unmarshal(elementLayout, segment, MemorySegment[]::new, s -> s.get(ADDRESS, 0L));
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static MemorySegment @Nullable [] unmarshalAsAddressArray(MemorySegment segment) {
+        return unmarshal(ADDRESS, segment);
     }
 
     /**
@@ -190,7 +293,7 @@ public final class Unmarshal {
      * @param segment       the segment
      * @return the array
      */
-    public static String[] unmarshalAsString(AddressLayout elementLayout, MemorySegment segment) {
+    public static String @Nullable [] unmarshalAsStringArray(AddressLayout elementLayout, MemorySegment segment) {
         return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STRING_LAYOUT, 0L).getString(0L));
     }
 
@@ -202,8 +305,29 @@ public final class Unmarshal {
      * @param charset       the charset
      * @return the array
      */
-    public static String[] unmarshalAsString(AddressLayout elementLayout, MemorySegment segment, Charset charset) {
+    public static String @Nullable [] unmarshalAsStringArray(AddressLayout elementLayout, MemorySegment segment, Charset charset) {
         return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STRING_LAYOUT, 0L).getString(0L, charset));
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @return the array
+     */
+    public static String @Nullable [] unmarshalAsStringArray(MemorySegment segment) {
+        return unmarshalAsStringArray(ADDRESS, segment);
+    }
+
+    /**
+     * Unmarshal the given segment as an array.
+     *
+     * @param segment the segment
+     * @param charset the charset
+     * @return the array
+     */
+    public static String @Nullable [] unmarshalAsStringArray(MemorySegment segment, Charset charset) {
+        return unmarshalAsStringArray(ADDRESS, segment, charset);
     }
 
     private static int checkArraySize(String typeName, long byteSize, int elemSize) {
@@ -223,7 +347,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, boolean[] dst) {
+    public static void copy(MemorySegment src, boolean @Nullable [] dst) {
         if (dst == null) return;
         for (int i = 0; i < dst.length; i++) {
             dst[i] = (boolean) Marshal.vh_booleanArray.get(src, (long) i);
@@ -236,7 +360,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, char[] dst) {
+    public static void copy(MemorySegment src, char @Nullable [] dst) {
         if (dst == null) return;
         MemorySegment.copy(src, JAVA_CHAR, 0L, dst, 0, dst.length);
     }
@@ -247,7 +371,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, byte[] dst) {
+    public static void copy(MemorySegment src, byte @Nullable [] dst) {
         if (dst == null) return;
         MemorySegment.copy(src, JAVA_BYTE, 0L, dst, 0, dst.length);
     }
@@ -258,7 +382,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, short[] dst) {
+    public static void copy(MemorySegment src, short @Nullable [] dst) {
         if (dst == null) return;
         MemorySegment.copy(src, JAVA_SHORT, 0L, dst, 0, dst.length);
     }
@@ -269,7 +393,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, int[] dst) {
+    public static void copy(MemorySegment src, int @Nullable [] dst) {
         if (dst == null) return;
         MemorySegment.copy(src, JAVA_INT, 0L, dst, 0, dst.length);
     }
@@ -280,7 +404,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, long[] dst) {
+    public static void copy(MemorySegment src, long @Nullable [] dst) {
         if (dst == null) return;
         MemorySegment.copy(src, JAVA_LONG, 0L, dst, 0, dst.length);
     }
@@ -291,7 +415,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, float[] dst) {
+    public static void copy(MemorySegment src, float @Nullable [] dst) {
         if (dst == null) return;
         MemorySegment.copy(src, JAVA_FLOAT, 0L, dst, 0, dst.length);
     }
@@ -302,7 +426,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, double[] dst) {
+    public static void copy(MemorySegment src, double @Nullable [] dst) {
         if (dst == null) return;
         MemorySegment.copy(src, JAVA_DOUBLE, 0L, dst, 0, dst.length);
     }
@@ -313,7 +437,7 @@ public final class Unmarshal {
      * @param src the source segment
      * @param dst the destination
      */
-    public static void copy(MemorySegment src, String[] dst) {
+    public static void copy(MemorySegment src, String @Nullable [] dst) {
         if (dst == null) return;
         for (int i = 0; i < dst.length; i++) {
             dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L);
@@ -327,7 +451,7 @@ public final class Unmarshal {
      * @param dst     the destination
      * @param charset the charset
      */
-    public static void copy(MemorySegment src, String[] dst, Charset charset) {
+    public static void copy(MemorySegment src, String @Nullable [] dst, Charset charset) {
         if (dst == null) return;
         for (int i = 0; i < dst.length; i++) {
             dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L, charset);

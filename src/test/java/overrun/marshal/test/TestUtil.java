@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,27 +14,19 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen.struct;
+package overrun.marshal.test;
 
-import java.lang.annotation.*;
+import java.nio.charset.StandardCharsets;
 
 /**
- * Marks a struct or its member as <i>const</i>.
- * <p>
- * A const struct or its member does not generate setter.
- * <h2>Example</h2>
- * <pre>{@code
- * @Const
- * @Struct
- * record Vector2(int x, int y) {
- * }
- * }</pre>
- *
  * @author squid233
  * @since 0.1.0
  */
-@Documented
-@Target({ElementType.FIELD, ElementType.TYPE})
-@Retention(RetentionPolicy.SOURCE)
-public @interface Const {
+public final class TestUtil {
+    public static final String TEST_STRING = "Hello world";
+    public static final String TEST_UTF16_STRING = "Hello UTF-16 world";
+
+    public static String utf16Str(String utf8Str) {
+        return new String(utf8Str.getBytes(StandardCharsets.UTF_16), StandardCharsets.UTF_16);
+    }
 }

@@ -30,7 +30,7 @@ import java.lang.annotation.*;
  * @since 0.1.0
  */
 @Documented
-@Target({ElementType.FIELD, ElementType.METHOD})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Skip {
 }

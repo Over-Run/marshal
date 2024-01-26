@@ -87,6 +87,7 @@ allprojects {
 
     dependencies {
         // add your dependencies
+        compileOnly("org.jetbrains:annotations:24.1.0")
     }
 
     tasks.withType<JavaCompile> {

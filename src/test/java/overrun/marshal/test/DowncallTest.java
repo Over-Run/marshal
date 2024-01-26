@@ -17,8 +17,6 @@
 package overrun.marshal.test;
 
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import overrun.marshal.MemoryStack;
 
 import java.io.ByteArrayOutputStream;
@@ -28,11 +26,9 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
-import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static overrun.marshal.test.DowncallProvider.TEST_STRING;
-import static overrun.marshal.test.DowncallProvider.TEST_UTF16_STRING;
+import static overrun.marshal.test.TestUtil.*;
 
 /**
  * Test downcall
@@ -88,15 +84,16 @@ public final class DowncallTest {
         assertEquals("testSkip", outputStream.toString());
     }
 
-    @ParameterizedTest(name = "testDefault(testDefaultNull = [" + ParameterizedTest.INDEX_PLACEHOLDER + "] " + ParameterizedTest.ARGUMENTS_WITH_NAMES_PLACEHOLDER + ")")
-    @ValueSource(booleans = {false, true})
-    void testDefault(boolean testDefaultNull) {
-        IDowncall.getInstance(testDefaultNull).testDefault();
-        if (testDefaultNull) {
-            assertEquals("testDefault in interface", outputStream.toString());
-        } else {
-            assertEquals("testDefault", outputStream.toString());
-        }
+    @Test
+    void testDefaultInInterface() {
+        IDowncall.getInstance(true).testDefault();
+        assertEquals("testDefault in interface", outputStream.toString());
+    }
+
+    @Test
+    void testDefault() {
+        IDowncall.getInstance(false).testDefault();
+        assertEquals("testDefault", outputStream.toString());
     }
 
     @Test
@@ -113,7 +110,7 @@ public final class DowncallTest {
 
     @Test
     void testUTF16String() {
-        d.testUTF16String(new String(TEST_UTF16_STRING.getBytes(StandardCharsets.UTF_16), StandardCharsets.UTF_16));
+        d.testUTF16String(utf16Str(TEST_UTF16_STRING));
         assertEquals(TEST_UTF16_STRING, outputStream.toString());
     }
 
@@ -148,6 +145,17 @@ public final class DowncallTest {
     }
 
     @Test
+    void testStruct() {
+        try (Arena arena = Arena.ofConfined()) {
+            final Vector3 vector3 = new Vector3(arena);
+            d.testStruct(vector3);
+            assertEquals(1, vector3.x.get());
+            assertEquals(2, vector3.y.get());
+            assertEquals(3, vector3.z.get());
+        }
+    }
+
+    @Test
     void testReturnInt() {
         assertEquals(42, d.testReturnInt());
     }
@@ -169,6 +177,35 @@ public final class DowncallTest {
             final SimpleUpcall upcall = d.testReturnUpcall(arena);
             assertEquals(84, upcall.invoke(42));
         }
+    }
+
+    @Test
+    void testReturnStruct() {
+        try (Arena arena = Arena.ofConfined()) {
+            final Vector3 returnStruct = d.testReturnStruct();
+            assertEquals(4, returnStruct.x.get());
+            assertEquals(5, returnStruct.y.get());
+            assertEquals(6, returnStruct.z.get());
+            final Vector3 returnStructByValue = d.testReturnStructByValue(arena);
+            assertEquals(7, returnStructByValue.x.get());
+            assertEquals(8, returnStructByValue.y.get());
+            assertEquals(9, returnStructByValue.z.get());
+        }
+    }
+
+    @Test
+    void testReturnStructSized() {
+        assertStructSized(d.testReturnStructSizedSeg());
+        assertStructSized(d.testReturnStructSized());
+    }
+
+    private void assertStructSized(Vector3 vector3) {
+        assertEquals(1, vector3.x.get());
+        assertEquals(2, vector3.y.get());
+        assertEquals(3, vector3.z.get());
+        assertEquals(4, vector3.x.get(1L));
+        assertEquals(5, vector3.y.get(1L));
+        assertEquals(6, vector3.z.get(1L));
     }
 
     @Test

@@ -17,8 +17,7 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.*;
-import overrun.marshal.gen.struct.ByValue;
-import overrun.marshal.gen2.DowncallMethodData;
+import overrun.marshal.struct.Struct;
 
 import java.lang.annotation.Annotation;
 import java.lang.classfile.ClassFile;
@@ -27,16 +26,10 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -103,6 +96,7 @@ public final class Downcall {
     private static final ClassDesc CD_SegmentAllocator = ClassDesc.of("java.lang.foreign.SegmentAllocator");
     private static final ClassDesc CD_SequenceLayout = ClassDesc.of("java.lang.foreign.SequenceLayout");
     private static final ClassDesc CD_StandardCharsets = ClassDesc.of("java.nio.charset.StandardCharsets");
+    private static final ClassDesc CD_StructLayout = ClassDesc.of("java.lang.foreign.StructLayout");
     private static final ClassDesc CD_SymbolLookup = ClassDesc.of("java.lang.foreign.SymbolLookup");
     private static final ClassDesc CD_Unmarshal = ClassDesc.of("overrun.marshal.Unmarshal");
     private static final ClassDesc CD_Upcall = ClassDesc.of("overrun.marshal.Upcall");
@@ -176,15 +170,21 @@ public final class Downcall {
         return false;
     }
 
-    private static void tryAddLayout(CodeBuilder codeBuilder, Class<?> aClass) {
+    private static String unmarshalMethod(Class<?> aClass) {
         if (aClass.isArray()) {
             final Class<?> componentType = aClass.getComponentType();
-            if (componentType == String.class) {
-                convertToValueLayout(codeBuilder, MemorySegment.class);
-            } else if (componentType.isPrimitive()) {
-                convertToValueLayout(codeBuilder, componentType);
-            }
+            if (componentType == boolean.class) return "unmarshalAsBooleanArray";
+            if (componentType == char.class) return "unmarshalAsCharArray";
+            if (componentType == byte.class) return "unmarshalAsByteArray";
+            if (componentType == short.class) return "unmarshalAsShortArray";
+            if (componentType == int.class) return "unmarshalAsIntArray";
+            if (componentType == long.class) return "unmarshalAsLongArray";
+            if (componentType == float.class) return "unmarshalAsFloatArray";
+            if (componentType == double.class) return "unmarshalAsDoubleArray";
+            if (componentType == MemorySegment.class) return "unmarshalAsAddressArray";
+            if (componentType == String.class) return "unmarshalAsStringArray";
         }
+        return "unmarshal";
     }
 
     private static String getMethodEntrypoint(Method method) {
@@ -192,18 +192,6 @@ public final class Downcall {
         return (entrypoint == null || entrypoint.value().isBlank()) ?
             method.getName() :
             entrypoint.value();
-    }
-
-    private static ClassDesc convertToValueLayoutCD(Class<?> aClass) {
-        if (aClass == boolean.class) return CD_ValueLayout_OfBoolean;
-        if (aClass == char.class) return CD_ValueLayout_OfChar;
-        if (aClass == byte.class) return CD_ValueLayout_OfByte;
-        if (aClass == short.class) return CD_ValueLayout_OfShort;
-        if (aClass == int.class || CEnum.class.isAssignableFrom(aClass)) return CD_ValueLayout_OfInt;
-        if (aClass == long.class) return CD_ValueLayout_OfLong;
-        if (aClass == float.class) return CD_ValueLayout_OfFloat;
-        if (aClass == double.class) return CD_ValueLayout_OfDouble;
-        return CD_AddressLayout;
     }
 
     private static ClassDesc convertToDowncallCD(Class<?> aClass) {
@@ -220,11 +208,6 @@ public final class Downcall {
         if (CEnum.class.isAssignableFrom(aClass)) return CD_CEnum;
         if (Upcall.class.isAssignableFrom(aClass)) return CD_Upcall;
         return CD_MemorySegment;
-    }
-
-    private static boolean shouldStoreResult(Class<?> aClass, List<Parameter> parameters) {
-        return Upcall.class.isAssignableFrom(aClass) ||
-               parameters.stream().anyMatch(parameter -> parameter.getDeclaredAnnotation(Ref.class) != null);
     }
 
     private static boolean requireAllocator(Class<?> aClass) {
@@ -354,9 +337,19 @@ public final class Downcall {
 
             // methods
             methodDataMap.forEach((method, methodData) -> {
+                final var returnType = method.getReturnType();
+
+                // check method return type
+                if (Struct.class.isAssignableFrom(returnType) && Arrays.stream(returnType.getDeclaredConstructors())
+                    .noneMatch(constructor -> {
+                        final Class<?>[] types = constructor.getParameterTypes();
+                        return types.length == 1 && types[0] == MemorySegment.class;
+                    })) {
+                    throw new IllegalStateException(STR."The struct \{returnType} must contain a constructor that only accept one memory segment: \{methodData.exceptionString()}");
+                }
+
                 final String methodName = method.getName();
                 final int modifiers = method.getModifiers();
-                final var returnType = method.getReturnType();
                 final ClassDesc cd_returnType = ClassDesc.ofDescriptor(returnType.descriptorString());
                 final TypeKind returnTypeKind = TypeKind.from(cd_returnType).asLoadable();
                 final List<Parameter> parameters = methodData.parameters();
@@ -425,10 +418,6 @@ public final class Downcall {
 
                             final ClassDesc cd_returnTypeDowncall = convertToDowncallCD(returnType);
                             final boolean returnVoid = returnType == void.class;
-                            final boolean shouldStoreResult =
-                                !returnVoid &&
-                                shouldStoreResult(returnType, parameters);
-                            final int resultSlot;
 
                             // ref
                             for (int i = 0, size = parameters.size(); i < size; i++) {
@@ -461,9 +450,6 @@ public final class Downcall {
                             }
 
                             // invocation
-                            if (!shouldStoreResult) {
-                                tryAddLayout(blockCodeBuilder, returnType);
-                            }
                             blockCodeBuilder.aload(blockCodeBuilder.receiverSlot())
                                 .getfield(cd_thisClass, handleName, CD_MethodHandle);
                             for (int i = skipFirstParam ? 1 : 0; i < parameterSize; i++) {
@@ -476,7 +462,8 @@ public final class Downcall {
                                 } else {
                                     final int slot = blockCodeBuilder.parameterSlot(i);
                                     if (type.isPrimitive() ||
-                                        type == MemorySegment.class) {
+                                        type == MemorySegment.class ||
+                                        SegmentAllocator.class.isAssignableFrom(type)) {
                                         blockCodeBuilder.loadInstruction(
                                             TypeKind.fromDescriptor(type.descriptorString()).asLoadable(),
                                             slot
@@ -535,62 +522,13 @@ public final class Downcall {
                                 "invokeExact",
                                 MethodTypeDesc.of(cd_returnTypeDowncall, parameterCDList));
 
-                            if (shouldStoreResult) {
+                            final int resultSlot;
+                            if (returnVoid) {
+                                resultSlot = -1;
+                            } else {
                                 final TypeKind typeKind = TypeKind.from(cd_returnTypeDowncall);
                                 resultSlot = blockCodeBuilder.allocateLocal(typeKind);
                                 blockCodeBuilder.storeInstruction(typeKind, resultSlot);
-
-                                tryAddLayout(blockCodeBuilder, returnType);
-                                blockCodeBuilder.loadInstruction(typeKind, resultSlot);
-                            } else {
-                                resultSlot = -1;
-                            }
-
-                            // wrap return value
-                            if (CEnum.class.isAssignableFrom(returnType)) {
-                                final Method wrapper = findCEnumWrapper(returnType);
-                                blockCodeBuilder.invokestatic(cd_returnType,
-                                    wrapper.getName(),
-                                    MethodTypeDesc.of(ClassDesc.ofDescriptor(wrapper.getReturnType().descriptorString()), CD_int),
-                                    wrapper.getDeclaringClass().isInterface());
-                            } else if (Upcall.class.isAssignableFrom(returnType)) {
-                                final Method wrapper = findUpcallWrapper(returnType);
-                                blockCodeBuilder.aload(resultSlot)
-                                    .ifThenElse(Opcode.IFNONNULL,
-                                        blockCodeBuilder1 -> blockCodeBuilder1.aload(allocatorSlot)
-                                            .aload(resultSlot)
-                                            .invokestatic(cd_returnType,
-                                                wrapper.getName(),
-                                                MethodTypeDesc.of(ClassDesc.ofDescriptor(wrapper.getReturnType().descriptorString()),
-                                                    CD_Arena,
-                                                    CD_MemorySegment),
-                                                wrapper.getDeclaringClass().isInterface()),
-                                        CodeBuilder::aconst_null);
-                            } else if (returnType == String.class) {
-                                final boolean hasCharset = getCharset(blockCodeBuilder, method);
-                                blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                    "unmarshalAsString",
-                                    MethodTypeDesc.of(CD_String,
-                                        hasCharset ?
-                                            List.of(CD_MemorySegment, CD_Charset) :
-                                            List.of(CD_MemorySegment)));
-                            } else if (returnType.isArray()) {
-                                final Class<?> componentType = returnType.getComponentType();
-                                if (componentType == String.class) {
-                                    final boolean hasCharset = getCharset(blockCodeBuilder, method);
-                                    blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                        "unmarshalAsString",
-                                        MethodTypeDesc.of(CD_String.arrayType(),
-                                            hasCharset ?
-                                                List.of(CD_AddressLayout, CD_MemorySegment, CD_Charset) :
-                                                List.of(CD_AddressLayout, CD_MemorySegment)));
-                                } else if (componentType.isPrimitive()) {
-                                    blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                        "unmarshal",
-                                        MethodTypeDesc.of(cd_returnType,
-                                            convertToValueLayoutCD(componentType),
-                                            CD_MemorySegment));
-                                }
                             }
 
                             // copy ref result
@@ -626,6 +564,69 @@ public final class Downcall {
                                 }
                             }
 
+                            // wrap return value
+                            final int unmarshalSlot;
+                            if (returnVoid) {
+                                unmarshalSlot = -1;
+                            } else {
+                                unmarshalSlot = blockCodeBuilder.allocateLocal(returnTypeKind);
+                                blockCodeBuilder.loadInstruction(TypeKind.from(cd_returnTypeDowncall), resultSlot);
+                            }
+                            if (returnType == String.class) {
+                                final boolean hasCharset = getCharset(blockCodeBuilder, method);
+                                blockCodeBuilder.invokestatic(CD_Unmarshal,
+                                    "unmarshalAsString",
+                                    MethodTypeDesc.of(CD_String,
+                                        hasCharset ?
+                                            List.of(CD_MemorySegment, CD_Charset) :
+                                            List.of(CD_MemorySegment)));
+                            } else if (Struct.class.isAssignableFrom(returnType)) {
+                                blockCodeBuilder.ifThenElse(Opcode.IFNONNULL,
+                                    blockCodeBuilder1 -> blockCodeBuilder1.new_(cd_returnType)
+                                        .dup()
+                                        .aload(resultSlot)
+                                        .invokespecial(cd_returnType,
+                                            INIT_NAME,
+                                            MethodTypeDesc.of(CD_void, CD_MemorySegment)),
+                                    CodeBuilder::aconst_null);
+                            } else if (CEnum.class.isAssignableFrom(returnType)) {
+                                final Method wrapper = findCEnumWrapper(returnType);
+                                blockCodeBuilder.invokestatic(cd_returnType,
+                                    wrapper.getName(),
+                                    MethodTypeDesc.of(ClassDesc.ofDescriptor(wrapper.getReturnType().descriptorString()), CD_int),
+                                    wrapper.getDeclaringClass().isInterface());
+                            } else if (Upcall.class.isAssignableFrom(returnType)) {
+                                final Method wrapper = findUpcallWrapper(returnType);
+                                blockCodeBuilder.ifThenElse(Opcode.IFNONNULL,
+                                    blockCodeBuilder1 -> blockCodeBuilder1.aload(allocatorSlot)
+                                        .aload(resultSlot)
+                                        .invokestatic(cd_returnType,
+                                            wrapper.getName(),
+                                            MethodTypeDesc.of(ClassDesc.ofDescriptor(wrapper.getReturnType().descriptorString()),
+                                                CD_Arena,
+                                                CD_MemorySegment),
+                                            wrapper.getDeclaringClass().isInterface()),
+                                    CodeBuilder::aconst_null);
+                            } else if (returnType.isArray()) {
+                                final Class<?> componentType = returnType.getComponentType();
+                                if (componentType == String.class) {
+                                    final boolean hasCharset = getCharset(blockCodeBuilder, method);
+                                    blockCodeBuilder.invokestatic(CD_Unmarshal,
+                                        "unmarshalAsStringArray",
+                                        MethodTypeDesc.of(CD_String.arrayType(),
+                                            hasCharset ?
+                                                List.of(CD_MemorySegment, CD_Charset) :
+                                                List.of(CD_MemorySegment)));
+                                } else if (componentType.isPrimitive() || componentType == MemorySegment.class) {
+                                    blockCodeBuilder.invokestatic(CD_Unmarshal,
+                                        unmarshalMethod(returnType),
+                                        MethodTypeDesc.of(cd_returnType, CD_MemorySegment));
+                                }
+                            }
+                            if (!returnVoid) {
+                                blockCodeBuilder.storeInstruction(returnTypeKind, unmarshalSlot);
+                            }
+
                             // reset stack
                             if (shouldAddStack) {
                                 blockCodeBuilder.aload(stackSlot)
@@ -634,6 +635,9 @@ public final class Downcall {
                             }
 
                             // return
+                            if (!returnVoid) {
+                                blockCodeBuilder.loadInstruction(returnTypeKind, unmarshalSlot);
+                            }
                             blockCodeBuilder.returnInstruction(returnTypeKind);
                         },
                         catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
@@ -709,37 +713,74 @@ public final class Downcall {
                                 .invokevirtual(CD_Optional, "get", MethodTypeDesc.of(CD_Object))
                                 .checkcast(CD_MemorySegment);
 
-                            // layout
                             final var returnType = method.getReturnType();
                             final boolean returnVoid = returnType == void.class;
+                            final boolean methodByValue = method.getDeclaredAnnotation(ByValue.class) != null;
+
+                            // layout
                             if (!returnVoid) {
-                                convertToValueLayout(blockCodeBuilder, returnType);
-                                if (!returnType.isPrimitive()) {
+                                if (returnType.isPrimitive()) {
+                                    convertToValueLayout(blockCodeBuilder, returnType);
+                                } else {
                                     final SizedSeg sizedSeg = method.getDeclaredAnnotation(SizedSeg.class);
                                     final Sized sized = method.getDeclaredAnnotation(Sized.class);
                                     final boolean isSizedSeg = sizedSeg != null;
-                                    final boolean isSized = sized != null && returnType.isArray();
-                                    if (isSizedSeg || isSized) {
-                                        if (isSizedSeg) {
-                                            blockCodeBuilder.constantInstruction(sizedSeg.value());
-                                            convertToValueLayout(blockCodeBuilder, byte.class);
-                                        } else {
-                                            blockCodeBuilder.constantInstruction((long) sized.value());
-                                            convertToValueLayout(blockCodeBuilder, returnType.getComponentType());
+                                    final boolean isSized = sized != null;
+                                    if (Struct.class.isAssignableFrom(returnType)) {
+                                        final String name = Arrays.stream(returnType.getDeclaredFields())
+                                            .filter(field -> Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class)
+                                            .findFirst()
+                                            .orElseThrow(() ->
+                                                new IllegalStateException(STR."The struct \{returnType} must contain one public static field that is StructLayout"))
+                                            .getName();
+                                        if (!methodByValue) {
+                                            convertToValueLayout(blockCodeBuilder, returnType);
+                                            if (isSizedSeg) {
+                                                blockCodeBuilder.constantInstruction(sizedSeg.value());
+                                            } else if (isSized) {
+                                                blockCodeBuilder.constantInstruction((long) sized.value());
+                                            }
                                         }
-                                        blockCodeBuilder.invokestatic(CD_MemoryLayout,
-                                                "sequenceLayout",
-                                                MethodTypeDesc.of(CD_SequenceLayout, CD_long, CD_MemoryLayout),
-                                                true)
-                                            .invokeinterface(CD_AddressLayout,
+                                        blockCodeBuilder.getstatic(ClassDesc.ofDescriptor(returnType.descriptorString()),
+                                            name,
+                                            CD_StructLayout);
+                                        if (!methodByValue) {
+                                            if (isSizedSeg || isSized) {
+                                                blockCodeBuilder.invokestatic(CD_MemoryLayout,
+                                                    "sequenceLayout",
+                                                    MethodTypeDesc.of(CD_SequenceLayout, CD_long, CD_MemoryLayout),
+                                                    true);
+                                            }
+                                            blockCodeBuilder.invokeinterface(CD_AddressLayout,
                                                 "withTargetLayout",
                                                 MethodTypeDesc.of(CD_AddressLayout, CD_MemoryLayout));
+                                        }
+                                    } else {
+                                        convertToValueLayout(blockCodeBuilder, returnType);
+                                        if (isSizedSeg || isSized) {
+                                            if (isSizedSeg) {
+                                                blockCodeBuilder.constantInstruction(sizedSeg.value());
+                                                convertToValueLayout(blockCodeBuilder, byte.class);
+                                            } else {
+                                                blockCodeBuilder.constantInstruction((long) sized.value());
+                                                convertToValueLayout(blockCodeBuilder, returnType.isArray() ? returnType.getComponentType() : byte.class);
+                                            }
+                                            blockCodeBuilder.invokestatic(CD_MemoryLayout,
+                                                    "sequenceLayout",
+                                                    MethodTypeDesc.of(CD_SequenceLayout, CD_long, CD_MemoryLayout),
+                                                    true)
+                                                .invokeinterface(CD_AddressLayout,
+                                                    "withTargetLayout",
+                                                    MethodTypeDesc.of(CD_AddressLayout, CD_MemoryLayout));
+                                        }
                                     }
                                 }
                             }
                             final var parameters = methodData.parameters();
                             final boolean skipFirstParam = methodData.skipFirstParam();
-                            final int size = skipFirstParam ? parameters.size() - 1 : parameters.size();
+                            final int size = skipFirstParam || methodByValue ?
+                                parameters.size() - 1 :
+                                parameters.size();
                             blockCodeBuilder.constantInstruction(size)
                                 .anewarray(CD_MemoryLayout);
                             for (int i = 0; i < size; i++) {
