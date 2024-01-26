@@ -182,9 +182,11 @@ public class StructHandle implements StructHandleView {
     /**
      * Creates an array struct handle.
      *
-     * @param struct the struct
-     * @param name   the name
-     * @param <T>    the type of the array
+     * @param struct        the struct
+     * @param name          the name
+     * @param setterFactory the setter factory
+     * @param getterFactory the getter factory
+     * @param <T>           the type of the array
      * @return the struct handle
      */
     public static <T> Array<T> ofArray(Struct struct, String name, BiFunction<SegmentAllocator, T, MemorySegment> setterFactory, Function<MemorySegment, T> getterFactory) {
