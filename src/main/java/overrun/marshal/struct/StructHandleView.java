@@ -242,19 +242,45 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param size  the size of the string
+         * @param byteSize  the byte size of the string
          * @param index the index
          * @return the value
          */
-        String get(long size, long index);
+        String get(long byteSize, long index);
 
         /**
          * Gets the value.
          *
-         * @param size the size of the string
+         * @param byteSize the byte size of the string
          * @return the value
          */
-        String get(long size);
+        String get(long byteSize);
+    }
+
+    /**
+     * array type
+     *
+     * @param <T> the type of the array
+     * @author squid233
+     * @since 0.1.0
+     */
+    interface Array<T> extends StructHandleView {
+        /**
+         * Gets the value at the given index.
+         *
+         * @param byteSize  the byte size of the array
+         * @param index the index
+         * @return the value
+         */
+        T get(long byteSize, long index);
+
+        /**
+         * Gets the value.
+         *
+         * @param byteSize the byte size of the array
+         * @return the value
+         */
+        T get(long byteSize);
     }
 
     /**

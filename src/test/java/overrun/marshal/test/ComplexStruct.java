@@ -16,6 +16,8 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.Marshal;
+import overrun.marshal.Unmarshal;
 import overrun.marshal.struct.Struct;
 import overrun.marshal.struct.StructHandle;
 
@@ -57,6 +59,7 @@ public final class ComplexStruct extends Struct {
     public final StructHandle.Str UTF16Str = StructHandle.ofString(this, "UTF16Str", StandardCharsets.UTF_16);
     public final StructHandle.Addressable<Vector3> Addressable = StructHandle.ofAddressable(this, "Addressable", Vector3::new);
     public final StructHandle.Upcall<SimpleUpcall> Upcall = StructHandle.ofUpcall(this, "Upcall", SimpleUpcall::wrap);
+    public final StructHandle.Array<int[]> IntArray = StructHandle.ofArray(this, "IntArray", Marshal::marshal, Unmarshal::unmarshalAsIntArray);
 
     /**
      * Creates a struct with the given layout.

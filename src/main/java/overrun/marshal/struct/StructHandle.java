@@ -180,6 +180,18 @@ public class StructHandle implements StructHandleView {
     }
 
     /**
+     * Creates an array struct handle.
+     *
+     * @param struct the struct
+     * @param name   the name
+     * @param <T>    the type of the array
+     * @return the struct handle
+     */
+    public static <T> Array<T> ofArray(Struct struct, String name, BiFunction<SegmentAllocator, T, MemorySegment> setterFactory, Function<MemorySegment, T> getterFactory) {
+        return new Array<>(ofValue(struct, name), setterFactory, getterFactory);
+    }
+
+    /**
      * Creates an addressable struct handle.
      *
      * @param struct  the struct
@@ -610,13 +622,64 @@ public class StructHandle implements StructHandleView {
         }
 
         @Override
-        public String get(long size, long index) {
-            return ((MemorySegment) varHandle.get(0L, index)).reinterpret(size).getString(0L, charset);
+        public String get(long byteSize, long index) {
+            return ((MemorySegment) varHandle.get(0L, index)).reinterpret(byteSize).getString(0L, charset);
         }
 
         @Override
-        public String get(long size) {
-            return get(size, 0L);
+        public String get(long byteSize) {
+            return get(byteSize, 0L);
+        }
+    }
+
+    /**
+     * array type
+     *
+     * @param <T> the type of the array
+     * @author squid233
+     * @since 0.1.0
+     */
+    public static final class Array<T> extends StructHandle implements StructHandleView.Array<T> {
+        private final BiFunction<SegmentAllocator, T, MemorySegment> setterFactory;
+        private final Function<MemorySegment, T> getterFactory;
+
+        private Array(VarHandle varHandle, BiFunction<SegmentAllocator, T, MemorySegment> setterFactory, Function<MemorySegment, T> getterFactory) {
+            super(varHandle);
+            this.setterFactory = setterFactory;
+            this.getterFactory = getterFactory;
+        }
+
+        /**
+         * Sets the value at the given index.
+         *
+         * @param allocator the allocator
+         * @param index     the index
+         * @param value     the value
+         */
+        public void set(SegmentAllocator allocator, long index, T value) {
+            if (setterFactory == null) throw new UnsupportedOperationException();
+            varHandle.set(0L, index, setterFactory.apply(allocator, value));
+        }
+
+        /**
+         * Sets the value.
+         *
+         * @param allocator the allocator
+         * @param value     the value
+         */
+        public void set(SegmentAllocator allocator, T value) {
+            set(allocator, 0L, value);
+        }
+
+        @Override
+        public T get(long byteSize, long index) {
+            if (getterFactory == null) throw new UnsupportedOperationException();
+            return getterFactory.apply(((MemorySegment) varHandle.get(0L, index)).reinterpret(byteSize));
+        }
+
+        @Override
+        public T get(long byteSize) {
+            return get(byteSize, 0L);
         }
     }
 

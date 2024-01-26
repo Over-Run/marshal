@@ -110,6 +110,7 @@ public final class StructTest {
             struct.UTF16Str.set(arena, utf16Str(TEST_UTF16_STRING));
             struct.Addressable.set(vector3);
             struct.Upcall.set(arena, i -> i * 2);
+            struct.IntArray.set(arena, new int[]{8, 9});
 
             assertTrue(struct.Bool.get());
             assertEquals('1', struct.Char.get());
@@ -127,6 +128,7 @@ public final class StructTest {
             assertEquals(12, getVector.y.get());
             assertEquals(0, getVector.z.get());
             assertEquals(84, struct.Upcall.get(arena).invoke(42));
+            assertArrayEquals(new int[]{8, 9}, struct.IntArray.get(ValueLayout.JAVA_INT.scale(0L, 2L)));
         }
     }
 }
