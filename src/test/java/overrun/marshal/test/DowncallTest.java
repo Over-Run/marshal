@@ -145,6 +145,17 @@ public final class DowncallTest {
     }
 
     @Test
+    void testStruct() {
+        try (Arena arena = Arena.ofConfined()) {
+            final Vector3 vector3 = new Vector3(arena);
+            d.testStruct(vector3);
+            assertEquals(1, vector3.x.get());
+            assertEquals(2, vector3.y.get());
+            assertEquals(3, vector3.z.get());
+        }
+    }
+
+    @Test
     void testReturnInt() {
         assertEquals(42, d.testReturnInt());
     }
@@ -166,6 +177,35 @@ public final class DowncallTest {
             final SimpleUpcall upcall = d.testReturnUpcall(arena);
             assertEquals(84, upcall.invoke(42));
         }
+    }
+
+    @Test
+    void testReturnStruct() {
+        try (Arena arena = Arena.ofConfined()) {
+            final Vector3 returnStruct = d.testReturnStruct();
+            assertEquals(4, returnStruct.x.get());
+            assertEquals(5, returnStruct.y.get());
+            assertEquals(6, returnStruct.z.get());
+            final Vector3 returnStructByValue = d.testReturnStructByValue(arena);
+            assertEquals(7, returnStructByValue.x.get());
+            assertEquals(8, returnStructByValue.y.get());
+            assertEquals(9, returnStructByValue.z.get());
+        }
+    }
+
+    @Test
+    void testReturnStructSized() {
+        assertStructSized(d.testReturnStructSizedSeg());
+        assertStructSized(d.testReturnStructSized());
+    }
+
+    private void assertStructSized(Vector3 vector3) {
+        assertEquals(1, vector3.x.get());
+        assertEquals(2, vector3.y.get());
+        assertEquals(3, vector3.z.get());
+        assertEquals(4, vector3.x.get(1L));
+        assertEquals(5, vector3.y.get(1L));
+        assertEquals(6, vector3.z.get(1L));
     }
 
     @Test

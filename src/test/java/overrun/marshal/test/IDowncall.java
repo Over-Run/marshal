@@ -16,6 +16,7 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.ByValue;
 import overrun.marshal.Downcall;
 import overrun.marshal.MemoryStack;
 import overrun.marshal.gen.*;
@@ -69,6 +70,8 @@ public interface IDowncall {
 
     void testVarArgsJava(int c, int... arr);
 
+    void testStruct(Vector3 vector3);
+
     int testReturnInt();
 
     @SizedSeg(12)
@@ -81,6 +84,17 @@ public interface IDowncall {
     MyEnum testReturnCEnum();
 
     SimpleUpcall testReturnUpcall(Arena arena);
+
+    Vector3 testReturnStruct();
+
+    @ByValue
+    Vector3 testReturnStructByValue(SegmentAllocator allocator);
+
+    @SizedSeg(2L)
+    Vector3 testReturnStructSizedSeg();
+
+    @Sized(2)
+    Vector3 testReturnStructSized();
 
     @Sized(2)
     int[] testReturnIntArray();

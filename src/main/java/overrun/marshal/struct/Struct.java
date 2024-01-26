@@ -21,7 +21,38 @@ import overrun.marshal.Addressable;
 import java.lang.foreign.*;
 
 /**
- * The presentation of C struct.
+ * The presentation of a C structure.
+ * <h2>Struct handles</h2>
+ * You can access an element of a structure via {@linkplain StructHandle}.
+ * The struct handle provides accessor where to set and get the element of a structure.
+ * You can get a read-only struct handle by declaring it with the {@linkplain StructHandleView view} variants.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * class Point extends Struct {
+ *     public static final StructLayout LAYOUT = MemoryLayout.structLayout(
+ *         ValueLayout.JAVA_INT.withName("x"),
+ *         ValueLayout.JAVA_INT.withName("y")
+ *     );
+ *     public final StructHandle.Int x = StructHandle.ofInt(this, "x");
+ *     // read-only
+ *     public final StructHandleView.Int y = StructHandle.ofInt(this, "y");
+ *     // constructors ...
+ * }
+ * }</pre>
+ * <h3>Incoming change</h3>
+ * <pre>{@code
+ * value class Point extends Struct {
+ *     public static final StructLayout LAYOUT = MemoryLayout.structLayout(
+ *         // a dummy method that creates value layout
+ *         ValueLayout.<int>of().withName("x"),
+ *         ValueLayout.<int>of().withName("y")
+ *     );
+ *     public final StructHandle<int> x = StructHandle.<int>of(this, "x");
+ *     // read-only
+ *     public final StructHandleView<int> y = StructHandle.<int>of(this, "y");
+ *     // constructors ...
+ * }
+ * }</pre>
  *
  * @author squid233
  * @since 0.1.0
