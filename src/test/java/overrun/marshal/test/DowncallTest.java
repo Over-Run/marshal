@@ -17,8 +17,6 @@
 package overrun.marshal.test;
 
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import overrun.marshal.MemoryStack;
 
 import java.io.ByteArrayOutputStream;
@@ -28,11 +26,9 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
-import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static overrun.marshal.test.DowncallProvider.TEST_STRING;
-import static overrun.marshal.test.DowncallProvider.TEST_UTF16_STRING;
+import static overrun.marshal.test.TestUtil.*;
 
 /**
  * Test downcall
@@ -88,15 +84,16 @@ public final class DowncallTest {
         assertEquals("testSkip", outputStream.toString());
     }
 
-    @ParameterizedTest(name = "testDefault(testDefaultNull = [" + ParameterizedTest.INDEX_PLACEHOLDER + "] " + ParameterizedTest.ARGUMENTS_WITH_NAMES_PLACEHOLDER + ")")
-    @ValueSource(booleans = {false, true})
-    void testDefault(boolean testDefaultNull) {
-        IDowncall.getInstance(testDefaultNull).testDefault();
-        if (testDefaultNull) {
-            assertEquals("testDefault in interface", outputStream.toString());
-        } else {
-            assertEquals("testDefault", outputStream.toString());
-        }
+    @Test
+    void testDefaultInInterface() {
+        IDowncall.getInstance(true).testDefault();
+        assertEquals("testDefault in interface", outputStream.toString());
+    }
+
+    @Test
+    void testDefault() {
+        IDowncall.getInstance(false).testDefault();
+        assertEquals("testDefault", outputStream.toString());
     }
 
     @Test
@@ -113,7 +110,7 @@ public final class DowncallTest {
 
     @Test
     void testUTF16String() {
-        d.testUTF16String(new String(TEST_UTF16_STRING.getBytes(StandardCharsets.UTF_16), StandardCharsets.UTF_16));
+        d.testUTF16String(utf16Str(TEST_UTF16_STRING));
         assertEquals(TEST_UTF16_STRING, outputStream.toString());
     }
 

@@ -35,5 +35,9 @@ public final class DowncallInheritTest {
         int[] arr = {0};
         d.get(arr);
         assertArrayEquals(new int[]{42}, arr);
+
+        assertEquals(1, d.get1());
+        assertEquals(1, d.get2());
+        assertEquals(3, d.get3());
     }
 }

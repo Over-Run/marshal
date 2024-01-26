@@ -16,6 +16,8 @@
 
 package overrun.marshal;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -52,7 +54,7 @@ public final class Marshal {
      * @param string    the string
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, String string) {
+    public static MemorySegment marshal(SegmentAllocator allocator, @Nullable String string) {
         if (string == null) return MemorySegment.NULL;
         return allocator.allocateFrom(string);
     }
@@ -65,7 +67,7 @@ public final class Marshal {
      * @param charset   the charset
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, String string, Charset charset) {
+    public static MemorySegment marshal(SegmentAllocator allocator, @Nullable String string, Charset charset) {
         if (string == null) return MemorySegment.NULL;
         return allocator.allocateFrom(string, charset);
     }
@@ -76,8 +78,8 @@ public final class Marshal {
      * @param cEnum the CEnum
      * @return the integer
      */
-    public static int marshal(CEnum cEnum) {
-        return cEnum.value();
+    public static int marshal(@Nullable CEnum cEnum) {
+        return cEnum != null ? cEnum.value() : 0;
     }
 
     /**
@@ -86,7 +88,7 @@ public final class Marshal {
      * @param addressable the addressable
      * @return the segment
      */
-    public static MemorySegment marshal(Addressable addressable) {
+    public static MemorySegment marshal(@Nullable Addressable addressable) {
         if (addressable == null) return MemorySegment.NULL;
         return addressable.segment();
     }
@@ -98,7 +100,7 @@ public final class Marshal {
      * @param upcall the upcall
      * @return the segment
      */
-    public static MemorySegment marshal(Arena arena, Upcall upcall) {
+    public static MemorySegment marshal(Arena arena, @Nullable Upcall upcall) {
         if (upcall == null) return MemorySegment.NULL;
         return upcall.stub(arena);
     }
@@ -110,11 +112,11 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, boolean[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, boolean @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(JAVA_BOOLEAN, arr.length);
         for (int i = 0, l = arr.length; i < l; i++) {
-            vh_booleanArray.set(segment, (long) i, segment, arr[i]);
+            vh_booleanArray.set(segment, (long) i, arr[i]);
         }
         return segment;
     }
@@ -126,7 +128,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, char[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, char @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_CHAR, arr);
     }
@@ -138,7 +140,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, byte[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, byte @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_BYTE, arr);
     }
@@ -150,7 +152,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, short[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, short @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_SHORT, arr);
     }
@@ -162,7 +164,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, int[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, int @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_INT, arr);
     }
@@ -174,7 +176,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, long[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, long @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_LONG, arr);
     }
@@ -186,7 +188,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, float[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, float @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_FLOAT, arr);
     }
@@ -198,7 +200,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, double[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, double @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         return allocator.allocateFrom(JAVA_DOUBLE, arr);
     }
@@ -213,7 +215,7 @@ public final class Marshal {
      * @param <T>       the type of the element
      * @return the segment
      */
-    public static <A extends SegmentAllocator, T> MemorySegment marshal(A allocator, T[] arr, BiFunction<A, T, MemorySegment> function) {
+    public static <A extends SegmentAllocator, T> MemorySegment marshal(A allocator, T @Nullable [] arr, BiFunction<A, T, MemorySegment> function) {
         if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(ADDRESS, arr.length);
         for (int i = 0, l = arr.length; i < l; i++) {
@@ -229,8 +231,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, MemorySegment[] arr) {
-        if (arr == null) return MemorySegment.NULL;
+    public static MemorySegment marshal(SegmentAllocator allocator, MemorySegment @Nullable [] arr) {
         return marshal(allocator, arr, (_, segment) -> segment);
     }
 
@@ -241,8 +242,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, String[] arr) {
-        if (arr == null) return MemorySegment.NULL;
+    public static MemorySegment marshal(SegmentAllocator allocator, String @Nullable [] arr) {
         return marshal(allocator, arr, SegmentAllocator::allocateFrom);
     }
 
@@ -254,8 +254,7 @@ public final class Marshal {
      * @param charset   the charset
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, String[] arr, Charset charset) {
-        if (arr == null) return MemorySegment.NULL;
+    public static MemorySegment marshal(SegmentAllocator allocator, String @Nullable [] arr, Charset charset) {
         return marshal(allocator, arr, (segmentAllocator, str) -> segmentAllocator.allocateFrom(str, charset));
     }
 
@@ -266,7 +265,7 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, CEnum[] arr) {
+    public static MemorySegment marshal(SegmentAllocator allocator, CEnum @Nullable [] arr) {
         if (arr == null) return MemorySegment.NULL;
         final MemorySegment segment = allocator.allocate(JAVA_INT, arr.length);
         for (int i = 0; i < arr.length; i++) {
@@ -282,9 +281,8 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, Addressable[] arr) {
-        if (arr == null) return MemorySegment.NULL;
-        return marshal(allocator, arr, (_, addressable) -> addressable.segment());
+    public static MemorySegment marshal(SegmentAllocator allocator, @Nullable Addressable @Nullable [] arr) {
+        return marshal(allocator, arr, (_, addressable) -> addressable != null ? addressable.segment() : MemorySegment.NULL);
     }
 
     /**
@@ -294,8 +292,7 @@ public final class Marshal {
      * @param arr   the array
      * @return the segment
      */
-    public static MemorySegment marshal(Arena arena, Upcall[] arr) {
-        if (arr == null) return MemorySegment.NULL;
+    public static MemorySegment marshal(Arena arena, Upcall @Nullable [] arr) {
         return marshal(arena, arr, (arena1, upcall) -> upcall.stub(arena1));
     }
 }

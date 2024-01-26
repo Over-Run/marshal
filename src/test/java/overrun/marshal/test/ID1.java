@@ -16,6 +16,8 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.gen.Entrypoint;
+
 /**
  * downcall interface 1
  *
@@ -24,4 +26,11 @@ package overrun.marshal.test;
  */
 public interface ID1 {
     int mul2(int i);
+
+    int get1();
+
+    int get2();
+
+    @Entrypoint("get1")
+    int get3();
 }

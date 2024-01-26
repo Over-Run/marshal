@@ -17,8 +17,6 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.*;
-import overrun.marshal.gen.struct.ByValue;
-import overrun.marshal.gen2.DowncallMethodData;
 
 import java.lang.annotation.Annotation;
 import java.lang.classfile.ClassFile;
@@ -579,7 +577,7 @@ public final class Downcall {
                                 if (componentType == String.class) {
                                     final boolean hasCharset = getCharset(blockCodeBuilder, method);
                                     blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                        "unmarshalAsString",
+                                        "unmarshalAsStringArray",
                                         MethodTypeDesc.of(CD_String.arrayType(),
                                             hasCharset ?
                                                 List.of(CD_AddressLayout, CD_MemorySegment, CD_Charset) :

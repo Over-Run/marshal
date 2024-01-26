@@ -30,6 +30,7 @@ import java.util.Optional;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static overrun.marshal.test.TestUtil.*;
 
 /**
  * Provides downcall handle
@@ -38,8 +39,6 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
  * @since 0.1.0
  */
 public final class DowncallProvider {
-    public static final String TEST_STRING = "Hello world";
-    public static final String TEST_UTF16_STRING = "Hello UTF-16 world";
     private static final Linker LINKER = Linker.nativeLinker();
     private static final Arena ARENA = Arena.ofAuto();
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
@@ -128,7 +127,7 @@ public final class DowncallProvider {
     }
 
     private static MemorySegment testReturnUTF16String() {
-        return ARENA.allocateFrom(new String(TEST_UTF16_STRING.getBytes(StandardCharsets.UTF_16), StandardCharsets.UTF_16), StandardCharsets.UTF_16);
+        return ARENA.allocateFrom(utf16Str(TEST_UTF16_STRING), StandardCharsets.UTF_16);
     }
 
     private static int testReturnCEnum() {
