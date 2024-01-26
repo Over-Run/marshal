@@ -14,13 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen;
+
+import java.lang.annotation.*;
+
 /**
- * The main package of marshal.
+ * Marks a method that invokes a <em>critical</em> function.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Critical(allowHeapAccess = false)
+ * void criticalFunction();
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct.Struct
+ * @see java.lang.foreign.Linker.Option#critical(boolean) Linker.Option.critical
  * @since 0.1.0
  */
-package overrun.marshal;
+@Documented
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Critical {
+    /**
+     * {@return whether the linked function should allow access to the Java heap}
+     */
+    boolean allowHeapAccess();
+}

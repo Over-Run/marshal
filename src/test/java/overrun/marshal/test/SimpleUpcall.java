@@ -14,27 +14,39 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.test;
+
+import overrun.marshal.Upcall;
+
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
 
 /**
- * Checks
+ * A simple upcall
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class Checks {
-    private Checks() {
+@FunctionalInterface
+public interface SimpleUpcall extends Upcall {
+    Type<SimpleUpcall> TYPE = Upcall.type();
+
+    @Stub
+    int invoke(int i);
+
+    @Wrapper
+    static SimpleUpcall wrap(Arena arena, MemorySegment stub) {
+        return TYPE.wrap(stub, methodHandle -> i -> {
+            try {
+                return (int) methodHandle.invokeExact(i);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
-    /**
-     * Checks the array size.
-     *
-     * @param expected the expected size
-     * @param actual   the actual size
-     */
-    public static void checkArraySize(int expected, int actual) {
-        if (Configurations.CHECK_ARRAY_SIZE.get() && expected != actual) {
-            throw new IllegalArgumentException("Expected array of size " + expected + ", got " + actual);
-        }
+    @Override
+    default MemorySegment stub(Arena arena) {
+        return TYPE.of(arena, this);
     }
 }

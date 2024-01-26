@@ -12,20 +12,22 @@ This library requires JDK 22 or newer.
 
 ```java
 import overrun.marshal.*;
+import overrun.marshal.gen.*;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.ValueLayout;
 
 /**
  * GLFW constants and functions
- * <p>
- * The documentation will be automatically copied
- * into the generated file
- * <p>
- * You don't have to specify the name if the name of the class or interface starts with 'C'
  */
-@Downcall(libname = "libglfw.so")
-interface CGLFW {
+interface GLFW {
+    /**
+     * The instance of the loaded library
+     */
+    GLFW INSTANCE = Downcall.load("libglfw3.so");
+
     /**
      * A field
      */
@@ -33,86 +35,56 @@ interface CGLFW {
 
     /**
      * Sets the swap interval.
-     * <p> 
-     * You can set the access modifier.
      *
      * @param interval the interval
      */
-    @Access(AccessModifier.PROTECTED)
     void glfwSwapInterval(int interval);
 
     /**
-     * Custom method body
-     */
-    @Custom("""
-        glfwSwapInterval(1);""")
-    void glfwEnableVSync();
-
-    /**
-     * {@return default value if the function was not found}
-     */
-    @Default("0")
-    @Entrypoint("glfwGetTime")
-    double getTime();
-
-    /**
-     * Sized array.
-     * Note: this method doesn't exist in GLFW
-     * <p>
-     * You can mark methods with Critical
-     *
-     * @param arr The array
-     */
-    @Critical(allowHeapAccess = true)
-    void sizedArray(@Sized(2) int[] arr);
-
-    /**
-     * A simple method
-     * <p>
-     * Note: annotation Ref in this method is unnecessary;
-     * however, you can use it to mark
+     * Gets the window position.
+     * Marks the array parameter as a place to store the value returned by C
      *
      * @param window the window
      * @param posX   the position x
      * @param posY   the position y
      */
-    void glfwGetWindowPos(MemorySegment window, @Ref MemorySegment posX, @Ref MemorySegment posY);
-
-    /**
-     * Overload another method with the same name
-     *
-     * @param window the window
-     * @param posX   the array where to store the position x
-     * @param posY   the array where to store the position y
-     */
-    @Overload
     void glfwGetWindowPos(MemorySegment window, @Ref int[] posX, @Ref int[] posY);
 
     /**
-     * {@return a UTF-16 string}
+     * Creates a window.
+     * Requires a segment allocator to allocate the string;
+     * if the first parameter is not segment allocator, then the memory stack is used
+     *
+     * @param allocator the segment allocator
+     * @param width     the width
+     * @param height    the height
+     * @param title     the title
+     * @param monitor   the monitor
+     * @param share     the share
+     * @return the window
      */
-    @StrCharset("UTF-16")
-    String returnString();
+    MemorySegment glfwCreateWindow(SegmentAllocator allocator, int width, int height, String title, MemorySegment monitor, MemorySegment share);
 }
 
 class Main {
     public static void main(String[] args) {
+        GLFW glfw = GLFW.INSTANCE;
         int key = GLFW.GLFW_KEY_A;
-        GLFW.glfwSwapInterval(1);
-        GLFW.glfwEnableVSync();
-        double time = GLFW.getTime();
-        GLFW.sizedArray(new int[]{4, 2});
-        MemorySegment windowHandle = /*...*/createWindow();
-        // MemoryStack is a placeholder type
-        try (MemoryStack stack = /*...*/stackPush()) {
-            MemorySegment bufX1 = stack.callocInt(1);
-            MemorySegment bufY1 = stack.callocInt(1);
-            int[] bufX2 = {0};
-            int[] bufY2 = {0};
-            GLFW.glfwGetWindowPos(windowHandle, bufX1, bufY1);
-            GLFW.glfwGetWindowPos(windowHandle, bufX2, bufY2);
+        glfw.glfwSwapInterval(1);
+
+        // Arena
+        try (var arena = Arena.ofConfined()) {
+            MemorySegment windowHandle = glfw.glfwCreateWindow(arena,
+                800,
+                600,
+                "The title",
+                MemorySegment.NULL,
+                MemorySegment.NULL);
+
+            // ref by array
+            int[] ax = {0}, ay = {0};
+            glfw.glfwGetWindowPos(windowHandle, ax, ay);
         }
-        String s = GLFW.returnString();
     }
 }
 ```

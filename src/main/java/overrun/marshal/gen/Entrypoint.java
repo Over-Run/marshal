@@ -14,13 +14,29 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen;
+
+import java.lang.annotation.*;
+
 /**
- * The main package of marshal.
+ * Specifies the entrypoint of a method.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Entrypoint("getStatus")
+ * int ngetStatus(MemorySegment dst);
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
-package overrun.marshal;
+@Documented
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Entrypoint {
+    /**
+     * Uses the specified entrypoint (the native name of the function), instead of the method name.
+     *
+     * @return the entrypoint name of the method
+     */
+    String value();
+}

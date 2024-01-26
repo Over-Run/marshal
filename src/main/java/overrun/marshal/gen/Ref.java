@@ -14,13 +14,22 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen;
+
+import java.lang.annotation.*;
+
 /**
- * The main package of marshal.
+ * Marks a parameter as an array type that reads the result from the native code.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * void get(@Ref int[] dst);
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
-package overrun.marshal;
+@Documented
+@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Ref {
+}

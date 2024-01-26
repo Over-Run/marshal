@@ -14,13 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen;
+
+import java.lang.annotation.*;
+
 /**
- * The main package of marshal.
+ * Sets the charset of a string type.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @StrCharset("UTF-16")
+ * String apply(@StrCharset("UTF-16") String s);
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct.Struct
+ * @see java.nio.charset.Charset Charset
  * @since 0.1.0
  */
-package overrun.marshal;
+@Documented
+@Target({ElementType.PARAMETER, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface StrCharset {
+    /**
+     * {@return the charset}
+     */
+    String value() default "UTF-8";
+}

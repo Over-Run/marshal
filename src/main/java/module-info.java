@@ -22,7 +22,8 @@
  */
 module io.github.overrun.marshal {
     exports overrun.marshal;
+    exports overrun.marshal.gen;
     exports overrun.marshal.struct;
 
-    requires java.compiler;
+    requires static org.jetbrains.annotations;
 }

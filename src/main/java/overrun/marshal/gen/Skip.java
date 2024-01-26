@@ -14,13 +14,23 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen;
+
+import java.lang.annotation.*;
+
 /**
- * The main package of marshal.
+ * Skips generating a marked field or method.
+ * <h2>Example</h2>
+ * <pre>{@code
+ * @Skip
+ * int LAYOUT;
+ * }</pre>
  *
  * @author squid233
- * @see overrun.marshal.Downcall
- * @see overrun.marshal.Upcall
- * @see overrun.marshal.struct.Struct
  * @since 0.1.0
  */
-package overrun.marshal;
+@Documented
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Skip {
+}

@@ -16,6 +16,8 @@
 
 package overrun.marshal;
 
+import overrun.marshal.gen.SizedSeg;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -25,7 +27,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -44,13 +46,9 @@ import java.util.function.Supplier;
  *     Type<MyCallback> TYPE = Upcall.type();
  *
  *     // The function to be invoked in C
- *     int invoke(int i, String p);
- *
- *     // The stub provider
+ *     // Also the stub provider
  *     @Stub
- *     default int invoke(int i, MemorySegment p) {
- *         return invoke(error, description.reinterpret(Long.MAX_VALUE).getString(0));
- *     }
+ *     int invoke(int i);
  *
  *     // Create an upcall stub segment with Type
  *     @Override
@@ -58,12 +56,12 @@ import java.util.function.Supplier;
  *         return TYPE.of(arena, this);
  *     }
  *
- *     // Create a wrap method
+ *     // Create an optional wrap method
  *     @Wrapper
- *     static MyCallback wrap(MemorySegment stub) {
- *         return TYPE.wrap(stub, (arena, mh) -> (i, p) -> {
+ *     static MyCallback wrap(Arena arena, MemorySegment stub) {
+ *         return TYPE.wrap(stub, mh -> i -> {
  *             try {
- *                 return mh.invokeExact(i, arena.get().allocateFrom(p));
+ *                 return (int) mh.invokeExact(i);
  *             } catch (Throwable e) {
  *                 throw new RuntimeException(e);
  *             }
@@ -72,7 +70,7 @@ import java.util.function.Supplier;
  * }
  *
  * // C downcall
- * setMyCallback((i, p) -> System.out.println(i + ": " + p));
+ * setMyCallback(i -> i * 2);
  * }</pre>
  *
  * @author squid233
@@ -124,7 +122,7 @@ public interface Upcall {
     }
 
     /**
-     * Marks a method as an upcall stub provider.
+     * Marks a method as an upcall stub provider. The marked method <strong>must not</strong> throw any exception.
      *
      * @author squid233
      * @see Upcall
@@ -138,19 +136,20 @@ public interface Upcall {
     /**
      * Marks a <strong>static</strong> method as an upcall wrapper.
      * <p>
-     * The marked method must only contain one {@link java.lang.foreign.MemorySegment MemorySegment} parameter.
+     * The parameters of marked method must be only one {@link Arena} and one {@link MemorySegment}.
      *
      * @author squid233
      * @see Upcall
      * @since 0.1.0
      */
     @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(RetentionPolicy.RUNTIME)
     @interface Wrapper {
     }
 
     /**
-     * The type wrapper of an upcall interface. You should always cache it as a static field.
+     * The type wrapper of an upcall interface.
+     * The constructor uses heavy reflective, and you should always cache it as a static field.
      *
      * @param <T> The type of the upcall interface.
      * @author squid233
@@ -174,20 +173,21 @@ public interface Upcall {
             }
             final var returnType = method.getReturnType();
             final MemoryLayout[] memoryLayouts = Arrays.stream(method.getParameters())
-                .map(p -> {
-                    final MemoryLayout layout = toMemoryLayout(p.getType());
-                    final SizedSeg sizedSeg = p.getDeclaredAnnotation(SizedSeg.class);
-                    if (sizedSeg != null && layout instanceof AddressLayout addressLayout) {
-                        return addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sizedSeg.value(), ValueLayout.JAVA_BYTE));
-                    }
-                    return layout;
-                })
+                .map(p -> withSizedSeg(toMemoryLayout(p.getType()), p.getDeclaredAnnotation(SizedSeg.class)))
                 .toArray(MemoryLayout[]::new);
             if (returnType == void.class) {
                 descriptor = FunctionDescriptor.ofVoid(memoryLayouts);
             } else {
-                descriptor = FunctionDescriptor.of(toMemoryLayout(returnType), memoryLayouts);
+                descriptor = FunctionDescriptor.of(withSizedSeg(toMemoryLayout(returnType), method.getDeclaredAnnotation(SizedSeg.class)),
+                    memoryLayouts);
             }
+        }
+
+        private static MemoryLayout withSizedSeg(MemoryLayout layout, SizedSeg sizedSeg) {
+            if (sizedSeg != null && layout instanceof AddressLayout addressLayout) {
+                return addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sizedSeg.value(), ValueLayout.JAVA_BYTE));
+            }
+            return layout;
         }
 
         /**
@@ -220,8 +220,8 @@ public interface Upcall {
          *                 The {@link Arena} is wrapped in a {@link Supplier} and you should store it with a variable
          * @return the downcall type
          */
-        public T wrap(MemorySegment stub, BiFunction<Supplier<Arena>, MethodHandle, T> function) {
-            return function.apply(Arena::ofAuto, downcall(stub));
+        public T wrap(MemorySegment stub, Function<MethodHandle, T> function) {
+            return Unmarshal.isNullPointer(stub) ? null : function.apply(downcall(stub));
         }
 
         /**
@@ -253,6 +253,35 @@ public interface Upcall {
             } else {
                 throw new IllegalArgumentException("Unsupported carrier: " + carrier.getName());
             }
+        }
+    }
+
+    /**
+     * The base container of {@link Arena} and {@link Upcall}.
+     *
+     * @param <T> the type of the upcall
+     * @author squid233
+     * @since 0.1.0
+     */
+    abstract class BaseContainer<T extends Upcall> implements Upcall {
+        /**
+         * The arena.
+         */
+        protected final Arena arena;
+        /**
+         * The upcall delegate.
+         */
+        protected final T delegate;
+
+        /**
+         * Creates a base container.
+         *
+         * @param arena    the arena
+         * @param delegate the upcall delegate
+         */
+        public BaseContainer(Arena arena, T delegate) {
+            this.arena = arena;
+            this.delegate = delegate;
         }
     }
 }
