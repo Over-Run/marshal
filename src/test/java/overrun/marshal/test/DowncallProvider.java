@@ -71,6 +71,7 @@ public final class DowncallProvider {
             seg("testRefIntArray", LOOKUP.findStatic(DowncallProvider.class, "testRefIntArray", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
             seg("testCriticalFalse", MethodHandles.empty(MethodType.methodType(void.class)), FunctionDescriptor.ofVoid());
             seg("testCriticalTrue", LOOKUP.findStatic(DowncallProvider.class, "testCriticalTrue", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
+            seg("testConvertBoolean", LOOKUP.findStatic(DowncallProvider.class, "testConvertBoolean", MethodType.methodType(int.class, int.class)), FunctionDescriptor.of(JAVA_INT, JAVA_INT));
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -194,6 +195,10 @@ public final class DowncallProvider {
 
     private static void testCriticalTrue(MemorySegment arr) {
         testRefIntArray(arr);
+    }
+
+    private static int testConvertBoolean(int b) {
+        return b == 0 ? 1 : 0;
     }
 
     private static void seg(String name, MethodHandle mh, FunctionDescriptor fd) {

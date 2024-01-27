@@ -57,6 +57,76 @@ public final class Unmarshal {
     }
 
     /**
+     * Converts the given value to {@code boolean}.
+     *
+     * @param v the value
+     * @return the {@code boolean} value
+     */
+    public static boolean unmarshalAsBoolean(char v) {
+        return v != 0;
+    }
+
+    /**
+     * Converts the given value to {@code boolean}.
+     *
+     * @param v the value
+     * @return the {@code boolean} value
+     */
+    public static boolean unmarshalAsBoolean(byte v) {
+        return v != 0;
+    }
+
+    /**
+     * Converts the given value to {@code boolean}.
+     *
+     * @param v the value
+     * @return the {@code boolean} value
+     */
+    public static boolean unmarshalAsBoolean(short v) {
+        return v != 0;
+    }
+
+    /**
+     * Converts the given value to {@code boolean}.
+     *
+     * @param v the value
+     * @return the {@code boolean} value
+     */
+    public static boolean unmarshalAsBoolean(int v) {
+        return v != 0;
+    }
+
+    /**
+     * Converts the given value to {@code boolean}.
+     *
+     * @param v the value
+     * @return the {@code boolean} value
+     */
+    public static boolean unmarshalAsBoolean(long v) {
+        return v != 0L;
+    }
+
+    /**
+     * Converts the given value to {@code boolean}.
+     *
+     * @param v the value
+     * @return the {@code boolean} value
+     */
+    public static boolean unmarshalAsBoolean(float v) {
+        return (int) v != 0;
+    }
+
+    /**
+     * Converts the given value to {@code boolean}.
+     *
+     * @param v the value
+     * @return the {@code boolean} value
+     */
+    public static boolean unmarshalAsBoolean(double v) {
+        return (int) v != 0;
+    }
+
+    /**
      * Unmarshal the given segment as a string.
      *
      * @param segment the segment

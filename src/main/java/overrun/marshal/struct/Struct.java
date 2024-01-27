@@ -21,7 +21,7 @@ import overrun.marshal.Addressable;
 import java.lang.foreign.*;
 
 /**
- * The presentation of a C structure.
+ * The representation of a C structure.
  * <h2>Struct handles</h2>
  * You can access an element of a structure via {@linkplain StructHandle}.
  * The struct handle provides accessor where to set and get the element of a structure.

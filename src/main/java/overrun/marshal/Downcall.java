@@ -17,6 +17,7 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.*;
+import overrun.marshal.gen.Type;
 import overrun.marshal.struct.Struct;
 
 import java.lang.annotation.Annotation;
@@ -30,6 +31,8 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -54,7 +57,7 @@ import static java.lang.constant.ConstantDescs.*;
  * if the method is modified with {@code default} and the native function is not found;
  * instead, it will return {@code null} and automatically invokes the original method declared in the target class.
  * <p>
- * {@link Critical @Critical} indicates that the annotated method is {@linkplain java.lang.foreign.Linker.Option#critical(boolean) critical}.
+ * {@link Critical @Critical} indicates that the annotated method is {@linkplain Linker.Option#critical(boolean) critical}.
  * <h3>Parameter Annotations</h3>
  * See {@link Ref @Ref}, {@link Sized @Sized} {@link SizedSeg @SizedSeg} and {@link StrCharset @StrCharset}.
  * <h2>Example</h2>
@@ -187,6 +190,18 @@ public final class Downcall {
         return "unmarshal";
     }
 
+    private static String marshalFromBooleanMethod(Type type) {
+        return switch (type) {
+            case CHAR -> "marshalAsChar";
+            case BYTE -> "marshalAsByte";
+            case SHORT -> "marshalAsShort";
+            case INT -> "marshalAsInt";
+            case LONG -> "marshalAsLong";
+            case FLOAT -> "marshalAsFloat";
+            case DOUBLE -> "marshalAsDouble";
+        };
+    }
+
     private static String getMethodEntrypoint(Method method) {
         final Entrypoint entrypoint = method.getDeclaredAnnotation(Entrypoint.class);
         return (entrypoint == null || entrypoint.value().isBlank()) ?
@@ -194,7 +209,9 @@ public final class Downcall {
             entrypoint.value();
     }
 
-    private static ClassDesc convertToDowncallCD(Class<?> aClass) {
+    private static ClassDesc convertToDowncallCD(AnnotatedElement element, Class<?> aClass) {
+        final Convert convert = element.getDeclaredAnnotation(Convert.class);
+        if (convert != null && aClass == boolean.class) return convert.value().classDesc();
         if (aClass.isPrimitive()) return aClass.describeConstable().orElseThrow();
         if (CEnum.class.isAssignableFrom(aClass)) return CD_int;
         if (SegmentAllocator.class.isAssignableFrom(aClass)) return CD_SegmentAllocator;
@@ -250,7 +267,7 @@ public final class Downcall {
 
     @SuppressWarnings("unchecked")
     private static <T> T loadBytecode(Class<?> callerClass, SymbolLookup lookup) {
-        final ClassFile cf = ClassFile.of();
+        final ClassFile cf = of();
         final ClassDesc cd_thisClass = ClassDesc.of(callerClass.getPackageName(), STR."_\{callerClass.getSimpleName()}");
         final byte[] bytes = cf.build(cd_thisClass, classBuilder -> {
             final List<Method> methodList = Arrays.stream(callerClass.getMethods())
@@ -416,7 +433,7 @@ public final class Downcall {
                             final int parameterSize = parameters.size();
                             final List<ClassDesc> parameterCDList = new ArrayList<>(skipFirstParam ? parameterSize - 1 : parameterSize);
 
-                            final ClassDesc cd_returnTypeDowncall = convertToDowncallCD(returnType);
+                            final ClassDesc cd_returnTypeDowncall = convertToDowncallCD(method, returnType);
                             final boolean returnVoid = returnType == void.class;
 
                             // ref
@@ -455,15 +472,25 @@ public final class Downcall {
                             for (int i = skipFirstParam ? 1 : 0; i < parameterSize; i++) {
                                 final Parameter parameter = parameters.get(i);
                                 final Class<?> type = parameter.getType();
+                                final ClassDesc cd_parameterDowncall = convertToDowncallCD(parameter, type);
 
                                 final Integer refSlot = parameterRefSlot.get(parameter);
                                 if (refSlot != null) {
                                     blockCodeBuilder.aload(refSlot);
                                 } else {
                                     final int slot = blockCodeBuilder.parameterSlot(i);
-                                    if (type.isPrimitive() ||
-                                        type == MemorySegment.class ||
-                                        SegmentAllocator.class.isAssignableFrom(type)) {
+                                    final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
+                                    if (convert != null && type == boolean.class) {
+                                        final Type convertType = convert.value();
+                                        blockCodeBuilder.loadInstruction(
+                                            TypeKind.fromDescriptor(type.descriptorString()).asLoadable(),
+                                            slot
+                                        ).invokestatic(CD_Marshal,
+                                            marshalFromBooleanMethod(convertType),
+                                            MethodTypeDesc.of(convertType.classDesc(), CD_boolean));
+                                    } else if (type.isPrimitive() ||
+                                               type == MemorySegment.class ||
+                                               SegmentAllocator.class.isAssignableFrom(type)) {
                                         blockCodeBuilder.loadInstruction(
                                             TypeKind.fromDescriptor(type.descriptorString()).asLoadable(),
                                             slot
@@ -485,7 +512,7 @@ public final class Downcall {
                                         blockCodeBuilder.aload(slot)
                                             .invokestatic(CD_Marshal,
                                                 "marshal",
-                                                MethodTypeDesc.of(convertToDowncallCD(type), convertToMarshalCD(type)));
+                                                MethodTypeDesc.of(cd_parameterDowncall, convertToMarshalCD(type)));
                                     } else if (Upcall.class.isAssignableFrom(type)) {
                                         blockCodeBuilder.aload(allocatorSlot)
                                             .checkcast(CD_Arena)
@@ -516,7 +543,7 @@ public final class Downcall {
                                     }
                                 }
 
-                                parameterCDList.add(convertToDowncallCD(type));
+                                parameterCDList.add(cd_parameterDowncall);
                             }
                             blockCodeBuilder.invokevirtual(CD_MethodHandle,
                                 "invokeExact",
@@ -569,8 +596,18 @@ public final class Downcall {
                             if (returnVoid) {
                                 unmarshalSlot = -1;
                             } else {
-                                unmarshalSlot = blockCodeBuilder.allocateLocal(returnTypeKind);
+                                if (shouldAddStack) {
+                                    unmarshalSlot = blockCodeBuilder.allocateLocal(returnTypeKind);
+                                } else {
+                                    unmarshalSlot = -1;
+                                }
                                 blockCodeBuilder.loadInstruction(TypeKind.from(cd_returnTypeDowncall), resultSlot);
+                            }
+                            final Convert convert = method.getDeclaredAnnotation(Convert.class);
+                            if (convert != null && returnType == boolean.class) {
+                                blockCodeBuilder.invokestatic(CD_Unmarshal,
+                                    "unmarshalAsBoolean",
+                                    MethodTypeDesc.of(CD_boolean, convert.value().classDesc()));
                             }
                             if (returnType == String.class) {
                                 final boolean hasCharset = getCharset(blockCodeBuilder, method);
@@ -623,21 +660,21 @@ public final class Downcall {
                                         MethodTypeDesc.of(cd_returnType, CD_MemorySegment));
                                 }
                             }
-                            if (!returnVoid) {
-                                blockCodeBuilder.storeInstruction(returnTypeKind, unmarshalSlot);
-                            }
 
                             // reset stack
                             if (shouldAddStack) {
+                                if (!returnVoid) {
+                                    blockCodeBuilder.storeInstruction(returnTypeKind, unmarshalSlot);
+                                }
                                 blockCodeBuilder.aload(stackSlot)
                                     .lload(stackPointerSlot)
                                     .invokevirtual(CD_MemoryStack, "setPointer", MethodTypeDesc.of(CD_void, CD_long));
+                                if (!returnVoid) {
+                                    blockCodeBuilder.loadInstruction(returnTypeKind, unmarshalSlot);
+                                }
                             }
 
                             // return
-                            if (!returnVoid) {
-                                blockCodeBuilder.loadInstruction(returnTypeKind, unmarshalSlot);
-                            }
                             blockCodeBuilder.returnInstruction(returnTypeKind);
                         },
                         catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
@@ -719,7 +756,10 @@ public final class Downcall {
 
                             // layout
                             if (!returnVoid) {
-                                if (returnType.isPrimitive()) {
+                                final Convert convert = method.getDeclaredAnnotation(Convert.class);
+                                if (convert != null && returnType == boolean.class) {
+                                    convertToValueLayout(blockCodeBuilder, convert.value().representation());
+                                } else if (returnType.isPrimitive()) {
                                     convertToValueLayout(blockCodeBuilder, returnType);
                                 } else {
                                     final SizedSeg sizedSeg = method.getDeclaredAnnotation(SizedSeg.class);
@@ -784,9 +824,15 @@ public final class Downcall {
                             blockCodeBuilder.constantInstruction(size)
                                 .anewarray(CD_MemoryLayout);
                             for (int i = 0; i < size; i++) {
+                                final Parameter parameter = parameters.get(skipFirstParam ? i + 1 : i);
+                                final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
                                 blockCodeBuilder.dup()
                                     .constantInstruction(i);
-                                convertToValueLayout(blockCodeBuilder, parameters.get(skipFirstParam ? i + 1 : i).getType());
+                                if (convert != null && parameter.getType() == boolean.class) {
+                                    convertToValueLayout(blockCodeBuilder, convert.value().representation());
+                                } else {
+                                    convertToValueLayout(blockCodeBuilder, parameter.getType());
+                                }
                                 blockCodeBuilder.aastore();
                             }
                             blockCodeBuilder.invokestatic(CD_FunctionDescriptor,

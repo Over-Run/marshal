@@ -109,4 +109,7 @@ public interface IDowncall {
     void testCriticalFalse();
 
     void testCriticalTrue(@Ref int[] arr);
+
+    @Convert(Type.INT)
+    boolean testConvertBoolean(@Convert(Type.INT) boolean b);
 }

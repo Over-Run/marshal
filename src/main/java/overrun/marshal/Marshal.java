@@ -48,6 +48,76 @@ public final class Marshal {
     }
 
     /**
+     * Converts the {@code boolean} value to another type.
+     *
+     * @param b the {@code boolean} value
+     * @return the new value
+     */
+    public static char marshalAsChar(boolean b) {
+        return (char) (b ? 1 : 0);
+    }
+
+    /**
+     * Converts the {@code boolean} value to another type.
+     *
+     * @param b the {@code boolean} value
+     * @return the new value
+     */
+    public static byte marshalAsByte(boolean b) {
+        return (byte) (b ? 1 : 0);
+    }
+
+    /**
+     * Converts the {@code boolean} value to another type.
+     *
+     * @param b the {@code boolean} value
+     * @return the new value
+     */
+    public static short marshalAsShort(boolean b) {
+        return (short) (b ? 1 : 0);
+    }
+
+    /**
+     * Converts the {@code boolean} value to another type.
+     *
+     * @param b the {@code boolean} value
+     * @return the new value
+     */
+    public static int marshalAsInt(boolean b) {
+        return b ? 1 : 0;
+    }
+
+    /**
+     * Converts the {@code boolean} value to another type.
+     *
+     * @param b the {@code boolean} value
+     * @return the new value
+     */
+    public static long marshalAsLong(boolean b) {
+        return b ? 1L : 0L;
+    }
+
+    /**
+     * Converts the {@code boolean} value to another type.
+     *
+     * @param b the {@code boolean} value
+     * @return the new value
+     */
+    public static float marshalAsFloat(boolean b) {
+        return b ? 1F : 0F;
+    }
+
+    /**
+     * Converts the {@code boolean} value to another type.
+     *
+     * @param b the {@code boolean} value
+     * @return the new value
+     */
+    public static double marshalAsDouble(boolean b) {
+        return b ? 1D : 0D;
+    }
+
+    /**
      * Converts the given string to a segment.
      *
      * @param allocator the allocator
