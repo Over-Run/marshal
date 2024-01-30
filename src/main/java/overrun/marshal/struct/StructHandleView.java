@@ -242,11 +242,11 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param byteSize  the byte size of the string
-         * @param index the index
+         * @param index    the index
+         * @param byteSize the byte size of the string
          * @return the value
          */
-        String get(long byteSize, long index);
+        String get(long index, long byteSize);
 
         /**
          * Gets the value.
@@ -268,11 +268,11 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param byteSize  the byte size of the array
-         * @param index the index
+         * @param index    the index
+         * @param byteSize the byte size of the array
          * @return the value
          */
-        T get(long byteSize, long index);
+        T get(long index, long byteSize);
 
         /**
          * Gets the value.
@@ -319,11 +319,11 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param userdata the userdata
          * @param index    the index
+         * @param userdata the userdata
          * @return the value
          */
-        T get(U userdata, long index);
+        T get(long index, U userdata);
 
         /**
          * Gets the value.

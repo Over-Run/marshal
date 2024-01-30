@@ -50,9 +50,31 @@ public class StructHandle implements StructHandleView {
         this.varHandle = varHandle;
     }
 
-    private static VarHandle ofValue(Struct struct, String name) {
+    /**
+     * Creates a var handle where to access a value of the given struct.
+     *
+     * @param struct the struct
+     * @param name   the name of the value
+     * @return the var handle
+     */
+    public static VarHandle ofValue(Struct struct, String name) {
         return MethodHandles.insertCoordinates(struct.sequenceLayout().varHandle(MemoryLayout.PathElement.sequenceElement(),
                 MemoryLayout.PathElement.groupElement(name)),
+            0,
+            struct.segment());
+    }
+
+    /**
+     * Creates a var handle where to access a value in a sized array of the given struct.
+     *
+     * @param struct the struct
+     * @param name   the name of the sized array
+     * @return the var handle
+     */
+    public static VarHandle ofSizedArray(Struct struct, String name) {
+        return MethodHandles.insertCoordinates(struct.sequenceLayout().varHandle(MemoryLayout.PathElement.sequenceElement(),
+                MemoryLayout.PathElement.groupElement(name),
+                MemoryLayout.PathElement.sequenceElement()),
             0,
             struct.segment());
     }
@@ -605,11 +627,11 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param allocator the allocator
          * @param index     the index
+         * @param allocator the allocator
          * @param value     the value
          */
-        public void set(SegmentAllocator allocator, long index, String value) {
+        public void set(long index, SegmentAllocator allocator, String value) {
             varHandle.set(0L, index, allocator.allocateFrom(value, charset));
         }
 
@@ -620,17 +642,17 @@ public class StructHandle implements StructHandleView {
          * @param value     the value
          */
         public void set(SegmentAllocator allocator, String value) {
-            set(allocator, 0L, value);
+            set(0L, allocator, value);
         }
 
         @Override
-        public String get(long byteSize, long index) {
+        public String get(long index, long byteSize) {
             return ((MemorySegment) varHandle.get(0L, index)).reinterpret(byteSize).getString(0L, charset);
         }
 
         @Override
         public String get(long byteSize) {
-            return get(byteSize, 0L);
+            return get(0L, byteSize);
         }
     }
 
@@ -654,11 +676,11 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param allocator the allocator
          * @param index     the index
+         * @param allocator the allocator
          * @param value     the value
          */
-        public void set(SegmentAllocator allocator, long index, T value) {
+        public void set(long index, SegmentAllocator allocator, T value) {
             if (setterFactory == null) throw new UnsupportedOperationException();
             varHandle.set(0L, index, setterFactory.apply(allocator, value));
         }
@@ -670,18 +692,18 @@ public class StructHandle implements StructHandleView {
          * @param value     the value
          */
         public void set(SegmentAllocator allocator, T value) {
-            set(allocator, 0L, value);
+            set(0L, allocator, value);
         }
 
         @Override
-        public T get(long byteSize, long index) {
+        public T get(long index, long byteSize) {
             if (getterFactory == null) throw new UnsupportedOperationException();
             return getterFactory.apply(((MemorySegment) varHandle.get(0L, index)).reinterpret(byteSize));
         }
 
         @Override
         public T get(long byteSize) {
-            return get(byteSize, 0L);
+            return get(0L, byteSize);
         }
     }
 
@@ -740,11 +762,11 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param userdata the userdata
          * @param index    the index
+         * @param userdata the userdata
          * @param value    the value
          */
-        public abstract void set(S userdata, long index, T value);
+        public abstract void set(long index, S userdata, T value);
 
         /**
          * Sets the value.
@@ -827,24 +849,24 @@ public class StructHandle implements StructHandleView {
         }
 
         @Override
-        public void set(Arena userdata, long index, T value) {
+        public void set(long index, Arena userdata, T value) {
             varHandle.set(0L, index, value.stub(userdata));
         }
 
         @Override
         public void set(Arena userdata, T value) {
-            set(userdata, 0L, value);
+            set(0L, userdata, value);
         }
 
         @Override
-        public T get(Arena userdata, long index) {
+        public T get(long index, Arena userdata) {
             if (factory == null) throw new UnsupportedOperationException();
             return factory.apply(userdata, (MemorySegment) varHandle.get(0L, index));
         }
 
         @Override
         public T get(Arena userdata) {
-            return get(userdata, 0L);
+            return get(0L, userdata);
         }
     }
 }

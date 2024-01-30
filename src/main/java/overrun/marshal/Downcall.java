@@ -717,8 +717,7 @@ public final class Downcall {
                                 blockCodeBuilder.invokestatic(CD_Unmarshal,
                                     "unmarshalAsBoolean",
                                     MethodTypeDesc.of(CD_boolean, convert.value().classDesc()));
-                            }
-                            if (returnType == String.class) {
+                            } else if (returnType == String.class) {
                                 final boolean hasCharset = getCharset(blockCodeBuilder, method);
                                 blockCodeBuilder.invokestatic(CD_Unmarshal,
                                     "unmarshalAsString",
