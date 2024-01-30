@@ -247,4 +247,10 @@ public final class DowncallTest {
         assertTrue(d.testConvertBoolean(false));
         assertFalse(d.testConvertBoolean(true));
     }
+
+    @Test
+    void testDuplicateLoading() {
+        assertEquals(42, IDowncall.getInstance(false).testReturnInt());
+        assertEquals(42, IDowncall.getInstance(false).testReturnInt());
+    }
 }

@@ -39,10 +39,13 @@ public final class Unmarshal {
      * The max string size.
      */
     public static final long STR_SIZE = Integer.MAX_VALUE - 8;
-    private static final AddressLayout STRING_LAYOUT = ADDRESS.withTargetLayout(
+    /**
+     * The address layout which dereferences a string with {@linkplain #STR_SIZE the max size}.
+     */
+    public static final AddressLayout STR_LAYOUT = ADDRESS.withTargetLayout(
         MemoryLayout.sequenceLayout(STR_SIZE, JAVA_BYTE)
     );
-    private static final VarHandle vh_stringArray = Marshal.arrayVarHandle(STRING_LAYOUT);
+    private static final VarHandle vh_stringArray = Marshal.arrayVarHandle(STR_LAYOUT);
 
     private Unmarshal() {
     }
@@ -364,7 +367,7 @@ public final class Unmarshal {
      * @return the array
      */
     public static String @Nullable [] unmarshalAsStringArray(AddressLayout elementLayout, MemorySegment segment) {
-        return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STRING_LAYOUT, 0L).getString(0L));
+        return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STR_LAYOUT, 0L).getString(0L));
     }
 
     /**
@@ -376,7 +379,7 @@ public final class Unmarshal {
      * @return the array
      */
     public static String @Nullable [] unmarshalAsStringArray(AddressLayout elementLayout, MemorySegment segment, Charset charset) {
-        return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STRING_LAYOUT, 0L).getString(0L, charset));
+        return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STR_LAYOUT, 0L).getString(0L, charset));
     }
 
     /**
@@ -418,7 +421,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, boolean @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         for (int i = 0; i < dst.length; i++) {
             dst[i] = (boolean) Marshal.vh_booleanArray.get(src, (long) i);
         }
@@ -431,7 +434,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, char @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         MemorySegment.copy(src, JAVA_CHAR, 0L, dst, 0, dst.length);
     }
 
@@ -442,7 +445,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, byte @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         MemorySegment.copy(src, JAVA_BYTE, 0L, dst, 0, dst.length);
     }
 
@@ -453,7 +456,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, short @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         MemorySegment.copy(src, JAVA_SHORT, 0L, dst, 0, dst.length);
     }
 
@@ -464,7 +467,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, int @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         MemorySegment.copy(src, JAVA_INT, 0L, dst, 0, dst.length);
     }
 
@@ -475,7 +478,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, long @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         MemorySegment.copy(src, JAVA_LONG, 0L, dst, 0, dst.length);
     }
 
@@ -486,7 +489,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, float @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         MemorySegment.copy(src, JAVA_FLOAT, 0L, dst, 0, dst.length);
     }
 
@@ -497,7 +500,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, double @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         MemorySegment.copy(src, JAVA_DOUBLE, 0L, dst, 0, dst.length);
     }
 
@@ -508,7 +511,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, String @Nullable [] dst) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         for (int i = 0; i < dst.length; i++) {
             dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L);
         }
@@ -522,7 +525,7 @@ public final class Unmarshal {
      * @param charset the charset
      */
     public static void copy(MemorySegment src, String @Nullable [] dst, Charset charset) {
-        if (dst == null) return;
+        if (isNullPointer(src) || dst == null) return;
         for (int i = 0; i < dst.length; i++) {
             dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L, charset);
         }

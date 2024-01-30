@@ -16,7 +16,7 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.ByValue;
+import overrun.marshal.struct.ByValue;
 import overrun.marshal.Downcall;
 import overrun.marshal.MemoryStack;
 import overrun.marshal.gen.*;

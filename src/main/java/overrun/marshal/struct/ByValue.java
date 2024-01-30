@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.struct;
 
 import java.lang.annotation.*;
 

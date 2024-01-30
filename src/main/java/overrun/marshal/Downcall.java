@@ -18,6 +18,7 @@ package overrun.marshal;
 
 import overrun.marshal.gen.*;
 import overrun.marshal.gen.Type;
+import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.Struct;
 
 import java.lang.annotation.Annotation;
@@ -25,14 +26,12 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.constant.ClassDesc;
-import java.lang.constant.MethodTypeDesc;
+import java.lang.constant.*;
 import java.lang.foreign.*;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -90,10 +89,10 @@ public final class Downcall {
     private static final ClassDesc CD_FunctionDescriptor = ClassDesc.of("java.lang.foreign.FunctionDescriptor");
     private static final ClassDesc CD_IllegalStateException = ClassDesc.of("java.lang.IllegalStateException");
     private static final ClassDesc CD_Linker = ClassDesc.of("java.lang.foreign.Linker");
-    private static final ClassDesc CD_Linker_Option = CD_Linker.nested("Option");
     private static final ClassDesc CD_Marshal = ClassDesc.of("overrun.marshal.Marshal");
     private static final ClassDesc CD_MemoryLayout = ClassDesc.of("java.lang.foreign.MemoryLayout");
     private static final ClassDesc CD_MemorySegment = ClassDesc.of("java.lang.foreign.MemorySegment");
+    private static final ClassDesc CD_Linker_Option = CD_Linker.nested("Option");
     private static final ClassDesc CD_MemoryStack = ClassDesc.of("overrun.marshal.MemoryStack");
     private static final ClassDesc CD_Optional = ClassDesc.of("java.util.Optional");
     private static final ClassDesc CD_SegmentAllocator = ClassDesc.of("java.lang.foreign.SegmentAllocator");
@@ -112,19 +111,118 @@ public final class Downcall {
     private static final ClassDesc CD_ValueLayout_OfLong = CD_ValueLayout.nested("OfLong");
     private static final ClassDesc CD_ValueLayout_OfFloat = CD_ValueLayout.nested("OfFloat");
     private static final ClassDesc CD_ValueLayout_OfDouble = CD_ValueLayout.nested("OfDouble");
-    private static final MethodTypeDesc MTD_marshalStringCharset = MethodTypeDesc.of(CD_MemorySegment,
+    private static final ClassDesc CD_LinkerOptionArray = CD_Linker_Option.arrayType();
+    private static final ClassDesc CD_MemoryLayoutArray = CD_MemoryLayout.arrayType();
+    private static final ClassDesc CD_StringArray = CD_String.arrayType();
+
+    private static final MethodTypeDesc MTD_AddressLayout_MemoryLayout = MethodTypeDesc.of(CD_AddressLayout, CD_MemoryLayout);
+    private static final MethodTypeDesc MTD_boolean = MethodTypeDesc.of(CD_boolean);
+    private static final MethodTypeDesc MTD_Charset_String = MethodTypeDesc.of(CD_Charset, CD_String);
+    private static final MethodTypeDesc MTD_FunctionDescriptor_MemoryLayout_MemoryLayoutArray = MethodTypeDesc.of(CD_FunctionDescriptor, CD_MemoryLayout, CD_MemoryLayoutArray);
+    private static final MethodTypeDesc MTD_FunctionDescriptor_MemoryLayoutArray = MethodTypeDesc.of(CD_FunctionDescriptor, CD_MemoryLayoutArray);
+    private static final MethodTypeDesc MTD_Linker = MethodTypeDesc.of(CD_Linker);
+    private static final MethodTypeDesc MTD_LinkerOption_boolean = MethodTypeDesc.of(CD_Linker_Option, CD_boolean);
+    private static final MethodTypeDesc MTD_long = MethodTypeDesc.of(CD_long);
+    private static final MethodTypeDesc MTD_MemorySegment_Arena_Upcall = MethodTypeDesc.of(CD_MemorySegment, CD_Arena, CD_Upcall);
+    private static final MethodTypeDesc MTD_MemorySegment_SegmentAllocator_String = MethodTypeDesc.of(CD_MemorySegment,
+        CD_SegmentAllocator,
+        CD_String);
+    private static final MethodTypeDesc MTD_MemorySegment_SegmentAllocator_String_Charset = MethodTypeDesc.of(CD_MemorySegment,
         CD_SegmentAllocator,
         CD_String,
         CD_Charset);
-    private static final MethodTypeDesc MTD_marshalString = MethodTypeDesc.of(CD_MemorySegment,
+    private static final MethodTypeDesc MTD_MemorySegment_SegmentAllocator_StringArray_Charset = MethodTypeDesc.of(CD_MemorySegment,
         CD_SegmentAllocator,
-        CD_String);
-    private static final MethodTypeDesc MTD_marshalStringCharsetArray = MethodTypeDesc.of(CD_MemorySegment,
-        CD_SegmentAllocator,
-        CD_String.arrayType(),
+        CD_StringArray,
         CD_Charset);
+    private static final MethodTypeDesc MTD_MemoryStack = MethodTypeDesc.of(CD_MemoryStack);
+    private static final MethodTypeDesc MTD_MethodHandle_MemorySegment_FunctionDescriptor_LinkerOptionArray = MethodTypeDesc.of(CD_MethodHandle,
+        CD_MemorySegment,
+        CD_FunctionDescriptor,
+        CD_LinkerOptionArray);
+    private static final MethodTypeDesc MTD_MethodHandle_SymbolLookup = MethodTypeDesc.of(CD_MethodHandle, CD_SymbolLookup);
+    private static final MethodTypeDesc MTD_Object_Object = MethodTypeDesc.of(CD_Object, CD_Object);
+    private static final MethodTypeDesc MTD_Object = MethodTypeDesc.of(CD_Object);
+    private static final MethodTypeDesc MTD_Optional_String = MethodTypeDesc.of(CD_Optional, CD_String);
+    private static final MethodTypeDesc MTD_SequenceLayout_long_MemoryLayout = MethodTypeDesc.of(CD_SequenceLayout, CD_long, CD_MemoryLayout);
+    private static final MethodTypeDesc MTD_String_MemorySegment = MethodTypeDesc.of(CD_String, CD_MemorySegment);
+    private static final MethodTypeDesc MTD_String_MemorySegment_Charset = MethodTypeDesc.of(CD_String, CD_MemorySegment, CD_Charset);
+    private static final MethodTypeDesc MTD_String_Object = MethodTypeDesc.of(CD_String, CD_Object);
+    private static final MethodTypeDesc MTD_String_String = MethodTypeDesc.of(CD_String, CD_String);
+    private static final MethodTypeDesc MTD_StringArray_MemorySegment = MethodTypeDesc.of(CD_StringArray, CD_MemorySegment);
+    private static final MethodTypeDesc MTD_StringArray_MemorySegment_Charset = MethodTypeDesc.of(CD_StringArray, CD_MemorySegment, CD_Charset);
+    private static final MethodTypeDesc MTD_void_int_int = MethodTypeDesc.of(CD_void, CD_int, CD_int);
+    private static final MethodTypeDesc MTD_void_long = MethodTypeDesc.of(CD_void, CD_long);
+    private static final MethodTypeDesc MTD_void_MemorySegment = MethodTypeDesc.of(CD_void, CD_MemorySegment);
+    private static final MethodTypeDesc MTD_void_MemorySegment_StringArray = MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_StringArray);
+    private static final MethodTypeDesc MTD_void_MemorySegment_StringArray_Charset = MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_StringArray, CD_Charset);
+    private static final MethodTypeDesc MTD_void_String = MethodTypeDesc.of(CD_void, CD_String);
+    private static final MethodTypeDesc MTD_void_String_Throwable = MethodTypeDesc.of(CD_void, CD_String, CD_Throwable);
+    private static final MethodTypeDesc MTD_void_SymbolLookup = MethodTypeDesc.of(CD_void, CD_SymbolLookup);
 
     private Downcall() {
+    }
+
+    /**
+     * Loads the given class with the given symbol lookup.
+     *
+     * @param targetClass   the target class
+     * @param lookup        the symbol lookup
+     * @param descriptorMap the custom function descriptors for each method handle
+     * @param <T>           the type of the target class
+     * @return the loaded implementation instance of the target class
+     */
+    public static <T> T load(Class<T> targetClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+        return loadBytecode(targetClass, lookup, descriptorMap);
+    }
+
+    /**
+     * Loads the given class with the given symbol lookup.
+     *
+     * @param targetClass the target class
+     * @param lookup      the symbol lookup
+     * @param <T>         the type of the target class
+     * @return the loaded implementation instance of the target class
+     */
+    public static <T> T load(Class<T> targetClass, SymbolLookup lookup) {
+        return load(targetClass, lookup, Map.of());
+    }
+
+    /**
+     * Loads the caller class with the given symbol lookup.
+     *
+     * @param lookup        the symbol lookup
+     * @param descriptorMap the custom function descriptors for each method handle
+     * @param <T>           the type of the caller class
+     * @return the loaded implementation instance of the caller class
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T load(SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+        return load((Class<T>) STACK_WALKER.getCallerClass(), lookup, descriptorMap);
+    }
+
+    /**
+     * Loads the caller class with the given symbol lookup.
+     *
+     * @param lookup the symbol lookup
+     * @param <T>    the type of the caller class
+     * @return the loaded implementation instance of the caller class
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T load(SymbolLookup lookup) {
+        return load((Class<T>) STACK_WALKER.getCallerClass(), lookup);
+    }
+
+    /**
+     * Loads the caller class with the given library name.
+     *
+     * @param libname the library name
+     * @param <T>     the type of the caller class
+     * @return the loaded implementation instance of the caller class
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T load(String libname) {
+        return load((Class<T>) STACK_WALKER.getCallerClass(), SymbolLookup.libraryLookup(libname, Arena.ofAuto()));
     }
 
     private static void convertToValueLayout(CodeBuilder codeBuilder, Class<?> aClass) {
@@ -138,6 +236,17 @@ public final class Downcall {
         else if (aClass == float.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_FLOAT", CD_ValueLayout_OfFloat);
         else if (aClass == double.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_DOUBLE", CD_ValueLayout_OfDouble);
         else codeBuilder.getstatic(CD_ValueLayout, "ADDRESS", CD_AddressLayout);
+    }
+
+    private static void invokeSuperMethod(CodeBuilder codeBuilder, List<Parameter> parameters) {
+        codeBuilder.aload(codeBuilder.receiverSlot());
+        for (int i = 0, size = parameters.size(); i < size; i++) {
+            final var parameter = parameters.get(i);
+            codeBuilder.loadInstruction(
+                TypeKind.fromDescriptor(parameter.getType().descriptorString())
+                    .asLoadable(),
+                codeBuilder.parameterSlot(i));
+        }
     }
 
     private static boolean hasCharset(StrCharset strCharset) {
@@ -160,7 +269,7 @@ public final class Downcall {
                 "UTF_16", "UTF_16BE", "UTF_16LE",
                 "UTF_32", "UTF_32BE", "UTF_32LE" -> codeBuilder.getstatic(CD_StandardCharsets, upperCase, CD_Charset);
             default -> codeBuilder.ldc(charset)
-                .invokestatic(CD_Charset, "forName", MethodTypeDesc.of(CD_Charset, CD_String));
+                .invokestatic(CD_Charset, "forName", MTD_Charset_String);
         }
     }
 
@@ -259,16 +368,16 @@ public final class Downcall {
         return findWrapper(aClass, Upcall.Wrapper.class, method -> {
             final var types = method.getParameterTypes();
             return types.length == 2 &&
-                   types[0] == Arena.class &&
+                   Arena.class.isAssignableFrom(types[0]) &&
                    types[1] == MemorySegment.class &&
                    Upcall.class.isAssignableFrom(method.getReturnType());
         });
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T loadBytecode(Class<?> callerClass, SymbolLookup lookup) {
+    private static <T> T loadBytecode(Class<?> callerClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
         final ClassFile cf = of();
-        final ClassDesc cd_thisClass = ClassDesc.of(callerClass.getPackageName(), STR."_\{callerClass.getSimpleName()}");
+        final ClassDesc cd_thisClass = ClassDesc.of(callerClass.getPackageName(), DEFAULT_NAME);
         final byte[] bytes = cf.build(cd_thisClass, classBuilder -> {
             final List<Method> methodList = Arrays.stream(callerClass.getMethods())
                 .filter(method ->
@@ -311,7 +420,7 @@ public final class Downcall {
                 final DowncallMethodData methodData = new DowncallMethodData(
                     getMethodEntrypoint(method),
                     handleName,
-                    STR."load$\{method.getName()}",
+                    STR."$load$\{method.getName()}",
                     STR."""
                         \{method.getReturnType().getCanonicalName()} \
                         \{method.getDeclaringClass().getCanonicalName()}.\{method.getName()}\
@@ -333,7 +442,7 @@ public final class Downcall {
             });
 
             // constructor
-            classBuilder.withMethod(INIT_NAME, MethodTypeDesc.of(CD_void, CD_SymbolLookup), ACC_PUBLIC,
+            classBuilder.withMethod(INIT_NAME, MTD_void_SymbolLookup, ACC_PUBLIC,
                 methodBuilder ->
                     methodBuilder.withCode(codeBuilder -> {
                         // super
@@ -345,7 +454,7 @@ public final class Downcall {
                             // initialize field
                             codeBuilder.aload(codeBuilder.receiverSlot())
                                 .aload(codeBuilder.parameterSlot(0))
-                                .invokestatic(cd_thisClass, methodData.loaderName(), MethodTypeDesc.of(CD_MethodHandle, CD_SymbolLookup))
+                                .invokestatic(cd_thisClass, methodData.loaderName(), MTD_MethodHandle_SymbolLookup)
                                 .putfield(cd_thisClass, methodData.handleName(), CD_MethodHandle);
                         });
 
@@ -376,7 +485,7 @@ public final class Downcall {
                         .toList());
 
                 final String handleName = methodData.handleName();
-                final Consumer<CodeBuilder> wrapping = codeBuilder -> {
+                final Consumer<CodeBuilder> wrapping = returnType == MethodHandle.class ? null : codeBuilder -> {
                     final boolean hasAllocator =
                         !parameters.isEmpty() &&
                         SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
@@ -415,15 +524,15 @@ public final class Downcall {
                             .arraylength()
                             .invokestatic(CD_Checks,
                                 "checkArraySize",
-                                MethodTypeDesc.of(CD_void, CD_int, CD_int));
+                                MTD_void_int_int);
                     }
 
                     // initialize stack
                     if (shouldAddStack) {
-                        codeBuilder.invokestatic(CD_MemoryStack, "stackGet", MethodTypeDesc.of(CD_MemoryStack))
+                        codeBuilder.invokestatic(CD_MemoryStack, "stackGet", MTD_MemoryStack)
                             .astore(stackSlot)
                             .aload(stackSlot)
-                            .invokevirtual(CD_MemoryStack, "pointer", MethodTypeDesc.of(CD_long))
+                            .invokevirtual(CD_MemoryStack, "pointer", MTD_long)
                             .lstore(stackPointerSlot);
                     }
 
@@ -452,7 +561,7 @@ public final class Downcall {
                                     if (componentType == String.class && getCharset(blockCodeBuilder, parameter)) {
                                         blockCodeBuilder.invokestatic(CD_Marshal,
                                             "marshal",
-                                            MTD_marshalStringCharsetArray
+                                            MTD_MemorySegment_SegmentAllocator_StringArray_Charset
                                         ).astore(slot);
                                     } else {
                                         blockCodeBuilder.invokestatic(CD_Marshal,
@@ -501,11 +610,11 @@ public final class Downcall {
                                         if (getCharset(blockCodeBuilder, parameter)) {
                                             blockCodeBuilder.invokestatic(CD_Marshal,
                                                 "marshal",
-                                                MTD_marshalStringCharset);
+                                                MTD_MemorySegment_SegmentAllocator_String_Charset);
                                         } else {
                                             blockCodeBuilder.invokestatic(CD_Marshal,
                                                 "marshal",
-                                                MTD_marshalString);
+                                                MTD_MemorySegment_SegmentAllocator_String);
                                         }
                                     } else if (Addressable.class.isAssignableFrom(type) ||
                                                CEnum.class.isAssignableFrom(type)) {
@@ -519,7 +628,7 @@ public final class Downcall {
                                             .aload(slot)
                                             .invokestatic(CD_Marshal,
                                                 "marshal",
-                                                MethodTypeDesc.of(CD_MemorySegment, CD_Arena, CD_Upcall));
+                                                MTD_MemorySegment_Arena_Upcall);
                                     } else if (type.isArray()) {
                                         final Class<?> componentType = type.getComponentType();
                                         final boolean isStringArray = componentType == String.class;
@@ -532,7 +641,7 @@ public final class Downcall {
                                         if (isStringArray && getCharset(blockCodeBuilder, parameter)) {
                                             blockCodeBuilder.invokestatic(CD_Marshal,
                                                 "marshal",
-                                                MTD_marshalStringCharsetArray);
+                                                MTD_MemorySegment_SegmentAllocator_StringArray_Charset);
                                         } else {
                                             blockCodeBuilder.invokestatic(CD_Marshal,
                                                 "marshal",
@@ -580,11 +689,11 @@ public final class Downcall {
                                             if (getCharset(blockCodeBuilder, parameter)) {
                                                 blockCodeBuilder.invokestatic(CD_Unmarshal,
                                                     "copy",
-                                                    MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_String.arrayType(), CD_Charset));
+                                                    MTD_void_MemorySegment_StringArray_Charset);
                                             } else {
                                                 blockCodeBuilder.invokestatic(CD_Unmarshal,
                                                     "copy",
-                                                    MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_String.arrayType()));
+                                                    MTD_void_MemorySegment_StringArray);
                                             }
                                         }
                                     }
@@ -613,10 +722,7 @@ public final class Downcall {
                                 final boolean hasCharset = getCharset(blockCodeBuilder, method);
                                 blockCodeBuilder.invokestatic(CD_Unmarshal,
                                     "unmarshalAsString",
-                                    MethodTypeDesc.of(CD_String,
-                                        hasCharset ?
-                                            List.of(CD_MemorySegment, CD_Charset) :
-                                            List.of(CD_MemorySegment)));
+                                    hasCharset ? MTD_String_MemorySegment_Charset : MTD_String_MemorySegment);
                             } else if (Struct.class.isAssignableFrom(returnType)) {
                                 blockCodeBuilder.ifThenElse(Opcode.IFNONNULL,
                                     blockCodeBuilder1 -> blockCodeBuilder1.new_(cd_returnType)
@@ -624,7 +730,7 @@ public final class Downcall {
                                         .aload(resultSlot)
                                         .invokespecial(cd_returnType,
                                             INIT_NAME,
-                                            MethodTypeDesc.of(CD_void, CD_MemorySegment)),
+                                            MTD_void_MemorySegment),
                                     CodeBuilder::aconst_null);
                             } else if (CEnum.class.isAssignableFrom(returnType)) {
                                 final Method wrapper = findCEnumWrapper(returnType);
@@ -640,7 +746,7 @@ public final class Downcall {
                                         .invokestatic(cd_returnType,
                                             wrapper.getName(),
                                             MethodTypeDesc.of(ClassDesc.ofDescriptor(wrapper.getReturnType().descriptorString()),
-                                                CD_Arena,
+                                                ClassDesc.ofDescriptor(wrapper.getParameterTypes()[0].descriptorString()),
                                                 CD_MemorySegment),
                                             wrapper.getDeclaringClass().isInterface()),
                                     CodeBuilder::aconst_null);
@@ -650,10 +756,7 @@ public final class Downcall {
                                     final boolean hasCharset = getCharset(blockCodeBuilder, method);
                                     blockCodeBuilder.invokestatic(CD_Unmarshal,
                                         "unmarshalAsStringArray",
-                                        MethodTypeDesc.of(CD_String.arrayType(),
-                                            hasCharset ?
-                                                List.of(CD_MemorySegment, CD_Charset) :
-                                                List.of(CD_MemorySegment)));
+                                        hasCharset ? MTD_StringArray_MemorySegment_Charset : MTD_StringArray_MemorySegment);
                                 } else if (componentType.isPrimitive() || componentType == MemorySegment.class) {
                                     blockCodeBuilder.invokestatic(CD_Unmarshal,
                                         unmarshalMethod(returnType),
@@ -668,7 +771,7 @@ public final class Downcall {
                                 }
                                 blockCodeBuilder.aload(stackSlot)
                                     .lload(stackPointerSlot)
-                                    .invokevirtual(CD_MemoryStack, "setPointer", MethodTypeDesc.of(CD_void, CD_long));
+                                    .invokevirtual(CD_MemoryStack, "setPointer", MTD_void_long);
                                 if (!returnVoid) {
                                     blockCodeBuilder.loadInstruction(returnTypeKind, unmarshalSlot);
                                 }
@@ -685,12 +788,12 @@ public final class Downcall {
                                 .dup()
                                 .ldc(methodData.exceptionString())
                                 .aload(slot)
-                                .invokespecial(CD_IllegalStateException, INIT_NAME, MethodTypeDesc.of(CD_void, CD_String, CD_Throwable));
+                                .invokespecial(CD_IllegalStateException, INIT_NAME, MTD_void_String_Throwable);
                             // reset stack
                             if (shouldAddStack) {
                                 blockCodeBuilder.aload(stackSlot)
                                     .lload(stackPointerSlot)
-                                    .invokevirtual(CD_MemoryStack, "setPointer", MethodTypeDesc.of(CD_void, CD_long));
+                                    .invokevirtual(CD_MemoryStack, "setPointer", MTD_void_long);
                             }
                             // throw
                             blockCodeBuilder.athrow();
@@ -701,6 +804,27 @@ public final class Downcall {
                     mtd_method,
                     Modifier.isPublic(modifiers) ? ACC_PUBLIC : ACC_PROTECTED,
                     methodBuilder -> methodBuilder.withCode(codeBuilder -> {
+                        if (returnType == MethodHandle.class) {
+                            codeBuilder.aload(codeBuilder.receiverSlot())
+                                .getfield(cd_thisClass, handleName, CD_MethodHandle);
+                            if (method.isDefault()) {
+                                codeBuilder.ifThenElse(Opcode.IFNONNULL,
+                                    CodeBuilder::areturn,
+                                    blockCodeBuilder -> {
+                                        // invoke super interface
+                                        invokeSuperMethod(blockCodeBuilder, parameters);
+                                        final Class<?> declaringClass = method.getDeclaringClass();
+                                        blockCodeBuilder.invokespecial(ClassDesc.ofDescriptor(declaringClass.descriptorString()),
+                                                methodName,
+                                                mtd_method,
+                                                declaringClass.isInterface())
+                                            .areturn();
+                                    });
+                            } else {
+                                codeBuilder.areturn();
+                            }
+                            return;
+                        }
                         if (method.isDefault()) {
                             codeBuilder.aload(codeBuilder.receiverSlot())
                                 .getfield(cd_thisClass, handleName, CD_MethodHandle);
@@ -708,17 +832,10 @@ public final class Downcall {
                                 wrapping::accept,
                                 blockCodeBuilder -> {
                                     // invoke super interface
-                                    blockCodeBuilder.aload(blockCodeBuilder.receiverSlot());
-                                    for (int i = 0, size = parameters.size(); i < size; i++) {
-                                        final var parameter = parameters.get(i);
-                                        blockCodeBuilder.loadInstruction(
-                                            TypeKind.fromDescriptor(parameter.getType().descriptorString())
-                                                .asLoadable(),
-                                            blockCodeBuilder.parameterSlot(i));
-                                    }
+                                    invokeSuperMethod(blockCodeBuilder, parameters);
                                     final Class<?> declaringClass = method.getDeclaringClass();
                                     blockCodeBuilder.invokespecial(declaringClass.describeConstable().orElseThrow(),
-                                        method.getName(),
+                                        methodName,
                                         mtd_method,
                                         declaringClass.isInterface()
                                     ).returnInstruction(returnTypeKind);
@@ -733,114 +850,129 @@ public final class Downcall {
             // handle loader
             handleDataMap.forEach((method, methodData) -> classBuilder.withMethod(
                 methodData.loaderName(),
-                MethodTypeDesc.of(CD_MethodHandle, CD_SymbolLookup),
+                MTD_MethodHandle_SymbolLookup,
                 ACC_PRIVATE | ACC_STATIC,
                 methodBuilder -> methodBuilder.withCode(codeBuilder -> {
                     final int optionalSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
+                    final int descriptorSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
+                    final String entrypoint = methodData.entrypoint();
+
+                    final var returnType = method.getReturnType();
+                    final boolean returnVoid = returnType == void.class;
+                    final boolean methodByValue = method.getDeclaredAnnotation(ByValue.class) != null;
+
+                    // function descriptor
+                    if (descriptorMap.containsKey(entrypoint)) {
+                        codeBuilder.ldc(DynamicConstantDesc.ofNamed(BSM_CLASS_DATA,
+                                DEFAULT_NAME,
+                                CD_Map))
+                            .ldc(entrypoint)
+                            .invokeinterface(CD_Map, "get", MTD_Object_Object)
+                            .checkcast(CD_FunctionDescriptor);
+                    } else {
+                        if (!returnVoid) {
+                            final Convert convert = method.getDeclaredAnnotation(Convert.class);
+                            if (convert != null && returnType == boolean.class) {
+                                convertToValueLayout(codeBuilder, convert.value().representation());
+                            } else if (returnType.isPrimitive()) {
+                                convertToValueLayout(codeBuilder, returnType);
+                            } else {
+                                final SizedSeg sizedSeg = method.getDeclaredAnnotation(SizedSeg.class);
+                                final Sized sized = method.getDeclaredAnnotation(Sized.class);
+                                final boolean isSizedSeg = sizedSeg != null;
+                                final boolean isSized = sized != null;
+                                if (Struct.class.isAssignableFrom(returnType)) {
+                                    final String name = Arrays.stream(returnType.getDeclaredFields())
+                                        .filter(field -> Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class)
+                                        .findFirst()
+                                        .orElseThrow(() ->
+                                            new IllegalStateException(STR."The struct \{returnType} must contain one public static field that is StructLayout"))
+                                        .getName();
+                                    if (!methodByValue) {
+                                        convertToValueLayout(codeBuilder, returnType);
+                                        if (isSizedSeg) {
+                                            codeBuilder.constantInstruction(sizedSeg.value());
+                                        } else if (isSized) {
+                                            codeBuilder.constantInstruction((long) sized.value());
+                                        }
+                                    }
+                                    codeBuilder.getstatic(ClassDesc.ofDescriptor(returnType.descriptorString()),
+                                        name,
+                                        CD_StructLayout);
+                                    if (!methodByValue) {
+                                        if (isSizedSeg || isSized) {
+                                            codeBuilder.invokestatic(CD_MemoryLayout,
+                                                "sequenceLayout",
+                                                MTD_SequenceLayout_long_MemoryLayout,
+                                                true);
+                                        }
+                                        codeBuilder.invokeinterface(CD_AddressLayout,
+                                            "withTargetLayout",
+                                            MTD_AddressLayout_MemoryLayout);
+                                    }
+                                } else {
+                                    convertToValueLayout(codeBuilder, returnType);
+                                    if (isSizedSeg || isSized) {
+                                        if (isSizedSeg) {
+                                            codeBuilder.constantInstruction(sizedSeg.value());
+                                            convertToValueLayout(codeBuilder, byte.class);
+                                        } else {
+                                            codeBuilder.constantInstruction((long) sized.value());
+                                            convertToValueLayout(codeBuilder, returnType.isArray() ? returnType.getComponentType() : byte.class);
+                                        }
+                                        codeBuilder.invokestatic(CD_MemoryLayout,
+                                                "sequenceLayout",
+                                                MTD_SequenceLayout_long_MemoryLayout,
+                                                true)
+                                            .invokeinterface(CD_AddressLayout,
+                                                "withTargetLayout",
+                                                MTD_AddressLayout_MemoryLayout);
+                                    }
+                                }
+                            }
+                        }
+                        final var parameters = methodData.parameters();
+                        final boolean skipFirstParam = methodData.skipFirstParam();
+                        final int size = skipFirstParam || methodByValue ?
+                            parameters.size() - 1 :
+                            parameters.size();
+                        codeBuilder.constantInstruction(size)
+                            .anewarray(CD_MemoryLayout);
+                        for (int i = 0; i < size; i++) {
+                            final Parameter parameter = parameters.get(skipFirstParam ? i + 1 : i);
+                            final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
+                            codeBuilder.dup()
+                                .constantInstruction(i);
+                            if (convert != null && parameter.getType() == boolean.class) {
+                                convertToValueLayout(codeBuilder, convert.value().representation());
+                            } else {
+                                convertToValueLayout(codeBuilder, parameter.getType());
+                            }
+                            codeBuilder.aastore();
+                        }
+                        codeBuilder.invokestatic(CD_FunctionDescriptor,
+                            returnVoid ? "ofVoid" : "of",
+                            returnVoid ?
+                                MTD_FunctionDescriptor_MemoryLayoutArray :
+                                MTD_FunctionDescriptor_MemoryLayout_MemoryLayoutArray,
+                            true);
+                    }
+                    codeBuilder.astore(descriptorSlot);
+
                     codeBuilder.aload(codeBuilder.parameterSlot(0))
-                        .ldc(methodData.entrypoint())
-                        .invokeinterface(CD_SymbolLookup, "find", MethodTypeDesc.of(CD_Optional, CD_String))
+                        .ldc(entrypoint)
+                        .invokeinterface(CD_SymbolLookup, "find", MTD_Optional_String)
                         .astore(optionalSlot)
                         .aload(optionalSlot)
-                        .invokevirtual(CD_Optional, "isPresent", MethodTypeDesc.of(CD_boolean));
+                        .invokevirtual(CD_Optional, "isPresent", MTD_boolean);
                     codeBuilder.ifThenElse(
                         blockCodeBuilder -> {
                             blockCodeBuilder.getstatic(cd_thisClass, "LINKER", CD_Linker)
                                 .aload(optionalSlot)
-                                .invokevirtual(CD_Optional, "get", MethodTypeDesc.of(CD_Object))
+                                .invokevirtual(CD_Optional, "get", MTD_Object)
                                 .checkcast(CD_MemorySegment);
 
-                            final var returnType = method.getReturnType();
-                            final boolean returnVoid = returnType == void.class;
-                            final boolean methodByValue = method.getDeclaredAnnotation(ByValue.class) != null;
-
-                            // layout
-                            if (!returnVoid) {
-                                final Convert convert = method.getDeclaredAnnotation(Convert.class);
-                                if (convert != null && returnType == boolean.class) {
-                                    convertToValueLayout(blockCodeBuilder, convert.value().representation());
-                                } else if (returnType.isPrimitive()) {
-                                    convertToValueLayout(blockCodeBuilder, returnType);
-                                } else {
-                                    final SizedSeg sizedSeg = method.getDeclaredAnnotation(SizedSeg.class);
-                                    final Sized sized = method.getDeclaredAnnotation(Sized.class);
-                                    final boolean isSizedSeg = sizedSeg != null;
-                                    final boolean isSized = sized != null;
-                                    if (Struct.class.isAssignableFrom(returnType)) {
-                                        final String name = Arrays.stream(returnType.getDeclaredFields())
-                                            .filter(field -> Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class)
-                                            .findFirst()
-                                            .orElseThrow(() ->
-                                                new IllegalStateException(STR."The struct \{returnType} must contain one public static field that is StructLayout"))
-                                            .getName();
-                                        if (!methodByValue) {
-                                            convertToValueLayout(blockCodeBuilder, returnType);
-                                            if (isSizedSeg) {
-                                                blockCodeBuilder.constantInstruction(sizedSeg.value());
-                                            } else if (isSized) {
-                                                blockCodeBuilder.constantInstruction((long) sized.value());
-                                            }
-                                        }
-                                        blockCodeBuilder.getstatic(ClassDesc.ofDescriptor(returnType.descriptorString()),
-                                            name,
-                                            CD_StructLayout);
-                                        if (!methodByValue) {
-                                            if (isSizedSeg || isSized) {
-                                                blockCodeBuilder.invokestatic(CD_MemoryLayout,
-                                                    "sequenceLayout",
-                                                    MethodTypeDesc.of(CD_SequenceLayout, CD_long, CD_MemoryLayout),
-                                                    true);
-                                            }
-                                            blockCodeBuilder.invokeinterface(CD_AddressLayout,
-                                                "withTargetLayout",
-                                                MethodTypeDesc.of(CD_AddressLayout, CD_MemoryLayout));
-                                        }
-                                    } else {
-                                        convertToValueLayout(blockCodeBuilder, returnType);
-                                        if (isSizedSeg || isSized) {
-                                            if (isSizedSeg) {
-                                                blockCodeBuilder.constantInstruction(sizedSeg.value());
-                                                convertToValueLayout(blockCodeBuilder, byte.class);
-                                            } else {
-                                                blockCodeBuilder.constantInstruction((long) sized.value());
-                                                convertToValueLayout(blockCodeBuilder, returnType.isArray() ? returnType.getComponentType() : byte.class);
-                                            }
-                                            blockCodeBuilder.invokestatic(CD_MemoryLayout,
-                                                    "sequenceLayout",
-                                                    MethodTypeDesc.of(CD_SequenceLayout, CD_long, CD_MemoryLayout),
-                                                    true)
-                                                .invokeinterface(CD_AddressLayout,
-                                                    "withTargetLayout",
-                                                    MethodTypeDesc.of(CD_AddressLayout, CD_MemoryLayout));
-                                        }
-                                    }
-                                }
-                            }
-                            final var parameters = methodData.parameters();
-                            final boolean skipFirstParam = methodData.skipFirstParam();
-                            final int size = skipFirstParam || methodByValue ?
-                                parameters.size() - 1 :
-                                parameters.size();
-                            blockCodeBuilder.constantInstruction(size)
-                                .anewarray(CD_MemoryLayout);
-                            for (int i = 0; i < size; i++) {
-                                final Parameter parameter = parameters.get(skipFirstParam ? i + 1 : i);
-                                final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
-                                blockCodeBuilder.dup()
-                                    .constantInstruction(i);
-                                if (convert != null && parameter.getType() == boolean.class) {
-                                    convertToValueLayout(blockCodeBuilder, convert.value().representation());
-                                } else {
-                                    convertToValueLayout(blockCodeBuilder, parameter.getType());
-                                }
-                                blockCodeBuilder.aastore();
-                            }
-                            blockCodeBuilder.invokestatic(CD_FunctionDescriptor,
-                                returnVoid ? "ofVoid" : "of",
-                                returnVoid ?
-                                    MethodTypeDesc.of(CD_FunctionDescriptor, CD_MemoryLayout.arrayType()) :
-                                    MethodTypeDesc.of(CD_FunctionDescriptor, CD_MemoryLayout, CD_MemoryLayout.arrayType()),
-                                true);
+                            codeBuilder.aload(descriptorSlot);
 
                             // linker option
                             final Critical critical = method.getDeclaredAnnotation(Critical.class);
@@ -852,7 +984,7 @@ public final class Downcall {
                                     .constantInstruction(critical.allowHeapAccess() ? 1 : 0)
                                     .invokestatic(CD_Linker_Option,
                                         "critical",
-                                        MethodTypeDesc.of(CD_Linker_Option, CD_boolean),
+                                        MTD_LinkerOption_boolean,
                                         true)
                                     .aastore();
                             } else {
@@ -862,10 +994,7 @@ public final class Downcall {
 
                             blockCodeBuilder.invokeinterface(CD_Linker,
                                 "downcallHandle",
-                                MethodTypeDesc.of(CD_MethodHandle,
-                                    CD_MemorySegment,
-                                    CD_FunctionDescriptor,
-                                    CD_Linker_Option.arrayType())
+                                MTD_MethodHandle_MemorySegment_FunctionDescriptor_LinkerOptionArray
                             ).areturn();
                         },
                         blockCodeBuilder -> {
@@ -876,9 +1005,12 @@ public final class Downcall {
                                 blockCodeBuilder.new_(CD_IllegalStateException)
                                     .dup()
                                     .ldc(STR."""
-                                        Failed to load function with name \
-                                        \{methodData.entrypoint()}: \{methodData.exceptionString()}""")
-                                    .invokespecial(CD_IllegalStateException, INIT_NAME, MethodTypeDesc.of(CD_void, CD_String))
+                                        Couldn't find function with name \
+                                        \{entrypoint}: \{methodData.exceptionString()} and descriptor:""")
+                                    .aload(descriptorSlot)
+                                    .invokestatic(CD_String, "valueOf", MTD_String_Object)
+                                    .invokevirtual(CD_String, "concat", MTD_String_String)
+                                    .invokespecial(CD_IllegalStateException, INIT_NAME, MTD_void_String)
                                     .athrow();
                             }
                         });
@@ -889,7 +1021,7 @@ public final class Downcall {
             classBuilder.withMethod(CLASS_INIT_NAME, MTD_void, ACC_STATIC,
                 methodBuilder -> methodBuilder.withCode(codeBuilder -> {
                     // linker
-                    codeBuilder.invokestatic(CD_Linker, "nativeLinker", MethodTypeDesc.of(CD_Linker), true)
+                    codeBuilder.invokestatic(CD_Linker, "nativeLinker", MTD_Linker, true)
                         .putstatic(cd_thisClass, "LINKER", CD_Linker)
                         .return_();
                 }));
@@ -897,47 +1029,11 @@ public final class Downcall {
 
         try {
             final MethodHandles.Lookup hiddenClass = MethodHandles.privateLookupIn(callerClass, MethodHandles.lookup())
-                .defineHiddenClass(bytes, true, MethodHandles.Lookup.ClassOption.STRONG);
+                .defineHiddenClassWithClassData(bytes, Map.copyOf(descriptorMap), true, MethodHandles.Lookup.ClassOption.STRONG);
             return (T) hiddenClass.findConstructor(hiddenClass.lookupClass(), MethodType.methodType(void.class, SymbolLookup.class))
                 .invoke(lookup);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Loads the given class with the given symbol lookup.
-     *
-     * @param targetClass the target class
-     * @param lookup      the symbol lookup
-     * @param <T>         the type of the target class
-     * @return the loaded implementation instance of the target class
-     */
-    public static <T> T load(Class<T> targetClass, SymbolLookup lookup) {
-        return loadBytecode(targetClass, lookup);
-    }
-
-    /**
-     * Loads the caller class with the given library name.
-     *
-     * @param libname the library name
-     * @param <T>     the type of the caller class
-     * @return the loaded implementation instance of the caller class
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> T load(String libname) {
-        return load((Class<T>) STACK_WALKER.getCallerClass(), SymbolLookup.libraryLookup(libname, Arena.ofAuto()));
-    }
-
-    /**
-     * Loads the caller class with the given symbol lookup.
-     *
-     * @param lookup the symbol lookup
-     * @param <T>    the type of the caller class
-     * @return the loaded implementation instance of the caller class
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> T load(SymbolLookup lookup) {
-        return load((Class<T>) STACK_WALKER.getCallerClass(), lookup);
     }
 }
