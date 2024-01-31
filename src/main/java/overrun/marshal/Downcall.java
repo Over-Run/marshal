@@ -394,11 +394,11 @@ public final class Downcall {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T loadBytecode(Class<?> callerClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+    private static <T> T loadBytecode(Class<?> targetClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
         final ClassFile cf = of();
-        final ClassDesc cd_thisClass = ClassDesc.of(callerClass.getPackageName(), DEFAULT_NAME);
+        final ClassDesc cd_thisClass = ClassDesc.of(targetClass.getPackageName(), DEFAULT_NAME);
         final byte[] bytes = cf.build(cd_thisClass, classBuilder -> {
-            final List<Method> methodList = Arrays.stream(callerClass.getMethods())
+            final List<Method> methodList = Arrays.stream(targetClass.getMethods())
                 .filter(method ->
                     method.getDeclaredAnnotation(Skip.class) == null &&
                     !Modifier.isStatic(method.getModifiers()))
@@ -425,7 +425,8 @@ public final class Downcall {
             classBuilder.withFlags(ACC_FINAL | ACC_SUPER);
 
             // interface
-            classBuilder.withInterfaceSymbols(callerClass.describeConstable().orElseThrow());
+            final ClassDesc cd_targetClass = targetClass.describeConstable().orElseThrow();
+            classBuilder.withInterfaceSymbols(cd_targetClass);
 
             // linker
             classBuilder.withField("$LINKER", CD_Linker, ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
@@ -833,11 +834,10 @@ public final class Downcall {
                                     blockCodeBuilder -> {
                                         // invoke super interface
                                         invokeSuperMethod(blockCodeBuilder, parameters);
-                                        final Class<?> declaringClass = method.getDeclaringClass();
-                                        blockCodeBuilder.invokespecial(ClassDesc.ofDescriptor(declaringClass.descriptorString()),
+                                        blockCodeBuilder.invokespecial(cd_targetClass,
                                                 methodName,
                                                 mtd_method,
-                                                declaringClass.isInterface())
+                                                targetClass.isInterface())
                                             .areturn();
                                     });
                             } else {
@@ -854,11 +854,10 @@ public final class Downcall {
                                 blockCodeBuilder -> {
                                     // invoke super interface
                                     invokeSuperMethod(blockCodeBuilder, parameters);
-                                    final Class<?> declaringClass = method.getDeclaringClass();
-                                    blockCodeBuilder.invokespecial(declaringClass.describeConstable().orElseThrow(),
+                                    blockCodeBuilder.invokespecial(cd_targetClass,
                                         methodName,
                                         mtd_method,
-                                        declaringClass.isInterface()
+                                        targetClass.isInterface()
                                     ).returnInstruction(returnTypeKind);
                                 }
                             ).nop();
@@ -1049,7 +1048,7 @@ public final class Downcall {
         });
 
         try {
-            final MethodHandles.Lookup hiddenClass = MethodHandles.privateLookupIn(callerClass, MethodHandles.lookup())
+            final MethodHandles.Lookup hiddenClass = MethodHandles.privateLookupIn(targetClass, MethodHandles.lookup())
                 .defineHiddenClassWithClassData(bytes, Map.copyOf(descriptorMap), true, MethodHandles.Lookup.ClassOption.STRONG);
             return (T) hiddenClass.findConstructor(hiddenClass.lookupClass(), MethodType.methodType(void.class, SymbolLookup.class))
                 .invoke(lookup);
