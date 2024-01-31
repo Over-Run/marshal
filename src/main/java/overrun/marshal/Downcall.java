@@ -65,8 +65,7 @@ import static java.lang.constant.ConstantDescs.*;
  * <h2>Custom Method Handles</h2>
  * You can define a method, that accepts no argument and returns a {@link MethodHandle}, in an interface.
  * <p>
- * If a method that normally accepts and returns value with the same entrypoint doesn't exist,
- * you will have to set the function descriptor yourself.
+ * You <strong>MUST</strong> set the function descriptor of it explicitly.
  * <h3>Example</h3>
  * <pre>{@code
  * public interface GL {

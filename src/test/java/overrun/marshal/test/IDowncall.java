@@ -21,10 +21,9 @@ import overrun.marshal.Downcall;
 import overrun.marshal.MemoryStack;
 import overrun.marshal.gen.*;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
+import java.util.Map;
 
 /**
  * Downcall interface
@@ -33,8 +32,10 @@ import java.lang.invoke.MethodHandle;
  * @since 0.1.0
  */
 public interface IDowncall {
+    Map<String, FunctionDescriptor> MAP = Map.of("testDefault", FunctionDescriptor.of(ValueLayout.JAVA_INT));
+
     static IDowncall getInstance(boolean testDefaultNull) {
-        return Downcall.load(DowncallProvider.lookup(testDefaultNull));
+        return Downcall.load(DowncallProvider.lookup(testDefaultNull), MAP);
     }
 
     void test();
