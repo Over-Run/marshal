@@ -85,15 +85,9 @@ public final class DowncallTest {
     }
 
     @Test
-    void testDefaultInInterface() {
-        IDowncall.getInstance(true).testDefault();
-        assertEquals("testDefault in interface", outputStream.toString());
-    }
-
-    @Test
     void testDefault() {
-        IDowncall.getInstance(false).testDefault();
-        assertEquals("testDefault", outputStream.toString());
+        assertEquals(42, IDowncall.getInstance(false).testDefault());
+        assertEquals(84, IDowncall.getInstance(true).testDefault());
     }
 
     @Test
@@ -252,5 +246,14 @@ public final class DowncallTest {
     void testDuplicateLoading() {
         assertEquals(42, IDowncall.getInstance(false).testReturnInt());
         assertEquals(42, IDowncall.getInstance(false).testReturnInt());
+    }
+
+    @Test
+    void testDefaultMethodHandle() {
+        assertEquals(42, IDowncall.getInstance(false).testDefaultMethodHandle());
+        assertEquals("Thrown from interface",
+            assertThrows(RuntimeException.class, () -> IDowncall.getInstance(true).testDefaultMethodHandle())
+                .getCause()
+                .getMessage());
     }
 }

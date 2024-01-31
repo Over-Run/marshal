@@ -47,7 +47,7 @@ public final class DowncallProvider {
     static {
         try {
             seg("test", LOOKUP.findStatic(DowncallProvider.class, "test", MethodType.methodType(void.class)), FunctionDescriptor.ofVoid());
-            seg("testDefault", LOOKUP.findStatic(DowncallProvider.class, "testDefault", MethodType.methodType(void.class)), FunctionDescriptor.ofVoid());
+            seg("testDefault", LOOKUP.findStatic(DowncallProvider.class, "testDefault", MethodType.methodType(int.class)), FunctionDescriptor.of(JAVA_INT));
             seg("testInt", LOOKUP.findStatic(DowncallProvider.class, "testInt", MethodType.methodType(void.class, int.class)), FunctionDescriptor.ofVoid(JAVA_INT));
             seg("testString", LOOKUP.findStatic(DowncallProvider.class, "testString", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
             seg("testUTF16String", LOOKUP.findStatic(DowncallProvider.class, "testUTF16String", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
@@ -90,8 +90,8 @@ public final class DowncallProvider {
         System.out.print("test");
     }
 
-    private static void testDefault() {
-        System.out.print("testDefault");
+    private static int testDefault() {
+        return 42;
     }
 
     private static void testInt(int i) {

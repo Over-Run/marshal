@@ -51,18 +51,38 @@ import static java.lang.constant.ConstantDescs.*;
  * The loader skips static methods and methods annotated with {@link Skip @Skip} while generating.
  * <p>
  * {@link Entrypoint @Entrypoint} specifies the entrypoint of the annotated method.
+ * An entrypoint is a symbol name
+ * that locates to the function when {@linkplain SymbolLookup#find(String) finding} the address.
+ * The default entrypoint is the same as the name of the method.
  * <p>
- * THe loader will not throw an exception
+ * The loader will not throw an exception
  * if the method is modified with {@code default} and the native function is not found;
  * instead, it will return {@code null} and automatically invokes the original method declared in the target class.
  * <p>
  * {@link Critical @Critical} indicates that the annotated method is {@linkplain Linker.Option#critical(boolean) critical}.
  * <h3>Parameter Annotations</h3>
  * See {@link Ref @Ref}, {@link Sized @Sized} {@link SizedSeg @SizedSeg} and {@link StrCharset @StrCharset}.
+ * <h2>Custom Method Handles</h2>
+ * You can define a method, that accepts no argument and returns a {@link MethodHandle}, in an interface.
+ * <p>
+ * If a method that normally accepts and returns value with the same entrypoint doesn't exist,
+ * you will have to set the function descriptor yourself.
+ * <h3>Example</h3>
+ * <pre>{@code
+ * public interface GL {
+ *     GL INSTANCE = Downcall.load(lookup, Map.of("glClear", FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT)));
+ *     MethodHandle glClear();
+ *
+ *     @Skip
+ *     default void clear(int mask) throws Throwable {
+ *         glClear().invokeExact(mask);
+ *     }
+ * }
+ * }</pre>
  * <h2>Example</h2>
  * <pre>{@code
  * public interface GL {
- *     GL gl = Downcall.load("libGL.so");
+ *     GL INSTANCE = Downcall.load("libGL.so");
  *     int COLOR_BUFFER_BIT = 0x00004000;
  *     void glClear(int mask);
  * }
@@ -409,16 +429,16 @@ public final class Downcall {
             classBuilder.withInterfaceSymbols(callerClass.describeConstable().orElseThrow());
 
             // linker
-            classBuilder.withField("LINKER", CD_Linker, ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
+            classBuilder.withField("$LINKER", CD_Linker, ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
 
             // method handles
             methodList.forEach(method -> {
-                final String methodName = method.getName();
-                final String handleName = STR."mh_\{methodName}";
+                final String entrypoint = getMethodEntrypoint(method);
+                final String handleName = STR."$mh_\{entrypoint}";
                 final var parameters = List.of(method.getParameters());
 
                 final DowncallMethodData methodData = new DowncallMethodData(
-                    getMethodEntrypoint(method),
+                    entrypoint,
                     handleName,
                     STR."$load$\{method.getName()}",
                     STR."""
@@ -808,7 +828,9 @@ public final class Downcall {
                                 .getfield(cd_thisClass, handleName, CD_MethodHandle);
                             if (method.isDefault()) {
                                 codeBuilder.ifThenElse(Opcode.IFNONNULL,
-                                    CodeBuilder::areturn,
+                                    blockCodeBuilder -> blockCodeBuilder.aload(codeBuilder.receiverSlot())
+                                        .getfield(cd_thisClass, handleName, CD_MethodHandle)
+                                        .areturn(),
                                     blockCodeBuilder -> {
                                         // invoke super interface
                                         invokeSuperMethod(blockCodeBuilder, parameters);
@@ -824,6 +846,7 @@ public final class Downcall {
                             }
                             return;
                         }
+
                         if (method.isDefault()) {
                             codeBuilder.aload(codeBuilder.receiverSlot())
                                 .getfield(cd_thisClass, handleName, CD_MethodHandle);
@@ -966,7 +989,7 @@ public final class Downcall {
                         .invokevirtual(CD_Optional, "isPresent", MTD_boolean);
                     codeBuilder.ifThenElse(
                         blockCodeBuilder -> {
-                            blockCodeBuilder.getstatic(cd_thisClass, "LINKER", CD_Linker)
+                            blockCodeBuilder.getstatic(cd_thisClass, "$LINKER", CD_Linker)
                                 .aload(optionalSlot)
                                 .invokevirtual(CD_Optional, "get", MTD_Object)
                                 .checkcast(CD_MemorySegment);
@@ -1021,7 +1044,7 @@ public final class Downcall {
                 methodBuilder -> methodBuilder.withCode(codeBuilder -> {
                     // linker
                     codeBuilder.invokestatic(CD_Linker, "nativeLinker", MTD_Linker, true)
-                        .putstatic(cd_thisClass, "LINKER", CD_Linker)
+                        .putstatic(cd_thisClass, "$LINKER", CD_Linker)
                         .return_();
                 }));
         });

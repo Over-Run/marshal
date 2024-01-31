@@ -24,6 +24,7 @@ import overrun.marshal.gen.*;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
+import java.lang.invoke.MethodHandle;
 
 /**
  * Downcall interface
@@ -46,8 +47,8 @@ public interface IDowncall {
         System.out.print("testSkip");
     }
 
-    default void testDefault() {
-        System.out.print("testDefault in interface");
+    default int testDefault() {
+        return 84;
     }
 
     void testInt(int i);
@@ -112,4 +113,18 @@ public interface IDowncall {
 
     @Convert(Type.INT)
     boolean testConvertBoolean(@Convert(Type.INT) boolean b);
+
+    @Entrypoint("testDefault")
+    default MethodHandle mh_testDefaultMethodHandle() {
+        throw new IllegalStateException("Thrown from interface");
+    }
+
+    @Skip
+    default int testDefaultMethodHandle() {
+        try {
+            return (int) mh_testDefaultMethodHandle().invokeExact();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
