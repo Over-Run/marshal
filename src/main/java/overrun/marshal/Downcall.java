@@ -46,6 +46,10 @@ import static java.lang.constant.ConstantDescs.*;
  * <h2>Loading native library</h2>
  * You can load native libraries with {@link #load(Class, SymbolLookup)}.
  * This method generates a hidden class that loads method handle with the given symbol lookup.
+ * <p>
+ * The generated class implements the target class.
+ * The target class <strong>MUST</strong> be {@code public}
+ * as the generated class is defined in package {@code overrun.marshal}.
  * <h2>Methods</h2>
  * The loader finds method from the target class and its superclasses.
  * <p>
@@ -397,7 +401,7 @@ public final class Downcall {
     @SuppressWarnings("unchecked")
     private static <T> T loadBytecode(Class<?> targetClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
         final ClassFile cf = of();
-        final ClassDesc cd_thisClass = ClassDesc.of(targetClass.getPackageName(), DEFAULT_NAME);
+        final ClassDesc cd_thisClass = ClassDesc.of(Downcall.class.getPackageName(), DEFAULT_NAME);
         final byte[] bytes = cf.build(cd_thisClass, classBuilder -> {
             final List<Method> methodList = Arrays.stream(targetClass.getMethods())
                 .filter(method ->
@@ -420,7 +424,6 @@ public final class Downcall {
             });
 
             final Map<Method, DowncallMethodData> methodDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
-            final Map<Method, DowncallMethodData> handleDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
 
             classBuilder.withFlags(ACC_FINAL | ACC_SUPER);
 
@@ -454,7 +457,6 @@ public final class Downcall {
                 );
                 methodDataMap.put(method, methodData);
 
-                handleDataMap.put(method, methodData);
                 classBuilder.withField(handleName, CD_MethodHandle,
                     ACC_PRIVATE | ACC_FINAL);
             });
@@ -468,7 +470,7 @@ public final class Downcall {
                             .invokespecial(CD_Object, INIT_NAME, MTD_void);
 
                         // method handles
-                        handleDataMap.values().forEach(methodData -> {
+                        methodDataMap.values().forEach(methodData -> {
                             // initialize field
                             codeBuilder.aload(codeBuilder.receiverSlot())
                                 .aload(codeBuilder.parameterSlot(0))
@@ -866,7 +868,7 @@ public final class Downcall {
             });
 
             // handle loader
-            handleDataMap.forEach((method, methodData) -> classBuilder.withMethod(
+            methodDataMap.forEach((method, methodData) -> classBuilder.withMethod(
                 methodData.loaderName(),
                 MTD_MethodHandle_SymbolLookup,
                 ACC_PRIVATE | ACC_STATIC,
@@ -1046,7 +1048,7 @@ public final class Downcall {
         });
 
         try {
-            final MethodHandles.Lookup hiddenClass = MethodHandles.privateLookupIn(targetClass, MethodHandles.lookup())
+            final MethodHandles.Lookup hiddenClass = MethodHandles.lookup()
                 .defineHiddenClassWithClassData(bytes, Map.copyOf(descriptorMap), true, MethodHandles.Lookup.ClassOption.STRONG);
             return (T) hiddenClass.findConstructor(hiddenClass.lookupClass(), MethodType.methodType(void.class, SymbolLookup.class))
                 .invoke(lookup);

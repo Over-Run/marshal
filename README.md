@@ -17,7 +17,6 @@ import overrun.marshal.gen.*;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.ValueLayout;
 
 /**
  * GLFW constants and functions
@@ -95,6 +94,6 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    implementation("io.github.over-run:marshal:0.1.0-alpha.15-jdk22")
+    implementation("io.github.over-run:marshal:0.1.0-alpha.16-jdk22")
 }
 ```

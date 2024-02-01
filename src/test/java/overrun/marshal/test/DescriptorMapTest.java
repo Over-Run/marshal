@@ -87,7 +87,7 @@ public final class DescriptorMapTest {
         return d == 84L;
     }
 
-    interface Interface {
+    public interface Interface {
         static Interface getInstance(ValueLayout returnLayout, ValueLayout acceptLayout) {
             return Downcall.load(lookup(returnLayout, acceptLayout), Map.of(
                 "testReturn", FunctionDescriptor.of(returnLayout),

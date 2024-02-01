@@ -29,13 +29,13 @@ import java.lang.foreign.SymbolLookup;
  * @since 0.1.0
  */
 public final class IndirectInterfaceTest {
-    interface I1 {
+    public interface I1 {
         default int fun1() {
             return 1;
         }
     }
 
-    interface I2 extends I1 {
+    public interface I2 extends I1 {
     }
 
     I2 INSTANCE = Downcall.load(I2.class, SymbolLookup.loaderLookup());
