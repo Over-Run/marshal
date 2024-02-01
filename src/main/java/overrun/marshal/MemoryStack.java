@@ -16,10 +16,7 @@
 
 package overrun.marshal;
 
-import java.lang.foreign.AddressLayout;
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
+import java.lang.foreign.*;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -240,6 +237,18 @@ public sealed class MemoryStack implements Arena {
         }
 
         return segment().asSlice(pointer, byteSize);
+    }
+
+    /**
+     * Allocates a block of {@code size} bytes of memory on the stack.
+     * The content of the newly allocated block of memory is not initialized, remaining with
+     * indeterminate values.
+     *
+     * @param layout the layout of the memory segment
+     * @return the memory segment on the stack for the requested allocation
+     */
+    public MemorySegment malloc(MemoryLayout layout) {
+        return malloc(layout.byteSize(), layout.byteAlignment());
     }
 
     private MemorySegment malloc(long byteSize, ValueLayout valueLayout) {

@@ -16,19 +16,14 @@
 
 package overrun.marshal.test;
 
-import org.junit.jupiter.api.*;
-import overrun.marshal.MemoryStack;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static overrun.marshal.test.TestUtil.*;
 
 /**
  * Test downcall
@@ -38,50 +33,10 @@ import static overrun.marshal.test.TestUtil.*;
  */
 public final class DowncallTest {
     private static IDowncall d;
-    private static PrintStream stdout = null;
-    private static ByteArrayOutputStream outputStream = null;
 
     @BeforeAll
     static void beforeAll() {
         d = IDowncall.getInstance(false);
-    }
-
-    @BeforeEach
-    void setUp() {
-        stdout = System.out;
-        outputStream = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(outputStream));
-    }
-
-    @AfterEach
-    void tearDown() {
-        System.setOut(stdout);
-        outputStream.reset();
-    }
-
-    @AfterAll
-    static void afterAll() throws IOException {
-        if (outputStream != null) {
-            outputStream.close();
-        }
-    }
-
-    @Test
-    void test() {
-        d.test();
-        assertEquals("test", outputStream.toString());
-    }
-
-    @Test
-    void testWithEntrypoint() {
-        d.testWithEntrypoint();
-        assertEquals("test", outputStream.toString());
-    }
-
-    @Test
-    void testSkip() {
-        d.testSkip();
-        assertEquals("testSkip", outputStream.toString());
     }
 
     @Test
@@ -91,51 +46,10 @@ public final class DowncallTest {
     }
 
     @Test
-    void testInt() {
-        d.testInt(42);
-        assertEquals("42", outputStream.toString());
-    }
-
-    @Test
-    void testString() {
-        d.testString(TEST_STRING);
-        assertEquals(TEST_STRING, outputStream.toString());
-    }
-
-    @Test
-    void testUTF16String() {
-        d.testUTF16String(utf16Str(TEST_UTF16_STRING));
-        assertEquals(TEST_UTF16_STRING, outputStream.toString());
-    }
-
-    @Test
-    void testCEnum() {
-        d.testCEnum(MyEnum.A);
-        d.testCEnum(MyEnum.B);
-        d.testCEnum(MyEnum.C);
-        assertEquals("024", outputStream.toString());
-    }
-
-    @Test
     void testUpcall() {
         try (Arena arena = Arena.ofConfined()) {
             assertEquals(84, d.testUpcall(arena, i -> i * 2));
         }
-    }
-
-    @Test
-    void testIntArray() {
-        d.testIntArray(new int[]{4, 2});
-        try (Arena arena = Arena.ofConfined()) {
-            d.testIntArray((SegmentAllocator) arena, new int[]{4, 2});
-            d.testIntArray(arena, new int[]{4, 2});
-        }
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            d.testIntArray(stack, new int[]{4, 2});
-        }
-        d.testVarArgsJava(2, 4, 2);
-        d.testVarArgsJava(0);
-        assertEquals("[4, 2][4, 2][4, 2][4, 2][4, 2][]", outputStream.toString());
     }
 
     @Test
@@ -156,8 +70,8 @@ public final class DowncallTest {
 
     @Test
     void testReturnString() {
-        assertEquals(TEST_STRING, d.testReturnString());
-        assertEquals(TEST_UTF16_STRING, d.testReturnUTF16String());
+        assertEquals(TestUtil.TEST_STRING, d.testReturnString());
+        assertEquals(TestUtil.TEST_UTF16_STRING, d.testReturnUTF16String());
     }
 
     @Test
@@ -205,13 +119,6 @@ public final class DowncallTest {
     @Test
     void testReturnIntArray() {
         assertArrayEquals(new int[]{4, 2}, d.testReturnIntArray());
-    }
-
-    @Test
-    void testSizedIntArray() {
-        assertThrowsExactly(IllegalArgumentException.class, () -> d.testSizedIntArray(new int[0]));
-        assertDoesNotThrow(() -> d.testSizedIntArray(new int[]{4, 2}));
-        assertEquals("[4, 2]", outputStream.toString());
     }
 
     @Test

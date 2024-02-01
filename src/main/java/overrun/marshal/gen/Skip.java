@@ -19,11 +19,11 @@ package overrun.marshal.gen;
 import java.lang.annotation.*;
 
 /**
- * Skips generating a marked field or method.
+ * Skips generating a marked method.
  * <h2>Example</h2>
  * <pre>{@code
  * @Skip
- * int LAYOUT;
+ * default int myFunction() { return 1; }
  * }</pre>
  *
  * @author squid233
