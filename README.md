@@ -95,6 +95,6 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    implementation("io.github.over-run:marshal:0.1.0-alpha.13-jdk22")
+    implementation("io.github.over-run:marshal:0.1.0-alpha.14-jdk22")
 }
 ```
