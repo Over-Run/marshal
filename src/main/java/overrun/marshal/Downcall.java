@@ -33,6 +33,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -420,7 +421,6 @@ public final class Downcall {
 
             final Map<Method, DowncallMethodData> methodDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
             final Map<Method, DowncallMethodData> handleDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
-            final List<String> addedHandleList = new ArrayList<>(methodList.size());
 
             classBuilder.withFlags(ACC_FINAL | ACC_SUPER);
 
@@ -432,15 +432,16 @@ public final class Downcall {
             classBuilder.withField("$LINKER", CD_Linker, ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
 
             // method handles
+            final AtomicInteger handleCount = new AtomicInteger();
             methodList.forEach(method -> {
                 final String entrypoint = getMethodEntrypoint(method);
-                final String handleName = STR."$mh_\{entrypoint}";
+                final String handleName = STR."$mh\{handleCount.getAndIncrement()}";
                 final var parameters = List.of(method.getParameters());
 
                 final DowncallMethodData methodData = new DowncallMethodData(
                     entrypoint,
                     handleName,
-                    STR."$load$\{method.getName()}",
+                    STR."$load\{handleName}",
                     STR."""
                         \{method.getReturnType().getCanonicalName()} \
                         \{method.getDeclaringClass().getCanonicalName()}.\{method.getName()}\
@@ -453,12 +454,9 @@ public final class Downcall {
                 );
                 methodDataMap.put(method, methodData);
 
-                if (!addedHandleList.contains(handleName)) {
-                    handleDataMap.put(method, methodData);
-                    addedHandleList.add(handleName);
-                    classBuilder.withField(handleName, CD_MethodHandle,
-                        ACC_PRIVATE | ACC_FINAL);
-                }
+                handleDataMap.put(method, methodData);
+                classBuilder.withField(handleName, CD_MethodHandle,
+                    ACC_PRIVATE | ACC_FINAL);
             });
 
             // constructor
