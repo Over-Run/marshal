@@ -23,6 +23,7 @@ import overrun.marshal.gen.*;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.util.Map;
 
 /**
@@ -35,7 +36,7 @@ public interface IDowncall {
     Map<String, FunctionDescriptor> MAP = Map.of("testDefault", FunctionDescriptor.of(ValueLayout.JAVA_INT));
 
     static IDowncall getInstance(boolean testDefaultNull) {
-        return Downcall.load(DowncallProvider.lookup(testDefaultNull), MAP);
+        return Downcall.load(MethodHandles.lookup(), DowncallProvider.lookup(testDefaultNull), MAP);
     }
 
     void test();

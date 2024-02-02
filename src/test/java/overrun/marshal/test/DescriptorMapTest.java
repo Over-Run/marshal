@@ -89,7 +89,7 @@ public final class DescriptorMapTest {
 
     public interface Interface {
         static Interface getInstance(ValueLayout returnLayout, ValueLayout acceptLayout) {
-            return Downcall.load(lookup(returnLayout, acceptLayout), Map.of(
+            return Downcall.load(MethodHandles.lookup(), lookup(returnLayout, acceptLayout), Map.of(
                 "testReturn", FunctionDescriptor.of(returnLayout),
                 "testAccept", FunctionDescriptor.of(JAVA_BOOLEAN, acceptLayout)
             ));

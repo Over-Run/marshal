@@ -44,12 +44,15 @@ import static java.lang.constant.ConstantDescs.*;
 /**
  * Downcall library loader.
  * <h2>Loading native library</h2>
- * You can load native libraries with {@link #load(Class, SymbolLookup)}.
+ * You can load native libraries with {@link #load(MethodHandles.Lookup, Class, SymbolLookup)}.
  * This method generates a hidden class that loads method handle with the given symbol lookup.
  * <p>
+ * The {@code load} methods accept a lookup object for defining hidden class with the caller.
+ * The lookup object <strong>MUST</strong> have {@linkplain MethodHandles.Lookup#hasFullPrivilegeAccess() full privilege access}
+ * which allows {@code Downcall} to define the hidden class.
+ * You can obtain that lookup object with {@link MethodHandles#lookup()}.
+ * <p>
  * The generated class implements the target class.
- * The target class <strong>MUST</strong> be {@code public}
- * as the generated class is defined in package {@code overrun.marshal}.
  * <h2>Methods</h2>
  * The loader finds method from the target class and its superclasses.
  * <p>
@@ -74,7 +77,8 @@ import static java.lang.constant.ConstantDescs.*;
  * <h3>Example</h3>
  * <pre>{@code
  * public interface GL {
- *     GL INSTANCE = Downcall.load(lookup, Map.of("glClear", FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT)));
+ *     GL INSTANCE = Downcall.load(MethodHandles.lookup(), lookup,
+ *         Map.of("glClear", FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT)));
  *     MethodHandle glClear();
  *
  *     @Skip
@@ -86,7 +90,7 @@ import static java.lang.constant.ConstantDescs.*;
  * <h2>Example</h2>
  * <pre>{@code
  * public interface GL {
- *     GL INSTANCE = Downcall.load("libGL.so");
+ *     GL INSTANCE = Downcall.load(MethodHandles.lookup(), "libGL.so");
  *     int COLOR_BUFFER_BIT = 0x00004000;
  *     void glClear(int mask);
  * }
@@ -103,7 +107,6 @@ import static java.lang.constant.ConstantDescs.*;
  * @since 0.1.0
  */
 public final class Downcall {
-    private static final StackWalker STACK_WALKER = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
     private static final ClassDesc CD_Addressable = ClassDesc.of("overrun.marshal.Addressable");
     private static final ClassDesc CD_AddressLayout = ClassDesc.of("java.lang.foreign.AddressLayout");
     private static final ClassDesc CD_Arena = ClassDesc.of("java.lang.foreign.Arena");
@@ -190,63 +193,68 @@ public final class Downcall {
     /**
      * Loads the given class with the given symbol lookup.
      *
+     * @param caller        the lookup object for the caller
      * @param targetClass   the target class
      * @param lookup        the symbol lookup
      * @param descriptorMap the custom function descriptors for each method handle
      * @param <T>           the type of the target class
      * @return the loaded implementation instance of the target class
      */
-    public static <T> T load(Class<T> targetClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
-        return loadBytecode(targetClass, lookup, descriptorMap);
+    public static <T> T load(MethodHandles.Lookup caller, Class<T> targetClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+        return loadBytecode(caller, targetClass, lookup, descriptorMap);
     }
 
     /**
      * Loads the given class with the given symbol lookup.
      *
+     * @param caller      the lookup object for the caller
      * @param targetClass the target class
      * @param lookup      the symbol lookup
      * @param <T>         the type of the target class
      * @return the loaded implementation instance of the target class
      */
-    public static <T> T load(Class<T> targetClass, SymbolLookup lookup) {
-        return load(targetClass, lookup, Map.of());
+    public static <T> T load(MethodHandles.Lookup caller, Class<T> targetClass, SymbolLookup lookup) {
+        return load(caller, targetClass, lookup, Map.of());
     }
 
     /**
      * Loads the caller class with the given symbol lookup.
      *
+     * @param caller        the lookup object for the caller
      * @param lookup        the symbol lookup
      * @param descriptorMap the custom function descriptors for each method handle
      * @param <T>           the type of the caller class
      * @return the loaded implementation instance of the caller class
      */
     @SuppressWarnings("unchecked")
-    public static <T> T load(SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
-        return load((Class<T>) STACK_WALKER.getCallerClass(), lookup, descriptorMap);
+    public static <T> T load(MethodHandles.Lookup caller, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+        return load(caller, (Class<T>) caller.lookupClass(), lookup, descriptorMap);
     }
 
     /**
      * Loads the caller class with the given symbol lookup.
      *
+     * @param caller the lookup object for the caller
      * @param lookup the symbol lookup
      * @param <T>    the type of the caller class
      * @return the loaded implementation instance of the caller class
      */
     @SuppressWarnings("unchecked")
-    public static <T> T load(SymbolLookup lookup) {
-        return load((Class<T>) STACK_WALKER.getCallerClass(), lookup);
+    public static <T> T load(MethodHandles.Lookup caller, SymbolLookup lookup) {
+        return load(caller, (Class<T>) caller.lookupClass(), lookup);
     }
 
     /**
      * Loads the caller class with the given library name.
      *
+     * @param caller  the lookup object for the caller
      * @param libname the library name
      * @param <T>     the type of the caller class
      * @return the loaded implementation instance of the caller class
      */
     @SuppressWarnings("unchecked")
-    public static <T> T load(String libname) {
-        return load((Class<T>) STACK_WALKER.getCallerClass(), SymbolLookup.libraryLookup(libname, Arena.ofAuto()));
+    public static <T> T load(MethodHandles.Lookup caller, String libname) {
+        return load(caller, (Class<T>) caller.lookupClass(), SymbolLookup.libraryLookup(libname, Arena.ofAuto()));
     }
 
     private static void convertToValueLayout(CodeBuilder codeBuilder, Class<?> aClass) {
@@ -399,9 +407,10 @@ public final class Downcall {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T loadBytecode(Class<?> targetClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+    private static <T> T loadBytecode(MethodHandles.Lookup caller, Class<?> targetClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+        final Class<?> lookupClass = caller.lookupClass();
         final ClassFile cf = of();
-        final ClassDesc cd_thisClass = ClassDesc.of(Downcall.class.getPackageName(), DEFAULT_NAME);
+        final ClassDesc cd_thisClass = ClassDesc.of(lookupClass.getPackageName(), DEFAULT_NAME);
         final byte[] bytes = cf.build(cd_thisClass, classBuilder -> {
             final List<Method> methodList = Arrays.stream(targetClass.getMethods())
                 .filter(method ->
@@ -1048,7 +1057,7 @@ public final class Downcall {
         });
 
         try {
-            final MethodHandles.Lookup hiddenClass = MethodHandles.lookup()
+            final MethodHandles.Lookup hiddenClass = caller
                 .defineHiddenClassWithClassData(bytes, Map.copyOf(descriptorMap), true, MethodHandles.Lookup.ClassOption.STRONG);
             return (T) hiddenClass.findConstructor(hiddenClass.lookupClass(), MethodType.methodType(void.class, SymbolLookup.class))
                 .invoke(lookup);

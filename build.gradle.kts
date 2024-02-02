@@ -88,6 +88,12 @@ allprojects {
     dependencies {
         // add your dependencies
         compileOnly("org.jetbrains:annotations:24.1.0")
+        testImplementation(platform("org.junit:junit-bom:5.10.1"))
+        testImplementation("org.junit.jupiter:junit-jupiter")
+    }
+
+    tasks.withType<Test> {
+        useJUnitPlatform()
     }
 
     tasks.withType<JavaCompile> {
@@ -127,15 +133,6 @@ allprojects {
             //"Main-Class" to "org.example.Main"
         )
     }
-}
-
-dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.10.1"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
 }
 
 tasks.withType<Jar> {

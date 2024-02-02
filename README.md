@@ -17,6 +17,7 @@ import overrun.marshal.gen.*;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
+import java.lang.invoke.MethodHandles;
 
 /**
  * GLFW constants and functions
@@ -25,7 +26,7 @@ interface GLFW {
     /**
      * The instance of the loaded library
      */
-    GLFW INSTANCE = Downcall.load("libglfw3.so");
+    GLFW INSTANCE = Downcall.load(MethodHandles.lookup(), "libglfw3.so");
 
     /**
      * A field
@@ -94,6 +95,6 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    implementation("io.github.over-run:marshal:0.1.0-alpha.16-jdk22")
+    implementation("io.github.over-run:marshal:0.1.0-alpha.17-jdk22")
 }
 ```

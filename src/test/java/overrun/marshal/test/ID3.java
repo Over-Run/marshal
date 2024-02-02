@@ -78,7 +78,7 @@ public interface ID3 extends ID1, ID2 {
         }
     }
 
-    ID3 INSTANCE = Downcall.load(Provider.load());
+    ID3 INSTANCE = Downcall.load(MethodHandles.lookup(), Provider.load());
 
     @Override
     @Entrypoint("get1")
