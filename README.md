@@ -98,3 +98,6 @@ dependencies {
     implementation("io.github.over-run:marshal:0.1.0-alpha.17-jdk22")
 }
 ```
+
+and add this VM argument to enable native access: `--enable-native-access=io.github.overrun.marshal`  
+or this if you don't use modules: `--enable-native-access=ALL-UNNAMED`
