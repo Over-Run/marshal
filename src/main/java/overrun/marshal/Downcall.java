@@ -16,8 +16,8 @@
 
 package overrun.marshal;
 
-import overrun.marshal.gen.*;
 import overrun.marshal.gen.Type;
+import overrun.marshal.gen.*;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.Struct;
 
@@ -26,7 +26,9 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.constant.*;
+import java.lang.constant.ClassDesc;
+import java.lang.constant.DynamicConstantDesc;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -35,6 +37,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -107,48 +110,26 @@ import static java.lang.constant.ConstantDescs.*;
  * @since 0.1.0
  */
 public final class Downcall {
+    private static final Linker LINKER = Linker.nativeLinker();
+    private static final Linker.Option[] NO_OPTION = new Linker.Option[0];
+    private static final Linker.Option[] OPTION_CRITICAL_FALSE = {Linker.Option.critical(false)};
+    private static final Linker.Option[] OPTION_CRITICAL_TRUE = {Linker.Option.critical(true)};
     private static final ClassDesc CD_Addressable = ClassDesc.of("overrun.marshal.Addressable");
-    private static final ClassDesc CD_AddressLayout = ClassDesc.of("java.lang.foreign.AddressLayout");
     private static final ClassDesc CD_Arena = ClassDesc.of("java.lang.foreign.Arena");
     private static final ClassDesc CD_CEnum = ClassDesc.of("overrun.marshal.CEnum");
     private static final ClassDesc CD_Charset = ClassDesc.of("java.nio.charset.Charset");
     private static final ClassDesc CD_Checks = ClassDesc.of("overrun.marshal.Checks");
-    private static final ClassDesc CD_FunctionDescriptor = ClassDesc.of("java.lang.foreign.FunctionDescriptor");
     private static final ClassDesc CD_IllegalStateException = ClassDesc.of("java.lang.IllegalStateException");
-    private static final ClassDesc CD_Linker = ClassDesc.of("java.lang.foreign.Linker");
     private static final ClassDesc CD_Marshal = ClassDesc.of("overrun.marshal.Marshal");
-    private static final ClassDesc CD_MemoryLayout = ClassDesc.of("java.lang.foreign.MemoryLayout");
     private static final ClassDesc CD_MemorySegment = ClassDesc.of("java.lang.foreign.MemorySegment");
-    private static final ClassDesc CD_Linker_Option = CD_Linker.nested("Option");
     private static final ClassDesc CD_MemoryStack = ClassDesc.of("overrun.marshal.MemoryStack");
-    private static final ClassDesc CD_Optional = ClassDesc.of("java.util.Optional");
     private static final ClassDesc CD_SegmentAllocator = ClassDesc.of("java.lang.foreign.SegmentAllocator");
-    private static final ClassDesc CD_SequenceLayout = ClassDesc.of("java.lang.foreign.SequenceLayout");
     private static final ClassDesc CD_StandardCharsets = ClassDesc.of("java.nio.charset.StandardCharsets");
-    private static final ClassDesc CD_StructLayout = ClassDesc.of("java.lang.foreign.StructLayout");
-    private static final ClassDesc CD_SymbolLookup = ClassDesc.of("java.lang.foreign.SymbolLookup");
     private static final ClassDesc CD_Unmarshal = ClassDesc.of("overrun.marshal.Unmarshal");
     private static final ClassDesc CD_Upcall = ClassDesc.of("overrun.marshal.Upcall");
-    private static final ClassDesc CD_ValueLayout = ClassDesc.of("java.lang.foreign.ValueLayout");
-    private static final ClassDesc CD_ValueLayout_OfBoolean = CD_ValueLayout.nested("OfBoolean");
-    private static final ClassDesc CD_ValueLayout_OfChar = CD_ValueLayout.nested("OfChar");
-    private static final ClassDesc CD_ValueLayout_OfByte = CD_ValueLayout.nested("OfByte");
-    private static final ClassDesc CD_ValueLayout_OfShort = CD_ValueLayout.nested("OfShort");
-    private static final ClassDesc CD_ValueLayout_OfInt = CD_ValueLayout.nested("OfInt");
-    private static final ClassDesc CD_ValueLayout_OfLong = CD_ValueLayout.nested("OfLong");
-    private static final ClassDesc CD_ValueLayout_OfFloat = CD_ValueLayout.nested("OfFloat");
-    private static final ClassDesc CD_ValueLayout_OfDouble = CD_ValueLayout.nested("OfDouble");
-    private static final ClassDesc CD_LinkerOptionArray = CD_Linker_Option.arrayType();
-    private static final ClassDesc CD_MemoryLayoutArray = CD_MemoryLayout.arrayType();
     private static final ClassDesc CD_StringArray = CD_String.arrayType();
 
-    private static final MethodTypeDesc MTD_AddressLayout_MemoryLayout = MethodTypeDesc.of(CD_AddressLayout, CD_MemoryLayout);
-    private static final MethodTypeDesc MTD_boolean = MethodTypeDesc.of(CD_boolean);
     private static final MethodTypeDesc MTD_Charset_String = MethodTypeDesc.of(CD_Charset, CD_String);
-    private static final MethodTypeDesc MTD_FunctionDescriptor_MemoryLayout_MemoryLayoutArray = MethodTypeDesc.of(CD_FunctionDescriptor, CD_MemoryLayout, CD_MemoryLayoutArray);
-    private static final MethodTypeDesc MTD_FunctionDescriptor_MemoryLayoutArray = MethodTypeDesc.of(CD_FunctionDescriptor, CD_MemoryLayoutArray);
-    private static final MethodTypeDesc MTD_Linker = MethodTypeDesc.of(CD_Linker);
-    private static final MethodTypeDesc MTD_LinkerOption_boolean = MethodTypeDesc.of(CD_Linker_Option, CD_boolean);
     private static final MethodTypeDesc MTD_long = MethodTypeDesc.of(CD_long);
     private static final MethodTypeDesc MTD_MemorySegment_Arena_Upcall = MethodTypeDesc.of(CD_MemorySegment, CD_Arena, CD_Upcall);
     private static final MethodTypeDesc MTD_MemorySegment_SegmentAllocator_String = MethodTypeDesc.of(CD_MemorySegment,
@@ -163,19 +144,9 @@ public final class Downcall {
         CD_StringArray,
         CD_Charset);
     private static final MethodTypeDesc MTD_MemoryStack = MethodTypeDesc.of(CD_MemoryStack);
-    private static final MethodTypeDesc MTD_MethodHandle_MemorySegment_FunctionDescriptor_LinkerOptionArray = MethodTypeDesc.of(CD_MethodHandle,
-        CD_MemorySegment,
-        CD_FunctionDescriptor,
-        CD_LinkerOptionArray);
-    private static final MethodTypeDesc MTD_MethodHandle_SymbolLookup = MethodTypeDesc.of(CD_MethodHandle, CD_SymbolLookup);
     private static final MethodTypeDesc MTD_Object_Object = MethodTypeDesc.of(CD_Object, CD_Object);
-    private static final MethodTypeDesc MTD_Object = MethodTypeDesc.of(CD_Object);
-    private static final MethodTypeDesc MTD_Optional_String = MethodTypeDesc.of(CD_Optional, CD_String);
-    private static final MethodTypeDesc MTD_SequenceLayout_long_MemoryLayout = MethodTypeDesc.of(CD_SequenceLayout, CD_long, CD_MemoryLayout);
     private static final MethodTypeDesc MTD_String_MemorySegment = MethodTypeDesc.of(CD_String, CD_MemorySegment);
     private static final MethodTypeDesc MTD_String_MemorySegment_Charset = MethodTypeDesc.of(CD_String, CD_MemorySegment, CD_Charset);
-    private static final MethodTypeDesc MTD_String_Object = MethodTypeDesc.of(CD_String, CD_Object);
-    private static final MethodTypeDesc MTD_String_String = MethodTypeDesc.of(CD_String, CD_String);
     private static final MethodTypeDesc MTD_StringArray_MemorySegment = MethodTypeDesc.of(CD_StringArray, CD_MemorySegment);
     private static final MethodTypeDesc MTD_StringArray_MemorySegment_Charset = MethodTypeDesc.of(CD_StringArray, CD_MemorySegment, CD_Charset);
     private static final MethodTypeDesc MTD_void_int_int = MethodTypeDesc.of(CD_void, CD_int, CD_int);
@@ -183,9 +154,9 @@ public final class Downcall {
     private static final MethodTypeDesc MTD_void_MemorySegment = MethodTypeDesc.of(CD_void, CD_MemorySegment);
     private static final MethodTypeDesc MTD_void_MemorySegment_StringArray = MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_StringArray);
     private static final MethodTypeDesc MTD_void_MemorySegment_StringArray_Charset = MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_StringArray, CD_Charset);
-    private static final MethodTypeDesc MTD_void_String = MethodTypeDesc.of(CD_void, CD_String);
     private static final MethodTypeDesc MTD_void_String_Throwable = MethodTypeDesc.of(CD_void, CD_String, CD_Throwable);
-    private static final MethodTypeDesc MTD_void_SymbolLookup = MethodTypeDesc.of(CD_void, CD_SymbolLookup);
+
+    private static final DynamicConstantDesc<?> DCD_classData_Map = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_Map);
 
     private Downcall() {
     }
@@ -257,18 +228,7 @@ public final class Downcall {
         return load(caller, (Class<T>) caller.lookupClass(), SymbolLookup.libraryLookup(libname, Arena.ofAuto()));
     }
 
-    private static void convertToValueLayout(CodeBuilder codeBuilder, Class<?> aClass) {
-        if (aClass == boolean.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_BOOLEAN", CD_ValueLayout_OfBoolean);
-        else if (aClass == char.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_CHAR", CD_ValueLayout_OfChar);
-        else if (aClass == byte.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_BYTE", CD_ValueLayout_OfByte);
-        else if (aClass == short.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_SHORT", CD_ValueLayout_OfShort);
-        else if (aClass == int.class || CEnum.class.isAssignableFrom(aClass))
-            codeBuilder.getstatic(CD_ValueLayout, "JAVA_INT", CD_ValueLayout_OfInt);
-        else if (aClass == long.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_LONG", CD_ValueLayout_OfLong);
-        else if (aClass == float.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_FLOAT", CD_ValueLayout_OfFloat);
-        else if (aClass == double.class) codeBuilder.getstatic(CD_ValueLayout, "JAVA_DOUBLE", CD_ValueLayout_OfDouble);
-        else codeBuilder.getstatic(CD_ValueLayout, "ADDRESS", CD_AddressLayout);
-    }
+    // bytecode
 
     private static void invokeSuperMethod(CodeBuilder codeBuilder, List<Parameter> parameters) {
         codeBuilder.aload(codeBuilder.receiverSlot());
@@ -280,6 +240,67 @@ public final class Downcall {
                 codeBuilder.parameterSlot(i));
         }
     }
+
+    // method
+
+    private static String getMethodEntrypoint(Method method) {
+        final Entrypoint entrypoint = method.getDeclaredAnnotation(Entrypoint.class);
+        return (entrypoint == null || entrypoint.value().isBlank()) ?
+            method.getName() :
+            entrypoint.value();
+    }
+
+    private static String unmarshalMethod(Class<?> aClass) {
+        if (aClass.isArray()) {
+            final Class<?> componentType = aClass.getComponentType();
+            if (componentType == boolean.class) return "unmarshalAsBooleanArray";
+            if (componentType == char.class) return "unmarshalAsCharArray";
+            if (componentType == byte.class) return "unmarshalAsByteArray";
+            if (componentType == short.class) return "unmarshalAsShortArray";
+            if (componentType == int.class) return "unmarshalAsIntArray";
+            if (componentType == long.class) return "unmarshalAsLongArray";
+            if (componentType == float.class) return "unmarshalAsFloatArray";
+            if (componentType == double.class) return "unmarshalAsDoubleArray";
+            if (componentType == MemorySegment.class) return "unmarshalAsAddressArray";
+            if (componentType == String.class) return "unmarshalAsStringArray";
+        }
+        return "unmarshal";
+    }
+
+    private static String marshalFromBooleanMethod(Type type) {
+        return switch (type) {
+            case CHAR -> "marshalAsChar";
+            case BYTE -> "marshalAsByte";
+            case SHORT -> "marshalAsShort";
+            case INT -> "marshalAsInt";
+            case LONG -> "marshalAsLong";
+            case FLOAT -> "marshalAsFloat";
+            case DOUBLE -> "marshalAsDouble";
+        };
+    }
+
+    // type
+
+    private static ValueLayout getValueLayout(Class<?> carrier) {
+        if (carrier == boolean.class) return ValueLayout.JAVA_BOOLEAN;
+        if (carrier == char.class) return ValueLayout.JAVA_CHAR;
+        if (carrier == byte.class) return ValueLayout.JAVA_BYTE;
+        if (carrier == short.class) return ValueLayout.JAVA_SHORT;
+        if (carrier == int.class || CEnum.class.isAssignableFrom(carrier)) return ValueLayout.JAVA_INT;
+        if (carrier == long.class) return ValueLayout.JAVA_LONG;
+        if (carrier == float.class) return ValueLayout.JAVA_FLOAT;
+        if (carrier == double.class) return ValueLayout.JAVA_DOUBLE;
+        return ValueLayout.ADDRESS;
+    }
+
+    private static boolean requireAllocator(Class<?> aClass) {
+        return !aClass.isPrimitive() &&
+               (aClass == String.class ||
+                aClass.isArray() ||
+                Upcall.class.isAssignableFrom(aClass));
+    }
+
+    // string charset
 
     private static boolean hasCharset(StrCharset strCharset) {
         return strCharset != null && !strCharset.value().isBlank();
@@ -314,41 +335,7 @@ public final class Downcall {
         return false;
     }
 
-    private static String unmarshalMethod(Class<?> aClass) {
-        if (aClass.isArray()) {
-            final Class<?> componentType = aClass.getComponentType();
-            if (componentType == boolean.class) return "unmarshalAsBooleanArray";
-            if (componentType == char.class) return "unmarshalAsCharArray";
-            if (componentType == byte.class) return "unmarshalAsByteArray";
-            if (componentType == short.class) return "unmarshalAsShortArray";
-            if (componentType == int.class) return "unmarshalAsIntArray";
-            if (componentType == long.class) return "unmarshalAsLongArray";
-            if (componentType == float.class) return "unmarshalAsFloatArray";
-            if (componentType == double.class) return "unmarshalAsDoubleArray";
-            if (componentType == MemorySegment.class) return "unmarshalAsAddressArray";
-            if (componentType == String.class) return "unmarshalAsStringArray";
-        }
-        return "unmarshal";
-    }
-
-    private static String marshalFromBooleanMethod(Type type) {
-        return switch (type) {
-            case CHAR -> "marshalAsChar";
-            case BYTE -> "marshalAsByte";
-            case SHORT -> "marshalAsShort";
-            case INT -> "marshalAsInt";
-            case LONG -> "marshalAsLong";
-            case FLOAT -> "marshalAsFloat";
-            case DOUBLE -> "marshalAsDouble";
-        };
-    }
-
-    private static String getMethodEntrypoint(Method method) {
-        final Entrypoint entrypoint = method.getDeclaredAnnotation(Entrypoint.class);
-        return (entrypoint == null || entrypoint.value().isBlank()) ?
-            method.getName() :
-            entrypoint.value();
-    }
+    // class desc
 
     private static ClassDesc convertToDowncallCD(AnnotatedElement element, Class<?> aClass) {
         final Convert convert = element.getDeclaredAnnotation(Convert.class);
@@ -368,12 +355,7 @@ public final class Downcall {
         return CD_MemorySegment;
     }
 
-    private static boolean requireAllocator(Class<?> aClass) {
-        return !aClass.isPrimitive() &&
-               (aClass == String.class ||
-                aClass.isArray() ||
-                Upcall.class.isAssignableFrom(aClass));
-    }
+    // wrapper
 
     private static Method findWrapper(
         Class<?> aClass,
@@ -408,40 +390,27 @@ public final class Downcall {
 
     @SuppressWarnings("unchecked")
     private static <T> T loadBytecode(MethodHandles.Lookup caller, Class<?> targetClass, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+        final List<Method> methodList = Arrays.stream(targetClass.getMethods())
+            .filter(method ->
+                method.getDeclaredAnnotation(Skip.class) == null &&
+                !Modifier.isStatic(method.getModifiers()) &&
+                !method.isSynthetic())
+            .toList();
+        final Map<Method, String> exceptionStringMap = methodList.stream()
+            .collect(Collectors.toUnmodifiableMap(Function.identity(), Downcall::createExceptionString));
+        verifyMethods(methodList, exceptionStringMap);
+
         final Class<?> lookupClass = caller.lookupClass();
         final ClassFile cf = of();
         final ClassDesc cd_thisClass = ClassDesc.of(lookupClass.getPackageName(), DEFAULT_NAME);
+        final Map<Method, DowncallMethodData> methodDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
+
         final byte[] bytes = cf.build(cd_thisClass, classBuilder -> {
-            final List<Method> methodList = Arrays.stream(targetClass.getMethods())
-                .filter(method ->
-                    method.getDeclaredAnnotation(Skip.class) == null &&
-                    !Modifier.isStatic(method.getModifiers()))
-                .toList();
-
-            // check method parameter
-            methodList.forEach(method -> {
-                final Class<?>[] types = method.getParameterTypes();
-                final boolean isFirstArena = types.length > 0 && Arena.class.isAssignableFrom(types[0]);
-                if (Upcall.class.isAssignableFrom(method.getReturnType()) && !isFirstArena) {
-                    throw new IllegalStateException(STR."The first parameter of method \{method} is not an arena; however, the return type is an upcall");
-                }
-                for (Parameter parameter : method.getParameters()) {
-                    if (Upcall.class.isAssignableFrom(parameter.getType()) && !isFirstArena) {
-                        throw new IllegalStateException(STR."The first parameter of method \{method} is not an arena; however, the parameter \{parameter.toString()} is an upcall");
-                    }
-                }
-            });
-
-            final Map<Method, DowncallMethodData> methodDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
-
             classBuilder.withFlags(ACC_FINAL | ACC_SUPER);
 
             // interface
             final ClassDesc cd_targetClass = targetClass.describeConstable().orElseThrow();
             classBuilder.withInterfaceSymbols(cd_targetClass);
-
-            // linker
-            classBuilder.withField("$LINKER", CD_Linker, ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
 
             // method handles
             final AtomicInteger handleCount = new AtomicInteger();
@@ -453,12 +422,7 @@ public final class Downcall {
                 final DowncallMethodData methodData = new DowncallMethodData(
                     entrypoint,
                     handleName,
-                    STR."$load\{handleName}",
-                    STR."""
-                        \{method.getReturnType().getCanonicalName()} \
-                        \{method.getDeclaringClass().getCanonicalName()}.\{method.getName()}\
-                        \{Arrays.stream(method.getParameterTypes()).map(Class::getCanonicalName)
-                        .collect(Collectors.joining(", ", "(", ")"))}""",
+                    exceptionStringMap.get(method),
                     parameters,
                     method.getDeclaredAnnotation(ByValue.class) == null &&
                     !parameters.isEmpty() &&
@@ -467,42 +431,21 @@ public final class Downcall {
                 methodDataMap.put(method, methodData);
 
                 classBuilder.withField(handleName, CD_MethodHandle,
-                    ACC_PRIVATE | ACC_FINAL);
+                    ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
             });
 
             // constructor
-            classBuilder.withMethod(INIT_NAME, MTD_void_SymbolLookup, ACC_PUBLIC,
+            classBuilder.withMethod(INIT_NAME, MTD_void, ACC_PUBLIC,
                 methodBuilder ->
-                    methodBuilder.withCode(codeBuilder -> {
-                        // super
-                        codeBuilder.aload(codeBuilder.receiverSlot())
-                            .invokespecial(CD_Object, INIT_NAME, MTD_void);
-
-                        // method handles
-                        methodDataMap.values().forEach(methodData -> {
-                            // initialize field
-                            codeBuilder.aload(codeBuilder.receiverSlot())
-                                .aload(codeBuilder.parameterSlot(0))
-                                .invokestatic(cd_thisClass, methodData.loaderName(), MTD_MethodHandle_SymbolLookup)
-                                .putfield(cd_thisClass, methodData.handleName(), CD_MethodHandle);
-                        });
-
-                        codeBuilder.return_();
-                    }));
+                    // super
+                    methodBuilder.withCode(codeBuilder -> codeBuilder
+                        .aload(codeBuilder.receiverSlot())
+                        .invokespecial(CD_Object, INIT_NAME, MTD_void)
+                        .return_()));
 
             // methods
             methodDataMap.forEach((method, methodData) -> {
                 final var returnType = method.getReturnType();
-
-                // check method return type
-                if (Struct.class.isAssignableFrom(returnType) && Arrays.stream(returnType.getDeclaredConstructors())
-                    .noneMatch(constructor -> {
-                        final Class<?>[] types = constructor.getParameterTypes();
-                        return types.length == 1 && types[0] == MemorySegment.class;
-                    })) {
-                    throw new IllegalStateException(STR."The struct \{returnType} must contain a constructor that only accept one memory segment: \{methodData.exceptionString()}");
-                }
-
                 final String methodName = method.getName();
                 final int modifiers = method.getModifiers();
                 final ClassDesc cd_returnType = ClassDesc.ofDescriptor(returnType.descriptorString());
@@ -605,8 +548,7 @@ public final class Downcall {
                             }
 
                             // invocation
-                            blockCodeBuilder.aload(blockCodeBuilder.receiverSlot())
-                                .getfield(cd_thisClass, handleName, CD_MethodHandle);
+                            blockCodeBuilder.getstatic(cd_thisClass, handleName, CD_MethodHandle);
                             for (int i = skipFirstParam ? 1 : 0; i < parameterSize; i++) {
                                 final Parameter parameter = parameters.get(i);
                                 final Class<?> type = parameter.getType();
@@ -833,12 +775,11 @@ public final class Downcall {
                     Modifier.isPublic(modifiers) ? ACC_PUBLIC : ACC_PROTECTED,
                     methodBuilder -> methodBuilder.withCode(codeBuilder -> {
                         if (returnType == MethodHandle.class) {
-                            codeBuilder.aload(codeBuilder.receiverSlot())
-                                .getfield(cd_thisClass, handleName, CD_MethodHandle);
+                            codeBuilder.getstatic(cd_thisClass, handleName, CD_MethodHandle);
                             if (method.isDefault()) {
                                 codeBuilder.ifThenElse(Opcode.IFNONNULL,
-                                    blockCodeBuilder -> blockCodeBuilder.aload(codeBuilder.receiverSlot())
-                                        .getfield(cd_thisClass, handleName, CD_MethodHandle)
+                                    blockCodeBuilder -> blockCodeBuilder
+                                        .getstatic(cd_thisClass, handleName, CD_MethodHandle)
                                         .areturn(),
                                     blockCodeBuilder -> {
                                         // invoke super interface
@@ -856,213 +797,219 @@ public final class Downcall {
                         }
 
                         if (method.isDefault()) {
-                            codeBuilder.aload(codeBuilder.receiverSlot())
-                                .getfield(cd_thisClass, handleName, CD_MethodHandle);
-                            codeBuilder.ifThenElse(Opcode.IFNONNULL,
-                                wrapping::accept,
-                                blockCodeBuilder -> {
-                                    // invoke super interface
-                                    invokeSuperMethod(blockCodeBuilder, parameters);
-                                    blockCodeBuilder.invokespecial(cd_targetClass,
-                                        methodName,
-                                        mtd_method,
-                                        targetClass.isInterface()
-                                    ).returnInstruction(returnTypeKind);
-                                }
-                            ).nop();
+                            codeBuilder.getstatic(cd_thisClass, handleName, CD_MethodHandle)
+                                .ifThenElse(Opcode.IFNONNULL,
+                                    wrapping::accept,
+                                    blockCodeBuilder -> {
+                                        // invoke super interface
+                                        invokeSuperMethod(blockCodeBuilder, parameters);
+                                        blockCodeBuilder.invokespecial(cd_targetClass,
+                                            methodName,
+                                            mtd_method,
+                                            targetClass.isInterface()
+                                        ).returnInstruction(returnTypeKind);
+                                    }
+                                ).nop();
                         } else {
                             wrapping.accept(codeBuilder);
                         }
                     }));
             });
 
-            // handle loader
-            methodDataMap.forEach((method, methodData) -> classBuilder.withMethod(
-                methodData.loaderName(),
-                MTD_MethodHandle_SymbolLookup,
-                ACC_PRIVATE | ACC_STATIC,
-                methodBuilder -> methodBuilder.withCode(codeBuilder -> {
-                    final int optionalSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
-                    final int descriptorSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
-                    final String entrypoint = methodData.entrypoint();
-
-                    final var returnType = method.getReturnType();
-                    final boolean returnVoid = returnType == void.class;
-                    final boolean methodByValue = method.getDeclaredAnnotation(ByValue.class) != null;
-
-                    // function descriptor
-                    if (descriptorMap.containsKey(entrypoint)) {
-                        codeBuilder.ldc(DynamicConstantDesc.ofNamed(BSM_CLASS_DATA,
-                                DEFAULT_NAME,
-                                CD_Map))
-                            .ldc(entrypoint)
-                            .invokeinterface(CD_Map, "get", MTD_Object_Object)
-                            .checkcast(CD_FunctionDescriptor);
-                    } else {
-                        if (!returnVoid) {
-                            final Convert convert = method.getDeclaredAnnotation(Convert.class);
-                            if (convert != null && returnType == boolean.class) {
-                                convertToValueLayout(codeBuilder, convert.value().representation());
-                            } else if (returnType.isPrimitive()) {
-                                convertToValueLayout(codeBuilder, returnType);
-                            } else {
-                                final SizedSeg sizedSeg = method.getDeclaredAnnotation(SizedSeg.class);
-                                final Sized sized = method.getDeclaredAnnotation(Sized.class);
-                                final boolean isSizedSeg = sizedSeg != null;
-                                final boolean isSized = sized != null;
-                                if (Struct.class.isAssignableFrom(returnType)) {
-                                    final String name = Arrays.stream(returnType.getDeclaredFields())
-                                        .filter(field -> Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class)
-                                        .findFirst()
-                                        .orElseThrow(() ->
-                                            new IllegalStateException(STR."The struct \{returnType} must contain one public static field that is StructLayout"))
-                                        .getName();
-                                    if (!methodByValue) {
-                                        convertToValueLayout(codeBuilder, returnType);
-                                        if (isSizedSeg) {
-                                            codeBuilder.constantInstruction(sizedSeg.value());
-                                        } else if (isSized) {
-                                            codeBuilder.constantInstruction((long) sized.value());
-                                        }
-                                    }
-                                    codeBuilder.getstatic(ClassDesc.ofDescriptor(returnType.descriptorString()),
-                                        name,
-                                        CD_StructLayout);
-                                    if (!methodByValue) {
-                                        if (isSizedSeg || isSized) {
-                                            codeBuilder.invokestatic(CD_MemoryLayout,
-                                                "sequenceLayout",
-                                                MTD_SequenceLayout_long_MemoryLayout,
-                                                true);
-                                        }
-                                        codeBuilder.invokeinterface(CD_AddressLayout,
-                                            "withTargetLayout",
-                                            MTD_AddressLayout_MemoryLayout);
-                                    }
-                                } else {
-                                    convertToValueLayout(codeBuilder, returnType);
-                                    if (isSizedSeg || isSized) {
-                                        if (isSizedSeg) {
-                                            codeBuilder.constantInstruction(sizedSeg.value());
-                                            convertToValueLayout(codeBuilder, byte.class);
-                                        } else {
-                                            codeBuilder.constantInstruction((long) sized.value());
-                                            convertToValueLayout(codeBuilder, returnType.isArray() ? returnType.getComponentType() : byte.class);
-                                        }
-                                        codeBuilder.invokestatic(CD_MemoryLayout,
-                                                "sequenceLayout",
-                                                MTD_SequenceLayout_long_MemoryLayout,
-                                                true)
-                                            .invokeinterface(CD_AddressLayout,
-                                                "withTargetLayout",
-                                                MTD_AddressLayout_MemoryLayout);
-                                    }
-                                }
-                            }
-                        }
-                        final var parameters = methodData.parameters();
-                        final boolean skipFirstParam = methodData.skipFirstParam();
-                        final int size = skipFirstParam || methodByValue ?
-                            parameters.size() - 1 :
-                            parameters.size();
-                        codeBuilder.constantInstruction(size)
-                            .anewarray(CD_MemoryLayout);
-                        for (int i = 0; i < size; i++) {
-                            final Parameter parameter = parameters.get(skipFirstParam ? i + 1 : i);
-                            final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
-                            codeBuilder.dup()
-                                .constantInstruction(i);
-                            if (convert != null && parameter.getType() == boolean.class) {
-                                convertToValueLayout(codeBuilder, convert.value().representation());
-                            } else {
-                                convertToValueLayout(codeBuilder, parameter.getType());
-                            }
-                            codeBuilder.aastore();
-                        }
-                        codeBuilder.invokestatic(CD_FunctionDescriptor,
-                            returnVoid ? "ofVoid" : "of",
-                            returnVoid ?
-                                MTD_FunctionDescriptor_MemoryLayoutArray :
-                                MTD_FunctionDescriptor_MemoryLayout_MemoryLayoutArray,
-                            true);
-                    }
-                    codeBuilder.astore(descriptorSlot);
-
-                    codeBuilder.aload(codeBuilder.parameterSlot(0))
-                        .ldc(entrypoint)
-                        .invokeinterface(CD_SymbolLookup, "find", MTD_Optional_String)
-                        .astore(optionalSlot)
-                        .aload(optionalSlot)
-                        .invokevirtual(CD_Optional, "isPresent", MTD_boolean);
-                    codeBuilder.ifThenElse(
-                        blockCodeBuilder -> {
-                            blockCodeBuilder.getstatic(cd_thisClass, "$LINKER", CD_Linker)
-                                .aload(optionalSlot)
-                                .invokevirtual(CD_Optional, "get", MTD_Object)
-                                .checkcast(CD_MemorySegment);
-
-                            codeBuilder.aload(descriptorSlot);
-
-                            // linker option
-                            final Critical critical = method.getDeclaredAnnotation(Critical.class);
-                            if (critical != null) {
-                                blockCodeBuilder.iconst_1()
-                                    .anewarray(CD_Linker_Option)
-                                    .dup()
-                                    .iconst_0()
-                                    .constantInstruction(critical.allowHeapAccess() ? 1 : 0)
-                                    .invokestatic(CD_Linker_Option,
-                                        "critical",
-                                        MTD_LinkerOption_boolean,
-                                        true)
-                                    .aastore();
-                            } else {
-                                blockCodeBuilder.iconst_0()
-                                    .anewarray(CD_Linker_Option);
-                            }
-
-                            blockCodeBuilder.invokeinterface(CD_Linker,
-                                "downcallHandle",
-                                MTD_MethodHandle_MemorySegment_FunctionDescriptor_LinkerOptionArray
-                            ).areturn();
-                        },
-                        blockCodeBuilder -> {
-                            if (method.isDefault()) {
-                                blockCodeBuilder.aconst_null()
-                                    .areturn();
-                            } else {
-                                blockCodeBuilder.new_(CD_IllegalStateException)
-                                    .dup()
-                                    .ldc(STR."""
-                                        Couldn't find function with name \
-                                        \{entrypoint}: \{methodData.exceptionString()} and descriptor:""")
-                                    .aload(descriptorSlot)
-                                    .invokestatic(CD_String, "valueOf", MTD_String_Object)
-                                    .invokevirtual(CD_String, "concat", MTD_String_String)
-                                    .invokespecial(CD_IllegalStateException, INIT_NAME, MTD_void_String)
-                                    .athrow();
-                            }
-                        });
-                })
-            ));
-
             // class initializer
             classBuilder.withMethod(CLASS_INIT_NAME, MTD_void, ACC_STATIC,
                 methodBuilder -> methodBuilder.withCode(codeBuilder -> {
-                    // linker
-                    codeBuilder.invokestatic(CD_Linker, "nativeLinker", MTD_Linker, true)
-                        .putstatic(cd_thisClass, "$LINKER", CD_Linker)
-                        .return_();
+                    // method handles
+                    methodDataMap.values().forEach(methodData -> codeBuilder
+                        .ldc(DCD_classData_Map)
+                        .ldc(methodData.entrypoint())
+                        .invokeinterface(CD_Map, "get", MTD_Object_Object)
+                        .checkcast(CD_MethodHandle)
+                        .putstatic(cd_thisClass, methodData.handleName(), CD_MethodHandle));
+                    codeBuilder.return_();
                 }));
         });
 
         try {
-            final MethodHandles.Lookup hiddenClass = caller
-                .defineHiddenClassWithClassData(bytes, Map.copyOf(descriptorMap), true, MethodHandles.Lookup.ClassOption.STRONG);
-            return (T) hiddenClass.findConstructor(hiddenClass.lookupClass(), MethodType.methodType(void.class, SymbolLookup.class))
-                .invoke(lookup);
+            final MethodHandles.Lookup hiddenClass = caller.defineHiddenClassWithClassData(
+                bytes,
+                generateHandles(methodDataMap, lookup, descriptorMap),
+                true,
+                MethodHandles.Lookup.ClassOption.STRONG
+            );
+            return (T) hiddenClass.findConstructor(hiddenClass.lookupClass(), MethodType.methodType(void.class))
+                .invoke();
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static String createExceptionString(Method method) {
+        return STR."""
+            \{method.getReturnType().getCanonicalName()} \
+            \{method.getDeclaringClass().getCanonicalName()}.\{method.getName()}\
+            \{Arrays.stream(method.getParameterTypes()).map(Class::getCanonicalName)
+            .collect(Collectors.joining(", ", "(", ")"))}""";
+    }
+
+    private static void verifyMethods(List<Method> list, Map<Method, String> exceptionStringMap) {
+        list.forEach(method -> {
+            // check method return type
+            final Class<?> returnType = method.getReturnType();
+            if (Struct.class.isAssignableFrom(returnType)) {
+                boolean foundConstructor = false;
+                for (var constructor : returnType.getDeclaredConstructors()) {
+                    final Class<?>[] types = constructor.getParameterTypes();
+                    if (types.length == 1 && types[0] == MemorySegment.class) {
+                        foundConstructor = true;
+                        break;
+                    }
+                }
+                if (!foundConstructor) {
+                    throw new IllegalStateException(STR.
+                        "The struct \{returnType} must contain a constructor that only accept one memory segment: \{exceptionStringMap.get(method)}");
+                }
+
+                boolean foundLayout = false;
+                for (Field field : returnType.getDeclaredFields()) {
+                    if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class) {
+                        foundLayout = true;
+                        break;
+                    }
+                }
+                if (!foundLayout) {
+                    throw new IllegalStateException(STR."The struct \{returnType} must contain one public static field that is StructLayout");
+                }
+            }
+
+            // check method parameter
+            final Class<?>[] types = method.getParameterTypes();
+            final boolean isFirstArena = types.length > 0 && Arena.class.isAssignableFrom(types[0]);
+            if (Upcall.class.isAssignableFrom(returnType) && !isFirstArena) {
+                throw new IllegalStateException(STR."The first parameter of method \{method} is not an arena; however, this method returns an upcall");
+            }
+            for (Parameter parameter : method.getParameters()) {
+                if (Upcall.class.isAssignableFrom(parameter.getType()) && !isFirstArena) {
+                    throw new IllegalStateException(STR."The first parameter of method \{method} is not an arena; however, the parameter \{parameter.toString()} is an upcall");
+                }
+            }
+        });
+    }
+
+    private static Map<String, MethodHandle> generateHandles(Map<Method, DowncallMethodData> methodDataMap, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+        final Map<String, MethodHandle> map = HashMap.newHashMap(methodDataMap.size());
+        methodDataMap.forEach((method, methodData) -> {
+            final String entrypoint = methodData.entrypoint();
+            final Optional<MemorySegment> optional = lookup.find(entrypoint);
+
+            // function descriptor
+            FunctionDescriptor descriptor = null;
+            final FunctionDescriptor get = descriptorMap.get(entrypoint);
+            if (get != null) {
+                descriptor = get;
+            } else if (optional.isPresent() || !method.isDefault()) {
+                final var returnType = method.getReturnType();
+                final boolean returnVoid = returnType == void.class;
+                final boolean methodByValue = method.getDeclaredAnnotation(ByValue.class) != null;
+
+                // return layout
+                final MemoryLayout retLayout;
+                if (!returnVoid) {
+                    final Convert convert = method.getDeclaredAnnotation(Convert.class);
+                    if (convert != null && returnType == boolean.class) {
+                        retLayout = convert.value().layout();
+                    } else if (returnType.isPrimitive()) {
+                        retLayout = getValueLayout(returnType);
+                    } else {
+                        final SizedSeg sizedSeg = method.getDeclaredAnnotation(SizedSeg.class);
+                        final Sized sized = method.getDeclaredAnnotation(Sized.class);
+                        final boolean isSizedSeg = sizedSeg != null;
+                        final boolean isSized = sized != null;
+                        if (Struct.class.isAssignableFrom(returnType)) {
+                            StructLayout structLayout = null;
+                            for (Field field : returnType.getDeclaredFields()) {
+                                if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class) {
+                                    try {
+                                        structLayout = (StructLayout) field.get(null);
+                                        break;
+                                    } catch (IllegalAccessException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                            }
+                            Objects.requireNonNull(structLayout);
+                            if (methodByValue) {
+                                retLayout = structLayout;
+                            } else {
+                                final MemoryLayout targetLayout;
+                                if (isSizedSeg) {
+                                    targetLayout = MemoryLayout.sequenceLayout(sizedSeg.value(), structLayout);
+                                } else if (isSized) {
+                                    targetLayout = MemoryLayout.sequenceLayout(sized.value(), structLayout);
+                                } else {
+                                    targetLayout = structLayout;
+                                }
+                                retLayout = ValueLayout.ADDRESS.withTargetLayout(targetLayout);
+                            }
+                        } else {
+                            final ValueLayout valueLayout = getValueLayout(returnType);
+                            if ((valueLayout instanceof AddressLayout addressLayout) && (isSizedSeg || isSized)) {
+                                if (isSizedSeg) {
+                                    retLayout = addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sizedSeg.value(),
+                                        ValueLayout.JAVA_BYTE));
+                                } else {
+                                    retLayout = addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(),
+                                        returnType.isArray() ? getValueLayout(returnType.getComponentType()) : ValueLayout.JAVA_BYTE));
+                                }
+                            } else {
+                                retLayout = valueLayout;
+                            }
+                        }
+                    }
+                } else {
+                    retLayout = null;
+                }
+
+                // argument layouts
+                final var parameters = methodData.parameters();
+                final boolean skipFirstParam = methodData.skipFirstParam();
+                final int size = skipFirstParam || methodByValue ?
+                    parameters.size() - 1 :
+                    parameters.size();
+                final MemoryLayout[] argLayouts = new MemoryLayout[size];
+                for (int i = 0; i < size; i++) {
+                    final Parameter parameter = parameters.get(skipFirstParam ? i + 1 : i);
+                    final Class<?> type = parameter.getType();
+                    final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
+                    if (convert != null && type == boolean.class) {
+                        argLayouts[i] = convert.value().layout();
+                    } else {
+                        argLayouts[i] = getValueLayout(type);
+                    }
+                }
+
+                descriptor = returnVoid ? FunctionDescriptor.ofVoid(argLayouts) : FunctionDescriptor.of(retLayout, argLayouts);
+            }
+
+            if (optional.isPresent()) {
+                // linker options
+                final Linker.Option[] options;
+                final Critical critical = method.getDeclaredAnnotation(Critical.class);
+                if (critical != null) {
+                    options = critical.allowHeapAccess() ? OPTION_CRITICAL_TRUE : OPTION_CRITICAL_FALSE;
+                } else {
+                    options = NO_OPTION;
+                }
+
+                if (!map.containsKey(entrypoint)) {
+                    map.put(entrypoint, LINKER.downcallHandle(optional.get(), descriptor, options));
+                }
+            } else if (method.isDefault()) {
+                map.putIfAbsent(entrypoint, null);
+            } else {
+                throw new IllegalStateException(STR."Couldn't find function with name \{entrypoint}: \{methodData.exceptionString()} and descriptor: \{descriptor}");
+            }
+        });
+        return Collections.unmodifiableMap(map);
     }
 }

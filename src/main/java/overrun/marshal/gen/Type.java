@@ -17,6 +17,7 @@
 package overrun.marshal.gen;
 
 import java.lang.constant.ClassDesc;
+import java.lang.foreign.ValueLayout;
 
 import static java.lang.constant.ConstantDescs.*;
 
@@ -30,38 +31,40 @@ public enum Type {
     /**
      * {@code char} type
      */
-    CHAR(CD_char, char.class),
+    CHAR(CD_char, char.class, ValueLayout.JAVA_CHAR),
     /**
      * {@code byte} type
      */
-    BYTE(CD_byte, byte.class),
+    BYTE(CD_byte, byte.class, ValueLayout.JAVA_BYTE),
     /**
      * {@code short} type
      */
-    SHORT(CD_short, short.class),
+    SHORT(CD_short, short.class, ValueLayout.JAVA_SHORT),
     /**
      * {@code int} type
      */
-    INT(CD_int, int.class),
+    INT(CD_int, int.class, ValueLayout.JAVA_INT),
     /**
      * {@code long} type
      */
-    LONG(CD_long, long.class),
+    LONG(CD_long, long.class, ValueLayout.JAVA_LONG),
     /**
      * {@code float} type
      */
-    FLOAT(CD_float, float.class),
+    FLOAT(CD_float, float.class, ValueLayout.JAVA_FLOAT),
     /**
      * {@code double} type
      */
-    DOUBLE(CD_double, double.class);
+    DOUBLE(CD_double, double.class, ValueLayout.JAVA_DOUBLE);
 
     private final ClassDesc classDesc;
     private final Class<?> presentation;
+    private final ValueLayout layout;
 
-    Type(ClassDesc classDesc, Class<?> presentation) {
+    Type(ClassDesc classDesc, Class<?> presentation, ValueLayout layout) {
         this.classDesc = classDesc;
         this.presentation = presentation;
+        this.layout = layout;
     }
 
     /**
@@ -76,5 +79,12 @@ public enum Type {
      */
     public Class<?> representation() {
         return presentation;
+    }
+
+    /**
+     * {@return the layout of this type}
+     */
+    public ValueLayout layout() {
+        return layout;
     }
 }
