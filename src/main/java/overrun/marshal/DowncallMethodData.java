@@ -24,7 +24,6 @@ import java.util.List;
  *
  * @param entrypoint      the entrypoint
  * @param handleName      the handleName
- * @param loaderName      the loaderName
  * @param exceptionString the exceptionString
  * @param parameters      the parameters
  * @param skipFirstParam  the skipFirstParam
@@ -34,7 +33,6 @@ import java.util.List;
 record DowncallMethodData(
     String entrypoint,
     String handleName,
-    String loaderName,
     String exceptionString,
     List<Parameter> parameters,
     boolean skipFirstParam
