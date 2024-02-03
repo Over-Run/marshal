@@ -31,39 +31,37 @@ public enum Type {
     /**
      * {@code char} type
      */
-    CHAR(CD_char, char.class, ValueLayout.JAVA_CHAR),
+    CHAR(CD_char, ValueLayout.JAVA_CHAR),
     /**
      * {@code byte} type
      */
-    BYTE(CD_byte, byte.class, ValueLayout.JAVA_BYTE),
+    BYTE(CD_byte, ValueLayout.JAVA_BYTE),
     /**
      * {@code short} type
      */
-    SHORT(CD_short, short.class, ValueLayout.JAVA_SHORT),
+    SHORT(CD_short, ValueLayout.JAVA_SHORT),
     /**
      * {@code int} type
      */
-    INT(CD_int, int.class, ValueLayout.JAVA_INT),
+    INT(CD_int, ValueLayout.JAVA_INT),
     /**
      * {@code long} type
      */
-    LONG(CD_long, long.class, ValueLayout.JAVA_LONG),
+    LONG(CD_long, ValueLayout.JAVA_LONG),
     /**
      * {@code float} type
      */
-    FLOAT(CD_float, float.class, ValueLayout.JAVA_FLOAT),
+    FLOAT(CD_float, ValueLayout.JAVA_FLOAT),
     /**
      * {@code double} type
      */
-    DOUBLE(CD_double, double.class, ValueLayout.JAVA_DOUBLE);
+    DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE);
 
     private final ClassDesc classDesc;
-    private final Class<?> presentation;
     private final ValueLayout layout;
 
-    Type(ClassDesc classDesc, Class<?> presentation, ValueLayout layout) {
+    Type(ClassDesc classDesc, ValueLayout layout) {
         this.classDesc = classDesc;
-        this.presentation = presentation;
         this.layout = layout;
     }
 
@@ -72,13 +70,6 @@ public enum Type {
      */
     public ClassDesc classDesc() {
         return classDesc;
-    }
-
-    /**
-     * {@return the representation class of this type}
-     */
-    public Class<?> representation() {
-        return presentation;
     }
 
     /**
