@@ -18,6 +18,7 @@ package overrun.marshal.test;
 
 import org.junit.jupiter.api.Test;
 import overrun.marshal.Downcall;
+import overrun.marshal.DowncallOption;
 import overrun.marshal.gen.Entrypoint;
 import overrun.marshal.gen.Skip;
 
@@ -89,10 +90,10 @@ public final class DescriptorMapTest {
 
     public interface Interface {
         static Interface getInstance(ValueLayout returnLayout, ValueLayout acceptLayout) {
-            return Downcall.load(MethodHandles.lookup(), lookup(returnLayout, acceptLayout), Map.of(
+            return Downcall.load(MethodHandles.lookup(), lookup(returnLayout, acceptLayout), DowncallOption.descriptors(Map.of(
                 "testReturn", FunctionDescriptor.of(returnLayout),
                 "testAccept", FunctionDescriptor.of(JAVA_BOOLEAN, acceptLayout)
-            ));
+            )));
         }
 
         @Entrypoint("testReturn")

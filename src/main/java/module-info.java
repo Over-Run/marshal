@@ -25,5 +25,7 @@ module io.github.overrun.marshal {
     exports overrun.marshal.gen;
     exports overrun.marshal.struct;
 
+    opens overrun.marshal.internal;
+
     requires static org.jetbrains.annotations;
 }

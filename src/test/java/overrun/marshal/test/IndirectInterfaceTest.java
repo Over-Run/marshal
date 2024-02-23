@@ -19,6 +19,7 @@ package overrun.marshal.test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import overrun.marshal.Downcall;
+import overrun.marshal.DowncallOption;
 
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandles;
@@ -39,7 +40,7 @@ public final class IndirectInterfaceTest {
     public interface I2 extends I1 {
     }
 
-    I2 INSTANCE = Downcall.load(MethodHandles.lookup(), I2.class, SymbolLookup.loaderLookup());
+    I2 INSTANCE = Downcall.load(MethodHandles.lookup(), SymbolLookup.loaderLookup(), DowncallOption.targetClass(I2.class));
 
     @Test
     void testIndirectInterface() {

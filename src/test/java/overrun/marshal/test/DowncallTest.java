@@ -82,8 +82,8 @@ public final class DowncallTest {
     @Test
     void testReturnUpcall() {
         try (Arena arena = Arena.ofConfined()) {
-            final SimpleUpcall upcall = d.testReturnUpcall(arena);
-            assertEquals(84, upcall.invoke(42));
+            final MemorySegment upcall = d.testReturnUpcall(arena);
+            assertEquals(84, SimpleUpcall.invoke(upcall, 42));
         }
     }
 

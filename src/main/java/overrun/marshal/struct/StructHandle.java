@@ -237,7 +237,7 @@ public class StructHandle implements StructHandleView {
      * @param <T>     the type of the upcall
      * @return the struct handle
      */
-    public static <T extends overrun.marshal.Upcall> Upcall<T> ofUpcall(Struct struct, String name, BiFunction<Arena, MemorySegment, T> factory) {
+    public static <T extends overrun.marshal.Upcall> Upcall<T> ofUpcall(Struct struct, String name, Function<MemorySegment, T> factory) {
         return new Upcall<>(ofValue(struct, name), factory);
     }
 
@@ -841,9 +841,9 @@ public class StructHandle implements StructHandleView {
      * @since 0.1.0
      */
     public static final class Upcall<T extends overrun.marshal.Upcall> extends TypeExt<T, Arena> {
-        private final BiFunction<Arena, MemorySegment, T> factory;
+        private final Function<MemorySegment, T> factory;
 
-        private Upcall(VarHandle varHandle, BiFunction<Arena, MemorySegment, T> factory) {
+        private Upcall(VarHandle varHandle, Function<MemorySegment, T> factory) {
             super(varHandle);
             this.factory = factory;
         }
@@ -861,7 +861,7 @@ public class StructHandle implements StructHandleView {
         @Override
         public T get(long index, Arena userdata) {
             if (factory == null) throw new UnsupportedOperationException();
-            return factory.apply(userdata, (MemorySegment) varHandle.get(0L, index));
+            return factory.apply((MemorySegment) varHandle.get(0L, index));
         }
 
         @Override
