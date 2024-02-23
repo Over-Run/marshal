@@ -17,6 +17,7 @@
 package overrun.marshal.internal;
 
 import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
@@ -25,8 +26,13 @@ import java.util.Map;
  *
  * @param descriptorMap descriptorMap
  * @param handleMap     handleMap
+ * @param symbolLookup  symbolLookup
  * @author squid233
  * @since 0.1.0
  */
-public record DowncallData(Map<String, FunctionDescriptor> descriptorMap, Map<String, MethodHandle> handleMap) {
+public record DowncallData(
+    Map<String, FunctionDescriptor> descriptorMap,
+    Map<String, MethodHandle> handleMap,
+    SymbolLookup symbolLookup
+) {
 }

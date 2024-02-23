@@ -17,12 +17,9 @@
 package overrun.marshal.struct;
 
 import org.jetbrains.annotations.Nullable;
+import overrun.marshal.Marshal;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.invoke.MethodHandles;
+import java.lang.foreign.*;
 import java.lang.invoke.VarHandle;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -51,194 +48,190 @@ public class StructHandle implements StructHandleView {
     }
 
     /**
-     * Creates a var handle where to access a value of the given struct.
+     * Creates a var handle where to access a value of the given struct layout.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name of the value
      * @return the var handle
      */
-    public static VarHandle ofValue(Struct struct, String name) {
-        return MethodHandles.insertCoordinates(struct.sequenceLayout().varHandle(MemoryLayout.PathElement.sequenceElement(),
-                MemoryLayout.PathElement.groupElement(name)),
-            0,
-            struct.segment());
+    public static VarHandle ofValue(StructLayout layout, String name) {
+        return layout.arrayElementVarHandle(MemoryLayout.PathElement.groupElement(name));
     }
 
     /**
-     * Creates a var handle where to access a value in a sized array of the given struct.
+     * Creates a var handle where to access a value in a sized array of the given struct layout.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name of the sized array
      * @return the var handle
      */
-    public static VarHandle ofSizedArray(Struct struct, String name) {
-        return MethodHandles.insertCoordinates(struct.sequenceLayout().varHandle(MemoryLayout.PathElement.sequenceElement(),
-                MemoryLayout.PathElement.groupElement(name),
-                MemoryLayout.PathElement.sequenceElement()),
-            0,
-            struct.segment());
+    public static VarHandle ofSizedArray(StructLayout layout, String name) {
+        return layout.arrayElementVarHandle(
+            MemoryLayout.PathElement.groupElement(name),
+            MemoryLayout.PathElement.sequenceElement()
+        );
     }
 
     /**
      * Creates a boolean struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Bool ofBoolean(Struct struct, String name) {
-        return new Bool(ofValue(struct, name));
+    public static Bool ofBoolean(StructLayout layout, String name) {
+        return new Bool(ofValue(layout, name));
     }
 
     /**
      * Creates a char struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Char ofChar(Struct struct, String name) {
-        return new Char(ofValue(struct, name));
+    public static Char ofChar(StructLayout layout, String name) {
+        return new Char(ofValue(layout, name));
     }
 
     /**
      * Creates a byte struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Byte ofByte(Struct struct, String name) {
-        return new Byte(ofValue(struct, name));
+    public static Byte ofByte(StructLayout layout, String name) {
+        return new Byte(ofValue(layout, name));
     }
 
     /**
      * Creates a short struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Short ofShort(Struct struct, String name) {
-        return new Short(ofValue(struct, name));
+    public static Short ofShort(StructLayout layout, String name) {
+        return new Short(ofValue(layout, name));
     }
 
     /**
      * Creates an int struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Int ofInt(Struct struct, String name) {
-        return new Int(ofValue(struct, name));
+    public static Int ofInt(StructLayout layout, String name) {
+        return new Int(ofValue(layout, name));
     }
 
     /**
      * Creates a long struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Long ofLong(Struct struct, String name) {
-        return new Long(ofValue(struct, name));
+    public static Long ofLong(StructLayout layout, String name) {
+        return new Long(ofValue(layout, name));
     }
 
     /**
      * Creates a float struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Float ofFloat(Struct struct, String name) {
-        return new Float(ofValue(struct, name));
+    public static Float ofFloat(StructLayout layout, String name) {
+        return new Float(ofValue(layout, name));
     }
 
     /**
      * Creates a double struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Double ofDouble(Struct struct, String name) {
-        return new Double(ofValue(struct, name));
+    public static Double ofDouble(StructLayout layout, String name) {
+        return new Double(ofValue(layout, name));
     }
 
     /**
      * Creates an address struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Address ofAddress(Struct struct, String name) {
-        return new Address(ofValue(struct, name));
+    public static Address ofAddress(StructLayout layout, String name) {
+        return new Address(ofValue(layout, name));
     }
 
     /**
      * Creates a string struct handle.
      *
-     * @param struct  the struct
+     * @param layout  the struct layout
      * @param name    the name
      * @param charset the charset
      * @return the struct handle
      */
-    public static Str ofString(Struct struct, String name, Charset charset) {
-        return new Str(ofValue(struct, name), charset);
+    public static Str ofString(StructLayout layout, String name, Charset charset) {
+        return new Str(ofValue(layout, name), charset);
     }
 
     /**
      * Creates a string struct handle.
      *
-     * @param struct the struct
+     * @param layout the struct layout
      * @param name   the name
      * @return the struct handle
      */
-    public static Str ofString(Struct struct, String name) {
-        return ofString(struct, name, StandardCharsets.UTF_8);
+    public static Str ofString(StructLayout layout, String name) {
+        return ofString(layout, name, StandardCharsets.UTF_8);
     }
 
     /**
      * Creates an array struct handle.
      *
-     * @param struct        the struct
+     * @param layout        the struct layout
      * @param name          the name
      * @param setterFactory the setter factory
      * @param getterFactory the getter factory
      * @param <T>           the type of the array
      * @return the struct handle
      */
-    public static <T> Array<T> ofArray(Struct struct, String name, BiFunction<SegmentAllocator, T, MemorySegment> setterFactory, Function<MemorySegment, T> getterFactory) {
-        return new Array<>(ofValue(struct, name), setterFactory, getterFactory);
+    public static <T> Array<T> ofArray(StructLayout layout, String name, BiFunction<SegmentAllocator, T, MemorySegment> setterFactory, Function<MemorySegment, T> getterFactory) {
+        return new Array<>(ofValue(layout, name), setterFactory, getterFactory);
     }
 
     /**
      * Creates an addressable struct handle.
      *
-     * @param struct  the struct
+     * @param layout  the struct layout
      * @param name    the name
      * @param factory the factory
      * @param <T>     the type of the addressable
      * @return the struct handle
      */
-    public static <T extends overrun.marshal.Addressable> Addressable<T> ofAddressable(Struct struct, String name, Function<MemorySegment, T> factory) {
-        return new Addressable<>(ofValue(struct, name), factory);
+    public static <T extends overrun.marshal.Addressable> Addressable<T> ofAddressable(StructLayout layout, String name, Function<MemorySegment, T> factory) {
+        return new Addressable<>(ofValue(layout, name), factory);
     }
 
     /**
      * Creates an upcall struct handle.
      *
-     * @param struct  the struct
+     * @param layout  the struct layout
      * @param name    the name
      * @param factory the factory
      * @param <T>     the type of the upcall
      * @return the struct handle
      */
-    public static <T extends overrun.marshal.Upcall> Upcall<T> ofUpcall(Struct struct, String name, Function<MemorySegment, T> factory) {
-        return new Upcall<>(ofValue(struct, name), factory);
+    public static <T extends overrun.marshal.Upcall> Upcall<T> ofUpcall(StructLayout layout, String name, Function<MemorySegment, T> factory) {
+        return new Upcall<>(ofValue(layout, name), factory);
     }
 
     /**
@@ -255,30 +248,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, boolean value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, boolean value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(boolean value) {
-            set(0L, value);
+        public void set(Struct struct, boolean value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public boolean get(long index) {
-            return (boolean) varHandle.get(0L, index);
+        public boolean get(Struct struct, long index) {
+            return (boolean) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public boolean get() {
-            return get(0L);
+        public boolean get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -296,30 +291,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, char value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, char value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(char value) {
-            set(0L, value);
+        public void set(Struct struct, char value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public char get(long index) {
-            return (char) varHandle.get(0L, index);
+        public char get(Struct struct, long index) {
+            return (char) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public char get() {
-            return get(0L);
+        public char get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -337,30 +334,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, byte value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, byte value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(byte value) {
-            set(0L, value);
+        public void set(Struct struct, byte value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public byte get(long index) {
-            return (byte) varHandle.get(0L, index);
+        public byte get(Struct struct, long index) {
+            return (byte) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public byte get() {
-            return get(0L);
+        public byte get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -378,30 +377,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, short value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, short value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(short value) {
-            set(0L, value);
+        public void set(Struct struct, short value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public short get(long index) {
-            return (short) varHandle.get(0L, index);
+        public short get(Struct struct, long index) {
+            return (short) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public short get() {
-            return get(0L);
+        public short get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -419,30 +420,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, int value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, int value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(int value) {
-            set(0L, value);
+        public void set(Struct struct, int value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public int get(long index) {
-            return (int) varHandle.get(0L, index);
+        public int get(Struct struct, long index) {
+            return (int) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public int get() {
-            return get(0L);
+        public int get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -460,30 +463,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, long value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, long value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(long value) {
-            set(0L, value);
+        public void set(Struct struct, long value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public long get(long index) {
-            return (long) varHandle.get(0L, index);
+        public long get(Struct struct, long index) {
+            return (long) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public long get() {
-            return get(0L);
+        public long get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -501,30 +506,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, float value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, float value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(float value) {
-            set(0L, value);
+        public void set(Struct struct, float value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public float get(long index) {
-            return (float) varHandle.get(0L, index);
+        public float get(Struct struct, long index) {
+            return (float) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public float get() {
-            return get(0L);
+        public float get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -542,30 +549,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, double value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, double value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(double value) {
-            set(0L, value);
+        public void set(Struct struct, double value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public double get(long index) {
-            return (double) varHandle.get(0L, index);
+        public double get(Struct struct, long index) {
+            return (double) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public double get() {
-            return get(0L);
+        public double get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -583,30 +592,32 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public void set(long index, MemorySegment value) {
-            varHandle.set(0L, index, value);
+        public void set(Struct struct, long index, MemorySegment value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value);
         }
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public void set(MemorySegment value) {
-            set(0L, value);
+        public void set(Struct struct, MemorySegment value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public MemorySegment get(long index) {
-            return (MemorySegment) varHandle.get(0L, index);
+        public MemorySegment get(Struct struct, long index) {
+            return (MemorySegment) varHandle.get(Marshal.marshal(struct), 0L, index);
         }
 
         @Override
-        public MemorySegment get() {
-            return get(0L);
+        public MemorySegment get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -627,32 +638,34 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
+         * @param struct    the struct
          * @param index     the index
          * @param allocator the allocator
          * @param value     the value
          */
-        public void set(long index, SegmentAllocator allocator, String value) {
-            varHandle.set(0L, index, allocator.allocateFrom(value, charset));
+        public void set(Struct struct, long index, SegmentAllocator allocator, String value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, allocator.allocateFrom(value, charset));
         }
 
         /**
          * Sets the value.
          *
+         * @param struct    the struct
          * @param allocator the allocator
          * @param value     the value
          */
-        public void set(SegmentAllocator allocator, String value) {
-            set(0L, allocator, value);
+        public void set(Struct struct, SegmentAllocator allocator, String value) {
+            set(struct, 0L, allocator, value);
         }
 
         @Override
-        public String get(long index, long byteSize) {
-            return ((MemorySegment) varHandle.get(0L, index)).reinterpret(byteSize).getString(0L, charset);
+        public String get(Struct struct, long index, long byteSize) {
+            return ((MemorySegment) varHandle.get(Marshal.marshal(struct), 0L, index)).reinterpret(byteSize).getString(0L, charset);
         }
 
         @Override
-        public String get(long byteSize) {
-            return get(0L, byteSize);
+        public String get(Struct struct, long byteSize) {
+            return get(struct, 0L, byteSize);
         }
     }
 
@@ -676,34 +689,36 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
+         * @param struct    the struct
          * @param index     the index
          * @param allocator the allocator
          * @param value     the value
          */
-        public void set(long index, SegmentAllocator allocator, T value) {
+        public void set(Struct struct, long index, SegmentAllocator allocator, T value) {
             if (setterFactory == null) throw new UnsupportedOperationException();
-            varHandle.set(0L, index, setterFactory.apply(allocator, value));
+            varHandle.set(Marshal.marshal(struct), 0L, index, setterFactory.apply(allocator, value));
         }
 
         /**
          * Sets the value.
          *
+         * @param struct    the struct
          * @param allocator the allocator
          * @param value     the value
          */
-        public void set(SegmentAllocator allocator, T value) {
-            set(0L, allocator, value);
+        public void set(Struct struct, SegmentAllocator allocator, T value) {
+            set(struct, 0L, allocator, value);
         }
 
         @Override
-        public T get(long index, long byteSize) {
+        public T get(Struct struct, long index, long byteSize) {
             if (getterFactory == null) throw new UnsupportedOperationException();
-            return getterFactory.apply(((MemorySegment) varHandle.get(0L, index)).reinterpret(byteSize));
+            return getterFactory.apply(((MemorySegment) varHandle.get(Marshal.marshal(struct), 0L, index)).reinterpret(byteSize));
         }
 
         @Override
-        public T get(long byteSize) {
-            return get(0L, byteSize);
+        public T get(Struct struct, long byteSize) {
+            return get(struct, 0L, byteSize);
         }
     }
 
@@ -727,17 +742,19 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
-         * @param index the index
-         * @param value the value
+         * @param struct the struct
+         * @param index  the index
+         * @param value  the value
          */
-        public abstract void set(long index, T value);
+        public abstract void set(Struct struct, long index, T value);
 
         /**
          * Sets the value.
          *
-         * @param value the value
+         * @param struct the struct
+         * @param value  the value
          */
-        public abstract void set(T value);
+        public abstract void set(Struct struct, T value);
     }
 
     /**
@@ -762,19 +779,21 @@ public class StructHandle implements StructHandleView {
         /**
          * Sets the value at the given index.
          *
+         * @param struct   the struct
          * @param index    the index
          * @param userdata the userdata
          * @param value    the value
          */
-        public abstract void set(long index, S userdata, T value);
+        public abstract void set(Struct struct, long index, S userdata, T value);
 
         /**
          * Sets the value.
          *
+         * @param struct   the struct
          * @param userdata the userdata
          * @param value    the value
          */
-        public abstract void set(S userdata, T value);
+        public abstract void set(Struct struct, S userdata, T value);
     }
 
     /**
@@ -812,24 +831,24 @@ public class StructHandle implements StructHandleView {
         }
 
         @Override
-        public void set(long index, @Nullable T value) {
-            varHandle.set(0L, index, value != null ? value.segment() : MemorySegment.NULL);
+        public void set(Struct struct, long index, @Nullable T value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value != null ? value.segment() : MemorySegment.NULL);
         }
 
         @Override
-        public void set(T value) {
-            set(0L, value);
+        public void set(Struct struct, T value) {
+            set(struct, 0L, value);
         }
 
         @Override
-        public T get(long index) {
+        public T get(Struct struct, long index) {
             if (factory == null) throw new UnsupportedOperationException();
-            return factory.apply((MemorySegment) varHandle.get(0L, index));
+            return factory.apply((MemorySegment) varHandle.get(Marshal.marshal(struct), 0L, index));
         }
 
         @Override
-        public T get() {
-            return get(0L);
+        public T get(Struct struct) {
+            return get(struct, 0L);
         }
     }
 
@@ -849,24 +868,24 @@ public class StructHandle implements StructHandleView {
         }
 
         @Override
-        public void set(long index, Arena userdata, T value) {
-            varHandle.set(0L, index, value.stub(userdata));
+        public void set(Struct struct, long index, Arena userdata, T value) {
+            varHandle.set(Marshal.marshal(struct), 0L, index, value.stub(userdata));
         }
 
         @Override
-        public void set(Arena userdata, T value) {
-            set(0L, userdata, value);
+        public void set(Struct struct, Arena userdata, T value) {
+            set(struct, 0L, userdata, value);
         }
 
         @Override
-        public T get(long index, Arena userdata) {
+        public T get(Struct struct, long index, Arena userdata) {
             if (factory == null) throw new UnsupportedOperationException();
-            return factory.apply((MemorySegment) varHandle.get(0L, index));
+            return factory.apply((MemorySegment) varHandle.get(Marshal.marshal(struct), 0L, index));
         }
 
         @Override
-        public T get(Arena userdata) {
-            return get(0L, userdata);
+        public T get(Struct struct, Arena userdata) {
+            return get(struct, 0L, userdata);
         }
     }
 }

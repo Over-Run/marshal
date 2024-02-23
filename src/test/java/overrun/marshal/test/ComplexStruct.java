@@ -46,20 +46,20 @@ public final class ComplexStruct extends Struct {
         ValueLayout.JAVA_BOOLEAN.withName("Bool"),
         MemoryLayout.paddingLayout(2L)
     );
-    public final StructHandle.Bool Bool = StructHandle.ofBoolean(this, "Bool");
-    public final StructHandle.Char Char = StructHandle.ofChar(this, "Char");
-    public final StructHandle.Byte Byte = StructHandle.ofByte(this, "Byte");
-    public final StructHandle.Short Short = StructHandle.ofShort(this, "Short");
-    public final StructHandle.Int Int = StructHandle.ofInt(this, "Int");
-    public final StructHandle.Float Float = StructHandle.ofFloat(this, "Float");
-    public final StructHandle.Long Long = StructHandle.ofLong(this, "Long");
-    public final StructHandle.Double Double = StructHandle.ofDouble(this, "Double");
-    public final StructHandle.Address Address = StructHandle.ofAddress(this, "Address");
-    public final StructHandle.Str Str = StructHandle.ofString(this, "Str");
-    public final StructHandle.Str UTF16Str = StructHandle.ofString(this, "UTF16Str", StandardCharsets.UTF_16);
-    public final StructHandle.Addressable<Vector3> Addressable = StructHandle.ofAddressable(this, "Addressable", Vector3::new);
-    public final StructHandle.Upcall<SimpleUpcall> Upcall = StructHandle.ofUpcall(this, "Upcall", segment -> i -> SimpleUpcall.invoke(segment, i));
-    public final StructHandle.Array<int[]> IntArray = StructHandle.ofArray(this, "IntArray", Marshal::marshal, Unmarshal::unmarshalAsIntArray);
+    public static final StructHandle.Bool Bool = StructHandle.ofBoolean(LAYOUT, "Bool");
+    public static final StructHandle.Char Char = StructHandle.ofChar(LAYOUT, "Char");
+    public static final StructHandle.Byte Byte = StructHandle.ofByte(LAYOUT, "Byte");
+    public static final StructHandle.Short Short = StructHandle.ofShort(LAYOUT, "Short");
+    public static final StructHandle.Int Int = StructHandle.ofInt(LAYOUT, "Int");
+    public static final StructHandle.Float Float = StructHandle.ofFloat(LAYOUT, "Float");
+    public static final StructHandle.Long Long = StructHandle.ofLong(LAYOUT, "Long");
+    public static final StructHandle.Double Double = StructHandle.ofDouble(LAYOUT, "Double");
+    public static final StructHandle.Address Address = StructHandle.ofAddress(LAYOUT, "Address");
+    public static final StructHandle.Str Str = StructHandle.ofString(LAYOUT, "Str");
+    public static final StructHandle.Str UTF16Str = StructHandle.ofString(LAYOUT, "UTF16Str", StandardCharsets.UTF_16);
+    public static final StructHandle.Addressable<Vector3> Addressable = StructHandle.ofAddressable(LAYOUT, "Addressable", Vector3::new);
+    public static final StructHandle.Upcall<SimpleUpcall> Upcall = StructHandle.ofUpcall(LAYOUT, "Upcall", segment -> i -> SimpleUpcall.invoke(segment, i));
+    public static final StructHandle.Array<int[]> IntArray = StructHandle.ofArray(LAYOUT, "IntArray", Marshal::marshal, Unmarshal::unmarshalAsIntArray);
 
     /**
      * Creates a struct with the given layout.

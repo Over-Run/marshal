@@ -35,9 +35,9 @@ public final class Vector3 extends Struct {
         ValueLayout.JAVA_INT.withName("y"),
         ValueLayout.JAVA_INT.withName("z")
     );
-    public final StructHandle.Int x = StructHandle.ofInt(this, "x");
-    public final StructHandle.Int y = StructHandle.ofInt(this, "y");
-    public final StructHandleView.Int z = StructHandle.ofInt(this, "z");
+    public static final StructHandle.Int x = StructHandle.ofInt(LAYOUT, "x");
+    public static final StructHandle.Int y = StructHandle.ofInt(LAYOUT, "y");
+    public static final StructHandleView.Int z = StructHandle.ofInt(LAYOUT, "z");
 
     /**
      * Creates a struct with the given layout.

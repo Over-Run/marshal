@@ -33,23 +33,9 @@ import java.lang.foreign.*;
  *         ValueLayout.JAVA_INT.withName("x"),
  *         ValueLayout.JAVA_INT.withName("y")
  *     );
- *     public final StructHandle.Int x = StructHandle.ofInt(this, "x");
+ *     public static final StructHandle.Int x = StructHandle.ofInt(LAYOUT, "x");
  *     // read-only
- *     public final StructHandleView.Int y = StructHandle.ofInt(this, "y");
- *     // constructors ...
- * }
- * }</pre>
- * <h3>Incoming change</h3>
- * <pre>{@code
- * value class Point extends Struct {
- *     public static final StructLayout LAYOUT = MemoryLayout.structLayout(
- *         // a dummy method that creates value layout
- *         ValueLayout.<int>of().withName("x"),
- *         ValueLayout.<int>of().withName("y")
- *     );
- *     public final StructHandle<int> x = StructHandle.<int>of(this, "x");
- *     // read-only
- *     public final StructHandleView<int> y = StructHandle.<int>of(this, "y");
+ *     public static final StructHandleView.Int y = StructHandle.ofInt(LAYOUT, "y");
  *     // constructors ...
  * }
  * }</pre>

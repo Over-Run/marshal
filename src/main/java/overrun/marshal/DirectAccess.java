@@ -19,6 +19,7 @@ package overrun.marshal;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
@@ -52,4 +53,9 @@ public interface DirectAccess {
     default MethodHandle methodHandle(String entrypoint) {
         return methodHandles().get(entrypoint);
     }
+
+    /**
+     * {@return the symbol lookup of this library}
+     */
+    SymbolLookup symbolLookup();
 }

@@ -132,6 +132,7 @@ public final class Downcall {
     private static final ClassDesc CD_MemoryStack = ClassDesc.of("overrun.marshal.MemoryStack");
     private static final ClassDesc CD_SegmentAllocator = ClassDesc.of("java.lang.foreign.SegmentAllocator");
     private static final ClassDesc CD_StandardCharsets = ClassDesc.of("java.nio.charset.StandardCharsets");
+    private static final ClassDesc CD_SymbolLookup = ClassDesc.of("java.lang.foreign.SymbolLookup");
     private static final ClassDesc CD_Unmarshal = ClassDesc.of("overrun.marshal.Unmarshal");
     private static final ClassDesc CD_Upcall = ClassDesc.of("overrun.marshal.Upcall");
     private static final ClassDesc CD_StringArray = CD_String.arrayType();
@@ -152,12 +153,12 @@ public final class Downcall {
         CD_StringArray,
         CD_Charset);
     private static final MethodTypeDesc MTD_MemoryStack = MethodTypeDesc.of(CD_MemoryStack);
-    private static final MethodTypeDesc MTD_MethodHandle = MethodTypeDesc.of(CD_MethodHandle);
     private static final MethodTypeDesc MTD_Object_Object = MethodTypeDesc.of(CD_Object, CD_Object);
     private static final MethodTypeDesc MTD_String_MemorySegment = MethodTypeDesc.of(CD_String, CD_MemorySegment);
     private static final MethodTypeDesc MTD_String_MemorySegment_Charset = MethodTypeDesc.of(CD_String, CD_MemorySegment, CD_Charset);
     private static final MethodTypeDesc MTD_StringArray_MemorySegment = MethodTypeDesc.of(CD_StringArray, CD_MemorySegment);
     private static final MethodTypeDesc MTD_StringArray_MemorySegment_Charset = MethodTypeDesc.of(CD_StringArray, CD_MemorySegment, CD_Charset);
+    private static final MethodTypeDesc MTD_SymbolLookup = MethodTypeDesc.of(CD_SymbolLookup);
     private static final MethodTypeDesc MTD_void_int_int = MethodTypeDesc.of(CD_void, CD_int, CD_int);
     private static final MethodTypeDesc MTD_void_long = MethodTypeDesc.of(CD_void, CD_long);
     private static final MethodTypeDesc MTD_void_MemorySegment = MethodTypeDesc.of(CD_void, CD_MemorySegment);
@@ -801,6 +802,13 @@ public final class Downcall {
                         .ldc(DCD_classData_DowncallData)
                         .invokevirtual(CD_DowncallData, "handleMap", MTD_Map)
                         .areturn()));
+                classBuilder.withMethod("symbolLookup",
+                    MTD_SymbolLookup,
+                    ACC_PUBLIC,
+                    methodBuilder -> methodBuilder.withCode(codeBuilder -> codeBuilder
+                        .ldc(DCD_classData_DowncallData)
+                        .invokevirtual(CD_DowncallData, "symbolLookup", MTD_SymbolLookup)
+                        .areturn()));
             }
             //endregion
 
@@ -875,8 +883,10 @@ public final class Downcall {
         }
 
         // check method declared by DirectAccess
-        if (length == 0 && returnType == Map.class) {
-            return "functionDescriptors".equals(methodName) || "methodHandles".equals(methodName);
+        if (length == 0) {
+            if (returnType == Map.class)
+                return "functionDescriptors".equals(methodName) || "methodHandles".equals(methodName);
+            if (returnType == SymbolLookup.class) return "symbolLookup".equals(methodName);
         }
         if (returnType == MethodHandle.class && length == 1 && types[0] == String.class) {
             return "methodHandle".equals(methodName);
@@ -1096,6 +1106,6 @@ public final class Downcall {
                 throw new UnsatisfiedLinkError(STR."unresolved symbol: \{entrypoint}: \{methodData.exceptionString()}");
             }
         });
-        return new DowncallData(Collections.unmodifiableMap(descriptorMap1), Collections.unmodifiableMap(map));
+        return new DowncallData(Collections.unmodifiableMap(descriptorMap1), Collections.unmodifiableMap(map), lookup);
     }
 }
