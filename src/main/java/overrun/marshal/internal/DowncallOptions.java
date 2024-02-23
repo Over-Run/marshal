@@ -14,37 +14,37 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.internal;
 
-import overrun.marshal.Upcall;
+import overrun.marshal.DowncallOption;
 
-import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
+import java.util.Map;
 
 /**
- * A simple upcall
+ * Downcall options.
  *
  * @author squid233
  * @since 0.1.0
  */
-@FunctionalInterface
-public interface SimpleUpcall extends Upcall {
-    Type<SimpleUpcall> TYPE = Upcall.type("invoke", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
-
-    int invoke(int i);
-
-    static int invoke(MemorySegment stub, int i) {
-        try {
-            return (int) TYPE.downcallTarget().invokeExact(stub, i);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+public final class DowncallOptions {
+    private DowncallOptions() {
     }
 
-    @Override
-    default MemorySegment stub(Arena arena) {
-        return TYPE.of(arena, this);
+    /**
+     * specify target class
+     *
+     * @param aClass the class
+     */
+    public record TargetClass(Class<?> aClass) implements DowncallOption {
+    }
+
+    /**
+     * specify custom function descriptors
+     *
+     * @param descriptorMap the custom function descriptors
+     */
+
+    public record Descriptors(Map<String, FunctionDescriptor> descriptorMap) implements DowncallOption {
     }
 }

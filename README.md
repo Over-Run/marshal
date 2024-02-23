@@ -4,7 +4,7 @@
 
 Marshal allows you to conveniently create native library bindings with [FFM API](https://openjdk.org/jeps/454).
 
-See [wiki](https://github.com/Over-Run/marshal/wiki) for more information.
+~~See [wiki](https://github.com/Over-Run/marshal/wiki) for more information.~~
 
 This library requires JDK 22 or newer.
 
@@ -101,3 +101,7 @@ dependencies {
 
 and add this VM argument to enable native access: `--enable-native-access=io.github.overrun.marshal`  
 or this if you don't use modules: `--enable-native-access=ALL-UNNAMED`
+
+## Additions
+
+- [OverrunGL](https://github.com/Over-Run/overrungl), which is using Marshal

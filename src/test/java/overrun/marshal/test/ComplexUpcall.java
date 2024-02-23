@@ -16,13 +16,13 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.Marshal;
+import overrun.marshal.MemoryStack;
+import overrun.marshal.Unmarshal;
 import overrun.marshal.Upcall;
-import overrun.marshal.gen.SizedSeg;
+import overrun.marshal.gen.Sized;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
+import java.lang.foreign.*;
 
 /**
  * A complex upcall
@@ -32,74 +32,28 @@ import java.lang.invoke.MethodHandle;
  */
 @FunctionalInterface
 public interface ComplexUpcall extends Upcall {
-    int[] invoke(int[] arr);
+    AddressLayout ARG_LAYOUT = ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(2L, ValueLayout.JAVA_INT));
+    Type<ComplexUpcall> TYPE = Upcall.type("invoke", FunctionDescriptor.of(ARG_LAYOUT, ARG_LAYOUT));
 
-    /**
-     * the container
-     *
-     * @author squid233
-     * @since 0.1.0
-     */
-    sealed class Container extends BaseContainer<ComplexUpcall> implements ComplexUpcall {
-        public static final Type<Container> TYPE = Upcall.type();
+    @Sized(2)
+    int[] invoke(@Sized(2) int[] arr);
 
-        public Container(Arena arena, ComplexUpcall delegate) {
-            super(arena, delegate);
-        }
-
-        @Stub
-        @SizedSeg(2 * Integer.BYTES)
-        public MemorySegment invoke(@SizedSeg(2 * Integer.BYTES) MemorySegment arr) {
-            return arena.allocateFrom(ValueLayout.JAVA_INT, invoke(arr.toArray(ValueLayout.JAVA_INT)));
-        }
-
-        @Override
-        public int[] invoke(int[] arr) {
-            return delegate.invoke(arr);
-        }
-
-        @Override
-        public MemorySegment stub(Arena arena) {
-            return TYPE.of(arena, this);
+    default MemorySegment invoke(MemorySegment arr) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            return Marshal.marshal(stack, invoke(Unmarshal.unmarshalAsIntArray(arr)));
         }
     }
 
-    /**
-     * the wrapper container
-     *
-     * @author squid233
-     * @since 0.1.0
-     */
-    final class WrapperContainer extends Container {
-        private final MethodHandle handle;
-
-        public WrapperContainer(Arena arena, MemorySegment stub) {
-            super(arena, null);
-            this.handle = TYPE.downcall(stub);
+    static int[] invoke(MemorySegment stub, int[] arr) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            return Unmarshal.unmarshalAsIntArray((MemorySegment) TYPE.downcallTarget().invokeExact(stub, Marshal.marshal(stack, arr)));
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
-
-        @Override
-        public MemorySegment invoke(MemorySegment arr) {
-            try {
-                return (MemorySegment) handle.invokeExact(arr);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public int[] invoke(int[] arr) {
-            return invoke(arena.allocateFrom(ValueLayout.JAVA_INT, arr)).toArray(ValueLayout.JAVA_INT);
-        }
-    }
-
-    @Wrapper
-    static Container wrap(Arena arena, MemorySegment stub) {
-        return new WrapperContainer(arena, stub);
     }
 
     @Override
     default MemorySegment stub(Arena arena) {
-        return new Container(arena, this).stub(arena);
+        return TYPE.of(arena, this);
     }
 }

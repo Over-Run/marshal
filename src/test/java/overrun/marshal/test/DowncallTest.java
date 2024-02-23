@@ -57,9 +57,9 @@ public final class DowncallTest {
         try (Arena arena = Arena.ofConfined()) {
             final Vector3 vector3 = new Vector3(arena);
             d.testStruct(vector3);
-            assertEquals(1, vector3.x.get());
-            assertEquals(2, vector3.y.get());
-            assertEquals(3, vector3.z.get());
+            assertEquals(1, Vector3.x.get(vector3));
+            assertEquals(2, Vector3.y.get(vector3));
+            assertEquals(3, Vector3.z.get(vector3));
         }
     }
 
@@ -82,8 +82,8 @@ public final class DowncallTest {
     @Test
     void testReturnUpcall() {
         try (Arena arena = Arena.ofConfined()) {
-            final SimpleUpcall upcall = d.testReturnUpcall(arena);
-            assertEquals(84, upcall.invoke(42));
+            final MemorySegment upcall = d.testReturnUpcall(arena);
+            assertEquals(84, SimpleUpcall.invoke(upcall, 42));
         }
     }
 
@@ -91,13 +91,13 @@ public final class DowncallTest {
     void testReturnStruct() {
         try (Arena arena = Arena.ofConfined()) {
             final Vector3 returnStruct = d.testReturnStruct();
-            assertEquals(4, returnStruct.x.get());
-            assertEquals(5, returnStruct.y.get());
-            assertEquals(6, returnStruct.z.get());
+            assertEquals(4, Vector3.x.get(returnStruct));
+            assertEquals(5, Vector3.y.get(returnStruct));
+            assertEquals(6, Vector3.z.get(returnStruct));
             final Vector3 returnStructByValue = d.testReturnStructByValue(arena);
-            assertEquals(7, returnStructByValue.x.get());
-            assertEquals(8, returnStructByValue.y.get());
-            assertEquals(9, returnStructByValue.z.get());
+            assertEquals(7, Vector3.x.get(returnStructByValue));
+            assertEquals(8, Vector3.y.get(returnStructByValue));
+            assertEquals(9, Vector3.z.get(returnStructByValue));
         }
     }
 
@@ -108,12 +108,12 @@ public final class DowncallTest {
     }
 
     private void assertStructSized(Vector3 vector3) {
-        assertEquals(1, vector3.x.get());
-        assertEquals(2, vector3.y.get());
-        assertEquals(3, vector3.z.get());
-        assertEquals(4, vector3.x.get(1L));
-        assertEquals(5, vector3.y.get(1L));
-        assertEquals(6, vector3.z.get(1L));
+        assertEquals(1, Vector3.x.get(vector3));
+        assertEquals(2, Vector3.y.get(vector3));
+        assertEquals(3, Vector3.z.get(vector3));
+        assertEquals(4, Vector3.x.get(vector3, 1L));
+        assertEquals(5, Vector3.y.get(vector3, 1L));
+        assertEquals(6, Vector3.z.get(vector3, 1L));
     }
 
     @Test

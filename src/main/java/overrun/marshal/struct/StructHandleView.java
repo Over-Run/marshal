@@ -35,17 +35,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        boolean get(long index);
+        boolean get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        boolean get();
+        boolean get(Struct struct);
     }
 
     /**
@@ -58,17 +60,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        char get(long index);
+        char get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        char get();
+        char get(Struct struct);
     }
 
     /**
@@ -81,17 +85,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        byte get(long index);
+        byte get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        byte get();
+        byte get(Struct struct);
     }
 
     /**
@@ -104,17 +110,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        short get(long index);
+        short get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        short get();
+        short get(Struct struct);
     }
 
     /**
@@ -127,17 +135,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        int get(long index);
+        int get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        int get();
+        int get(Struct struct);
     }
 
     /**
@@ -150,17 +160,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        long get(long index);
+        long get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        long get();
+        long get(Struct struct);
     }
 
     /**
@@ -173,17 +185,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        float get(long index);
+        float get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        float get();
+        float get(Struct struct);
     }
 
     /**
@@ -196,17 +210,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        double get(long index);
+        double get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        double get();
+        double get(Struct struct);
     }
 
     /**
@@ -219,17 +235,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        MemorySegment get(long index);
+        MemorySegment get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        MemorySegment get();
+        MemorySegment get(Struct struct);
     }
 
     /**
@@ -242,19 +260,21 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
+         * @param struct   the struct
          * @param index    the index
          * @param byteSize the byte size of the string
          * @return the value
          */
-        String get(long index, long byteSize);
+        String get(Struct struct, long index, long byteSize);
 
         /**
          * Gets the value.
          *
+         * @param struct   the struct
          * @param byteSize the byte size of the string
          * @return the value
          */
-        String get(long byteSize);
+        String get(Struct struct, long byteSize);
     }
 
     /**
@@ -268,19 +288,21 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
+         * @param struct   the struct
          * @param index    the index
          * @param byteSize the byte size of the array
          * @return the value
          */
-        T get(long index, long byteSize);
+        T get(Struct struct, long index, long byteSize);
 
         /**
          * Gets the value.
          *
+         * @param struct   the struct
          * @param byteSize the byte size of the array
          * @return the value
          */
-        T get(long byteSize);
+        T get(Struct struct, long byteSize);
     }
 
     /**
@@ -294,17 +316,19 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
-         * @param index the index
+         * @param struct the struct
+         * @param index  the index
          * @return the value
          */
-        T get(long index);
+        T get(Struct struct, long index);
 
         /**
          * Gets the value.
          *
+         * @param struct the struct
          * @return the value
          */
-        T get();
+        T get(Struct struct);
     }
 
     /**
@@ -319,18 +343,20 @@ public interface StructHandleView {
         /**
          * Gets the value at the given index.
          *
+         * @param struct   the struct
          * @param index    the index
          * @param userdata the userdata
          * @return the value
          */
-        T get(long index, U userdata);
+        T get(Struct struct, long index, U userdata);
 
         /**
          * Gets the value.
          *
+         * @param struct   the struct
          * @param userdata the userdata
          * @return the value
          */
-        T get(U userdata);
+        T get(Struct struct, U userdata);
     }
 }

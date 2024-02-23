@@ -16,6 +16,7 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.DowncallOption;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.Downcall;
 import overrun.marshal.MemoryStack;
@@ -36,7 +37,7 @@ public interface IDowncall {
     Map<String, FunctionDescriptor> MAP = Map.of("testDefault", FunctionDescriptor.of(ValueLayout.JAVA_INT));
 
     static IDowncall getInstance(boolean testDefaultNull) {
-        return Downcall.load(MethodHandles.lookup(), DowncallProvider.lookup(testDefaultNull), MAP);
+        return Downcall.load(MethodHandles.lookup(), DowncallProvider.lookup(testDefaultNull), DowncallOption.descriptors(MAP));
     }
 
     void test();
@@ -86,7 +87,7 @@ public interface IDowncall {
 
     MyEnum testReturnCEnum();
 
-    SimpleUpcall testReturnUpcall(Arena arena);
+    MemorySegment testReturnUpcall(Arena arena);
 
     Vector3 testReturnStruct();
 

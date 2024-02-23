@@ -16,8 +16,6 @@
 
 package overrun.marshal.test;
 
-import overrun.marshal.MemoryStack;
-
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -111,9 +109,7 @@ public final class DowncallProvider {
     }
 
     private static int testUpcall(MemorySegment upcall) {
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            return SimpleUpcall.wrap(stack, upcall).invoke(42);
-        }
+        return SimpleUpcall.invoke(upcall, 42);
     }
 
     private static void testIntArray(MemorySegment arr) {

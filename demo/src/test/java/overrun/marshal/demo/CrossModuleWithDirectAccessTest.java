@@ -18,6 +18,7 @@ package overrun.marshal.demo;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import overrun.marshal.DirectAccess;
 import overrun.marshal.Downcall;
 import overrun.marshal.DowncallOption;
 
@@ -32,13 +33,13 @@ import java.util.Optional;
  * @author squid233
  * @since 0.1.0
  */
-public final class CrossModuleTest {
+public final class CrossModuleWithDirectAccessTest {
     private static final Linker LINKER = Linker.nativeLinker();
     private static final MemorySegment s_get;
 
     static {
         try {
-            s_get = LINKER.upcallStub(MethodHandles.lookup().findStatic(CrossModuleTest.class, "get", MethodType.methodType(int.class)), FunctionDescriptor.of(ValueLayout.JAVA_INT), Arena.ofAuto());
+            s_get = LINKER.upcallStub(MethodHandles.lookup().findStatic(CrossModuleWithDirectAccessTest.class, "get", MethodType.methodType(int.class)), FunctionDescriptor.of(ValueLayout.JAVA_INT), Arena.ofAuto());
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -50,7 +51,7 @@ public final class CrossModuleTest {
         return 1;
     }
 
-    public interface I {
+    public interface I extends DirectAccess {
         int get();
     }
 

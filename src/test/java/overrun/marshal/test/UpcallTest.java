@@ -31,12 +31,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @since 0.1.0
  */
 public final class UpcallTest {
-    private int invokeSimpleUpcall(Arena arena, MemorySegment upcall) {
-        return SimpleUpcall.wrap(arena, upcall).invoke(42);
+    private int invokeSimpleUpcall(MemorySegment upcall) {
+        return SimpleUpcall.invoke(upcall, 42);
     }
 
-    private int[] invokeComplexUpcall(Arena arena, MemorySegment upcall) {
-        return ComplexUpcall.wrap(arena, upcall).invoke(new int[]{4, 2});
+    private int[] invokeComplexUpcall(MemorySegment upcall) {
+        return ComplexUpcall.invoke(upcall, new int[]{4, 2});
     }
 
     @Test
@@ -44,7 +44,7 @@ public final class UpcallTest {
         final Arena arena = Arena.ofAuto();
         final SimpleUpcall upcall = i -> i * 2;
         final MemorySegment stub = upcall.stub(arena);
-        assertEquals(84, invokeSimpleUpcall(arena, stub));
+        assertEquals(84, invokeSimpleUpcall(stub));
     }
 
     @Test
@@ -52,6 +52,6 @@ public final class UpcallTest {
         final Arena arena = Arena.ofAuto();
         final ComplexUpcall upcall = arr -> new int[]{arr[0] * 4, arr[1] * 2};
         final MemorySegment stub = upcall.stub(arena);
-        assertArrayEquals(new int[]{16, 4}, invokeComplexUpcall(arena, stub));
+        assertArrayEquals(new int[]{16, 4}, invokeComplexUpcall(stub));
     }
 }
