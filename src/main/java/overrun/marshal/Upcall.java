@@ -16,20 +16,18 @@
 
 package overrun.marshal;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.lang.foreign.*;
+import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
+import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 
 /**
  * An upcall interface.
  * <p>
- * There must be only one upcall stub provider in its implementation;
- * if there is no, throw an exception;
- * if there is more than one, choose the first one.
+ * The target method must <strong>NOT</strong> throw any exception.
+ * Otherwise, the JVM might crash.
  * <h2>Example</h2>
  * <pre>{@code
  * // The implementation must be public if you use Type
@@ -111,18 +109,6 @@ public interface Upcall {
      */
     static <T extends Upcall> Type<T> type(Class<T> tClass, String targetName, FunctionDescriptor descriptor) {
         return new Type<>(tClass, targetName, descriptor);
-    }
-
-    /**
-     * Marks a method as an upcall stub provider. The marked method <strong>must not</strong> throw any exception.
-     *
-     * @author squid233
-     * @see Upcall
-     * @since 0.1.0
-     */
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @interface Stub {
     }
 
     /**
