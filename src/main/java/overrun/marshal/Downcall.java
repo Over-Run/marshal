@@ -852,7 +852,8 @@ public final class Downcall {
         final boolean b =
             method.getDeclaredAnnotation(Skip.class) != null ||
             Modifier.isStatic(method.getModifiers()) ||
-            method.isSynthetic();
+            method.isSynthetic() ||
+            Modifier.isFinal(method.getModifiers());
         if (b) {
             return true;
         }
@@ -996,96 +997,98 @@ public final class Downcall {
             final String entrypoint = methodData.entrypoint();
             final Optional<MemorySegment> optional = lookup.find(entrypoint);
 
-            if (optional.isPresent()) {
-                // function descriptor
-                final FunctionDescriptor descriptor;
-                final FunctionDescriptor get = descriptorMap.get(entrypoint);
-                if (get != null) {
-                    descriptor = get;
-                } else {
-                    final var returnType = method.getReturnType();
-                    final boolean returnVoid = returnType == void.class;
-                    final boolean methodByValue = method.getDeclaredAnnotation(ByValue.class) != null;
+            // function descriptor
+            final FunctionDescriptor descriptor;
+            final FunctionDescriptor get = descriptorMap.get(entrypoint);
+            if (get != null) {
+                descriptor = get;
+            } else {
+                final var returnType = method.getReturnType();
+                final boolean returnVoid = returnType == void.class;
+                final boolean methodByValue = method.getDeclaredAnnotation(ByValue.class) != null;
 
-                    // return layout
-                    final MemoryLayout retLayout;
-                    if (!returnVoid) {
-                        final Convert convert = method.getDeclaredAnnotation(Convert.class);
-                        if (convert != null && returnType == boolean.class) {
-                            retLayout = convert.value().layout();
-                        } else if (returnType.isPrimitive()) {
-                            retLayout = getValueLayout(returnType);
-                        } else {
-                            final SizedSeg sizedSeg = method.getDeclaredAnnotation(SizedSeg.class);
-                            final Sized sized = method.getDeclaredAnnotation(Sized.class);
-                            final boolean isSizedSeg = sizedSeg != null;
-                            final boolean isSized = sized != null;
-                            if (Struct.class.isAssignableFrom(returnType)) {
-                                StructLayout structLayout = null;
-                                for (Field field : returnType.getDeclaredFields()) {
-                                    if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class) {
-                                        try {
-                                            structLayout = (StructLayout) field.get(null);
-                                            break;
-                                        } catch (IllegalAccessException e) {
-                                            throw new RuntimeException(e);
-                                        }
+                // return layout
+                final MemoryLayout retLayout;
+                if (!returnVoid) {
+                    final Convert convert = method.getDeclaredAnnotation(Convert.class);
+                    if (convert != null && returnType == boolean.class) {
+                        retLayout = convert.value().layout();
+                    } else if (returnType.isPrimitive()) {
+                        retLayout = getValueLayout(returnType);
+                    } else {
+                        final SizedSeg sizedSeg = method.getDeclaredAnnotation(SizedSeg.class);
+                        final Sized sized = method.getDeclaredAnnotation(Sized.class);
+                        final boolean isSizedSeg = sizedSeg != null;
+                        final boolean isSized = sized != null;
+                        if (Struct.class.isAssignableFrom(returnType)) {
+                            StructLayout structLayout = null;
+                            for (Field field : returnType.getDeclaredFields()) {
+                                if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class) {
+                                    try {
+                                        structLayout = (StructLayout) field.get(null);
+                                        break;
+                                    } catch (IllegalAccessException e) {
+                                        throw new RuntimeException(e);
                                     }
-                                }
-                                Objects.requireNonNull(structLayout);
-                                if (methodByValue) {
-                                    retLayout = structLayout;
-                                } else {
-                                    final MemoryLayout targetLayout;
-                                    if (isSizedSeg) {
-                                        targetLayout = MemoryLayout.sequenceLayout(sizedSeg.value(), structLayout);
-                                    } else if (isSized) {
-                                        targetLayout = MemoryLayout.sequenceLayout(sized.value(), structLayout);
-                                    } else {
-                                        targetLayout = structLayout;
-                                    }
-                                    retLayout = ValueLayout.ADDRESS.withTargetLayout(targetLayout);
-                                }
-                            } else {
-                                final ValueLayout valueLayout = getValueLayout(returnType);
-                                if ((valueLayout instanceof AddressLayout addressLayout) && (isSizedSeg || isSized)) {
-                                    if (isSizedSeg) {
-                                        retLayout = addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sizedSeg.value(),
-                                            ValueLayout.JAVA_BYTE));
-                                    } else {
-                                        retLayout = addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(),
-                                            returnType.isArray() ? getValueLayout(returnType.getComponentType()) : ValueLayout.JAVA_BYTE));
-                                    }
-                                } else {
-                                    retLayout = valueLayout;
                                 }
                             }
-                        }
-                    } else {
-                        retLayout = null;
-                    }
-
-                    // argument layouts
-                    final var parameters = methodData.parameters();
-                    final boolean skipFirstParam = methodData.skipFirstParam();
-                    final int size = skipFirstParam || methodByValue ?
-                        parameters.size() - 1 :
-                        parameters.size();
-                    final MemoryLayout[] argLayouts = new MemoryLayout[size];
-                    for (int i = 0; i < size; i++) {
-                        final Parameter parameter = parameters.get(skipFirstParam ? i + 1 : i);
-                        final Class<?> type = parameter.getType();
-                        final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
-                        if (convert != null && type == boolean.class) {
-                            argLayouts[i] = convert.value().layout();
+                            Objects.requireNonNull(structLayout);
+                            if (methodByValue) {
+                                retLayout = structLayout;
+                            } else {
+                                final MemoryLayout targetLayout;
+                                if (isSizedSeg) {
+                                    targetLayout = MemoryLayout.sequenceLayout(sizedSeg.value(), structLayout);
+                                } else if (isSized) {
+                                    targetLayout = MemoryLayout.sequenceLayout(sized.value(), structLayout);
+                                } else {
+                                    targetLayout = structLayout;
+                                }
+                                retLayout = ValueLayout.ADDRESS.withTargetLayout(targetLayout);
+                            }
                         } else {
-                            argLayouts[i] = getValueLayout(type);
+                            final ValueLayout valueLayout = getValueLayout(returnType);
+                            if ((valueLayout instanceof AddressLayout addressLayout) && (isSizedSeg || isSized)) {
+                                if (isSizedSeg) {
+                                    retLayout = addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sizedSeg.value(),
+                                        ValueLayout.JAVA_BYTE));
+                                } else {
+                                    retLayout = addressLayout.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(),
+                                        returnType.isArray() ? getValueLayout(returnType.getComponentType()) : ValueLayout.JAVA_BYTE));
+                                }
+                            } else {
+                                retLayout = valueLayout;
+                            }
                         }
                     }
-
-                    descriptor = returnVoid ? FunctionDescriptor.ofVoid(argLayouts) : FunctionDescriptor.of(retLayout, argLayouts);
+                } else {
+                    retLayout = null;
                 }
 
+                // argument layouts
+                final var parameters = methodData.parameters();
+                final boolean skipFirstParam = methodData.skipFirstParam();
+                final int size = skipFirstParam || methodByValue ?
+                    parameters.size() - 1 :
+                    parameters.size();
+                final MemoryLayout[] argLayouts = new MemoryLayout[size];
+                for (int i = 0; i < size; i++) {
+                    final Parameter parameter = parameters.get(skipFirstParam ? i + 1 : i);
+                    final Class<?> type = parameter.getType();
+                    final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
+                    if (convert != null && type == boolean.class) {
+                        argLayouts[i] = convert.value().layout();
+                    } else {
+                        argLayouts[i] = getValueLayout(type);
+                    }
+                }
+
+                descriptor = returnVoid ? FunctionDescriptor.ofVoid(argLayouts) : FunctionDescriptor.of(retLayout, argLayouts);
+            }
+
+            descriptorMap1.put(entrypoint, descriptor);
+
+            if (optional.isPresent()) {
                 // linker options
                 final Linker.Option[] options;
                 final Critical critical = method.getDeclaredAnnotation(Critical.class);
@@ -1097,13 +1100,11 @@ public final class Downcall {
 
                 if (!map.containsKey(entrypoint)) {
                     map.put(entrypoint, LINKER.downcallHandle(optional.get(), descriptor, options));
-                    descriptorMap1.put(entrypoint, descriptor);
                 }
             } else if (method.isDefault()) {
                 map.putIfAbsent(entrypoint, null);
-                descriptorMap1.put(entrypoint, descriptorMap.get(entrypoint));
             } else {
-                throw new UnsatisfiedLinkError(STR."unresolved symbol: \{entrypoint}: \{methodData.exceptionString()}");
+                throw new UnsatisfiedLinkError(STR."unresolved symbol: \{entrypoint} (\{descriptor}): \{methodData.exceptionString()}");
             }
         });
         return new DowncallData(Collections.unmodifiableMap(descriptorMap1), Collections.unmodifiableMap(map), lookup);
