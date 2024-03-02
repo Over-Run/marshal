@@ -16,6 +16,7 @@
 
 package overrun.marshal.test;
 
+import overrun.marshal.DirectAccess;
 import overrun.marshal.Downcall;
 import overrun.marshal.gen.Entrypoint;
 
@@ -29,7 +30,7 @@ import java.util.Optional;
  * @author squid233
  * @since 0.1.0
  */
-public interface ID3 extends ID1, ID2 {
+public interface ID3 extends ID1, ID2, DirectAccess {
     final class Provider {
         private static final Linker LINKER = Linker.nativeLinker();
         private static final Arena ARENA = Arena.ofAuto();

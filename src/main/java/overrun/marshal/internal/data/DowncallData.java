@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.internal;
+package overrun.marshal.internal.data;
 
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.SymbolLookup;

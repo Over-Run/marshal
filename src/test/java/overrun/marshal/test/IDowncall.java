@@ -78,10 +78,8 @@ public interface IDowncall {
 
     int testReturnInt();
 
-    @SizedSeg(12)
     String testReturnString();
 
-    @SizedSeg(40)
     @StrCharset("UTF-16")
     String testReturnUTF16String();
 

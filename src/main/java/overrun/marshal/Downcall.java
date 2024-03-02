@@ -18,7 +18,7 @@ package overrun.marshal;
 
 import overrun.marshal.gen.Type;
 import overrun.marshal.gen.*;
-import overrun.marshal.internal.DowncallData;
+import overrun.marshal.internal.data.DowncallData;
 import overrun.marshal.internal.DowncallOptions;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.Struct;
@@ -125,7 +125,7 @@ public final class Downcall {
     private static final ClassDesc CD_CEnum = ClassDesc.of("overrun.marshal.CEnum");
     private static final ClassDesc CD_Charset = ClassDesc.of("java.nio.charset.Charset");
     private static final ClassDesc CD_Checks = ClassDesc.of("overrun.marshal.Checks");
-    private static final ClassDesc CD_DowncallData = ClassDesc.of("overrun.marshal.internal.DowncallData");
+    private static final ClassDesc CD_DowncallData = ClassDesc.of("overrun.marshal.internal.data.DowncallData");
     private static final ClassDesc CD_IllegalStateException = ClassDesc.of("java.lang.IllegalStateException");
     private static final ClassDesc CD_Marshal = ClassDesc.of("overrun.marshal.Marshal");
     private static final ClassDesc CD_MemorySegment = ClassDesc.of("java.lang.foreign.MemorySegment");
@@ -671,7 +671,7 @@ public final class Downcall {
                             } else if (returnType == String.class) {
                                 final boolean hasCharset = getCharset(blockCodeBuilder, method);
                                 blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                    "unmarshalAsString",
+                                    "unboundString",
                                     hasCharset ? MTD_String_MemorySegment_Charset : MTD_String_MemorySegment);
                             } else if (Struct.class.isAssignableFrom(returnType)) {
                                 blockCodeBuilder.ifThenElse(Opcode.IFNONNULL,

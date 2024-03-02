@@ -18,7 +18,6 @@ package overrun.marshal;
 
 import overrun.marshal.gen.Sized;
 
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -79,7 +78,7 @@ public final class Configurations {
      * @param logger the logger
      */
     public static void setApiLogger(Consumer<String> logger) {
-        apiLogger = Objects.requireNonNullElseGet(logger, () -> System.err::println);
+        apiLogger = logger != null ? logger : System.err::println;
     }
 
     /**
@@ -121,6 +120,15 @@ public final class Configurations {
                 value = supplier.get();
             }
             return value;
+        }
+
+        /**
+         * Sets the value
+         *
+         * @param t the value
+         */
+        public void set(T t) {
+            value = t;
         }
     }
 }

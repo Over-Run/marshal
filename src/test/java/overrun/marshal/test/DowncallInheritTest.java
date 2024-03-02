@@ -18,8 +18,7 @@ package overrun.marshal.test;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * test inherit downcall
@@ -39,5 +38,7 @@ public final class DowncallInheritTest {
         assertEquals(1, d.get1());
         assertEquals(1, d.get2());
         assertEquals(3, d.get3());
+
+        assertEquals(3, assertDoesNotThrow(() -> (int) d.methodHandle("get3").invokeExact()));
     }
 }

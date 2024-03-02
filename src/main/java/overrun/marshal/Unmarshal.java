@@ -56,7 +56,7 @@ public final class Unmarshal {
      * @param segment the native segment
      */
     public static boolean isNullPointer(@Nullable MemorySegment segment) {
-        return segment == null || segment.address() == 0L;
+        return segment == null || segment == MemorySegment.NULL || segment.address() == 0L;
     }
 
     /**
@@ -148,6 +148,27 @@ public final class Unmarshal {
      */
     public static @Nullable String unmarshalAsString(MemorySegment segment, Charset charset) {
         return isNullPointer(segment) ? null : segment.getString(0L, charset);
+    }
+
+    /**
+     * Unmarshal the given segment as a string.
+     *
+     * @param segment the segment, which size is unknown
+     * @return the string
+     */
+    public static @Nullable String unboundString(MemorySegment segment) {
+        return isNullPointer(segment) ? null : segment.reinterpret(STR_SIZE).getString(0L);
+    }
+
+    /**
+     * Unmarshal the given segment as a string.
+     *
+     * @param segment the segment, which size is unknown
+     * @param charset the charset
+     * @return the string
+     */
+    public static @Nullable String unboundString(MemorySegment segment, Charset charset) {
+        return isNullPointer(segment) ? null : segment.reinterpret(STR_SIZE).getString(0L, charset);
     }
 
     /**
