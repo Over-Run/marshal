@@ -23,6 +23,7 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.VarHandle;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
@@ -136,7 +137,7 @@ public final class Unmarshal {
      * @return the string
      */
     public static @Nullable String unmarshalAsString(MemorySegment segment) {
-        return isNullPointer(segment) ? null : segment.getString(0L);
+        return unmarshalAsString(segment, StandardCharsets.UTF_8);
     }
 
     /**
@@ -157,7 +158,7 @@ public final class Unmarshal {
      * @return the string
      */
     public static @Nullable String unboundString(MemorySegment segment) {
-        return isNullPointer(segment) ? null : segment.reinterpret(STR_SIZE).getString(0L);
+        return unboundString(segment, StandardCharsets.UTF_8);
     }
 
     /**
@@ -169,6 +170,29 @@ public final class Unmarshal {
      */
     public static @Nullable String unboundString(MemorySegment segment, Charset charset) {
         return isNullPointer(segment) ? null : segment.reinterpret(STR_SIZE).getString(0L, charset);
+    }
+
+    /**
+     * Unmarshal the given segment as a string.
+     *
+     * @param segment the segment which is pointer to a string
+     * @return the string
+     */
+    public static @Nullable String unmarshalStringPointer(MemorySegment segment) {
+        return unmarshalStringPointer(segment, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Unmarshal the given segment as a string.
+     *
+     * @param segment the segment which is pointer to a string
+     * @param charset the charset
+     * @return the string
+     */
+    public static @Nullable String unmarshalStringPointer(MemorySegment segment, Charset charset) {
+        if (isNullPointer(segment)) return null;
+        final MemorySegment pointer = segment.get(STR_LAYOUT, 0L);
+        return isNullPointer(pointer) ? null : pointer.getString(0L, charset);
     }
 
     /**
@@ -388,7 +412,7 @@ public final class Unmarshal {
      * @return the array
      */
     public static String @Nullable [] unmarshalAsStringArray(AddressLayout elementLayout, MemorySegment segment) {
-        return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STR_LAYOUT, 0L).getString(0L));
+        return unmarshalAsStringArray(elementLayout, segment, StandardCharsets.UTF_8);
     }
 
     /**
@@ -410,7 +434,7 @@ public final class Unmarshal {
      * @return the array
      */
     public static String @Nullable [] unmarshalAsStringArray(MemorySegment segment) {
-        return unmarshalAsStringArray(ADDRESS, segment);
+        return unmarshalAsStringArray(segment, StandardCharsets.UTF_8);
     }
 
     /**
@@ -532,10 +556,7 @@ public final class Unmarshal {
      * @param dst the destination
      */
     public static void copy(MemorySegment src, String @Nullable [] dst) {
-        if (isNullPointer(src) || dst == null) return;
-        for (int i = 0; i < dst.length; i++) {
-            dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L);
-        }
+        copy(src, dst, StandardCharsets.UTF_8);
     }
 
     /**
