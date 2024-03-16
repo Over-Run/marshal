@@ -14,13 +14,16 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.downcall;
 
 import overrun.marshal.DowncallOption;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.Downcall;
 import overrun.marshal.MemoryStack;
 import overrun.marshal.gen.*;
+import overrun.marshal.test.MyEnum;
+import overrun.marshal.test.struct.Vector3;
+import overrun.marshal.test.upcall.SimpleUpcall;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;

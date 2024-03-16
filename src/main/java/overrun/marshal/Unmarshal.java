@@ -190,9 +190,7 @@ public final class Unmarshal {
      * @return the string
      */
     public static @Nullable String unmarshalStringPointer(MemorySegment segment, Charset charset) {
-        if (isNullPointer(segment)) return null;
-        final MemorySegment pointer = segment.get(STR_LAYOUT, 0L);
-        return isNullPointer(pointer) ? null : pointer.getString(0L, charset);
+        return isNullPointer(segment) ? null : unmarshalAsString(segment.get(STR_LAYOUT, 0L), charset);
     }
 
     /**

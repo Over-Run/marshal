@@ -14,23 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.downcall;
 
-import overrun.marshal.gen.Entrypoint;
+import org.junit.jupiter.api.Test;
+import overrun.marshal.Downcall;
+import overrun.marshal.DowncallOption;
+
+import java.lang.foreign.SymbolLookup;
+import java.lang.invoke.MethodHandles;
 
 /**
- * downcall interface 1
- *
  * @author squid233
  * @since 0.1.0
  */
-public interface ID1 {
-    int mul2(int i);
+public final class SuperclassTest {
+    static class A {
+    }
 
-    int get1();
+    static class B extends A {
+    }
 
-    int get2();
-
-    @Entrypoint("get1")
-    int get3();
+    @Test
+    void testSuperclass() {
+        Downcall.load(MethodHandles.lookup(), SymbolLookup.loaderLookup(), DowncallOption.targetClass(B.class));
+    }
 }

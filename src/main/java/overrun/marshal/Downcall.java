@@ -360,7 +360,9 @@ public final class Downcall {
                 _descriptorMap = map;
             }
         }
-        targetClass = _targetClass != null ? _targetClass : caller.lookupClass();
+
+        final Class<?> lookupClass = caller.lookupClass();
+        targetClass = _targetClass != null ? _targetClass : lookupClass;
         descriptorMap = _descriptorMap != null ? _descriptorMap : Map.of();
 
         final List<Method> methodList = Arrays.stream(targetClass.getMethods())
@@ -370,7 +372,6 @@ public final class Downcall {
             .collect(Collectors.toUnmodifiableMap(Function.identity(), Downcall::createExceptionString));
         verifyMethods(methodList, exceptionStringMap);
 
-        final Class<?> lookupClass = caller.lookupClass();
         final ClassFile cf = of();
         final ClassDesc cd_thisClass = ClassDesc.of(lookupClass.getPackageName(), DEFAULT_NAME);
         final Map<Method, DowncallMethodData> methodDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
@@ -417,7 +418,7 @@ public final class Downcall {
                         .aload(codeBuilder.receiverSlot())
                         .invokespecial(targetClass.isInterface() ?
                                 CD_Object :
-                                targetClass.getSuperclass().describeConstable().orElseThrow(),
+                                cd_targetClass,
                             INIT_NAME,
                             MTD_void)
                         .return_()));

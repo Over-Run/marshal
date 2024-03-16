@@ -14,31 +14,36 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.downcall;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import overrun.marshal.Downcall;
+import overrun.marshal.DowncallOption;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.lang.foreign.SymbolLookup;
+import java.lang.invoke.MethodHandles;
 
 /**
- * test inherit downcall
+ * Test indirect interface
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class DowncallInheritTest {
+public final class IndirectInterfaceTest {
+    public interface I1 {
+        default int fun1() {
+            return 1;
+        }
+    }
+
+    public interface I2 extends I1 {
+    }
+
+    I2 INSTANCE = Downcall.load(MethodHandles.lookup(), SymbolLookup.loaderLookup(), DowncallOption.targetClass(I2.class));
+
     @Test
-    void testInheritDowncall() {
-        final ID3 d = ID3.INSTANCE;
-        assertEquals(84, d.mul2(42));
-        int[] arr = {0};
-        d.get(arr);
-        assertArrayEquals(new int[]{42}, arr);
-
-        assertEquals(1, d.get1());
-        assertEquals(1, d.get2());
-        assertEquals(3, d.get3());
-
-        assertEquals(3, assertDoesNotThrow(() -> (int) d.methodHandle("get3").invokeExact()));
+    void testIndirectInterface() {
+        Assertions.assertEquals(1, INSTANCE.fun1());
     }
 }

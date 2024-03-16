@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.struct;
 
 import overrun.marshal.struct.Struct;
 import overrun.marshal.struct.StructHandle;

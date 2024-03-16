@@ -14,10 +14,11 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.downcall;
 
 import org.junit.jupiter.api.*;
 import overrun.marshal.MemoryStack;
+import overrun.marshal.test.MyEnum;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

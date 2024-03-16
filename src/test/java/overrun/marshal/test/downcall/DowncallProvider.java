@@ -14,7 +14,10 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.downcall;
+
+import overrun.marshal.test.struct.Vector3;
+import overrun.marshal.test.upcall.SimpleUpcall;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;

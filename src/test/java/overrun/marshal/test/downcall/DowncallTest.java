@@ -14,10 +14,15 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.downcall;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import overrun.marshal.test.MyEnum;
+import overrun.marshal.test.TestUtil;
+import overrun.marshal.test.struct.Vector3;
+import overrun.marshal.test.upcall.SimpleUpcall;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -70,13 +75,13 @@ public final class DowncallTest {
 
     @Test
     void testReturnString() {
-        assertEquals(TestUtil.TEST_STRING, d.testReturnString());
+        Assertions.assertEquals(TestUtil.TEST_STRING, d.testReturnString());
         assertEquals(TestUtil.TEST_UTF16_STRING, d.testReturnUTF16String());
     }
 
     @Test
     void testReturnCEnum() {
-        assertEquals(MyEnum.B, d.testReturnCEnum());
+        Assertions.assertEquals(MyEnum.B, d.testReturnCEnum());
     }
 
     @Test

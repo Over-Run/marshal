@@ -14,36 +14,23 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.downcall;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import overrun.marshal.Downcall;
-import overrun.marshal.DowncallOption;
-
-import java.lang.foreign.SymbolLookup;
-import java.lang.invoke.MethodHandles;
+import overrun.marshal.gen.Entrypoint;
 
 /**
- * Test indirect interface
+ * downcall interface 1
  *
  * @author squid233
  * @since 0.1.0
  */
-public final class IndirectInterfaceTest {
-    public interface I1 {
-        default int fun1() {
-            return 1;
-        }
-    }
+public interface ID1 {
+    int mul2(int i);
 
-    public interface I2 extends I1 {
-    }
+    int get1();
 
-    I2 INSTANCE = Downcall.load(MethodHandles.lookup(), SymbolLookup.loaderLookup(), DowncallOption.targetClass(I2.class));
+    int get2();
 
-    @Test
-    void testIndirectInterface() {
-        Assertions.assertEquals(1, INSTANCE.fun1());
-    }
+    @Entrypoint("get1")
+    int get3();
 }

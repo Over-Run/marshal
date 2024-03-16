@@ -17,6 +17,7 @@
 package overrun.marshal;
 
 import org.jetbrains.annotations.Unmodifiable;
+import overrun.marshal.gen.Skip;
 
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.SymbolLookup;
@@ -35,12 +36,14 @@ public interface DirectAccess {
     /**
      * {@return an unmodifiable map of the function descriptors for each method}
      */
+    @Skip
     @Unmodifiable
     Map<String, FunctionDescriptor> functionDescriptors();
 
     /**
      * {@return an unmodifiable map of the method handles for each method}
      */
+    @Skip
     @Unmodifiable
     Map<String, MethodHandle> methodHandles();
 
@@ -50,6 +53,7 @@ public interface DirectAccess {
      * @param entrypoint the entrypoint name
      * @return the method handle
      */
+    @Skip
     default MethodHandle methodHandle(String entrypoint) {
         return methodHandles().get(entrypoint);
     }
@@ -57,5 +61,6 @@ public interface DirectAccess {
     /**
      * {@return the symbol lookup of this library}
      */
+    @Skip
     SymbolLookup symbolLookup();
 }

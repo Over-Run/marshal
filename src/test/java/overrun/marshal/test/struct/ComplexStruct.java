@@ -14,12 +14,13 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.test;
+package overrun.marshal.test.struct;
 
 import overrun.marshal.Marshal;
 import overrun.marshal.Unmarshal;
 import overrun.marshal.struct.Struct;
 import overrun.marshal.struct.StructHandle;
+import overrun.marshal.test.upcall.SimpleUpcall;
 
 import java.lang.foreign.*;
 import java.nio.charset.StandardCharsets;
