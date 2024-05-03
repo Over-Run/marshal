@@ -22,6 +22,7 @@ import overrun.marshal.internal.data.DowncallData;
 import overrun.marshal.internal.DowncallOptions;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.Struct;
+import overrun.marshal.struct.StructAllocator;
 
 import java.lang.annotation.Annotation;
 import java.lang.classfile.ClassFile;
@@ -29,7 +30,6 @@ import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
-import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.classfile.ClassFile.*;
 import static java.lang.constant.ConstantDescs.*;
+import static overrun.marshal.internal.Constants.*;
 
 /**
  * Downcall library loader.
@@ -115,58 +116,12 @@ import static java.lang.constant.ConstantDescs.*;
  * @see StrCharset
  * @since 0.1.0
  */
+@SuppressWarnings("preview")
 public final class Downcall {
     private static final Linker LINKER = Linker.nativeLinker();
     private static final Linker.Option[] NO_OPTION = new Linker.Option[0];
     private static final Linker.Option[] OPTION_CRITICAL_FALSE = {Linker.Option.critical(false)};
     private static final Linker.Option[] OPTION_CRITICAL_TRUE = {Linker.Option.critical(true)};
-    private static final ClassDesc CD_Addressable = ClassDesc.of("overrun.marshal.Addressable");
-    private static final ClassDesc CD_Arena = ClassDesc.of("java.lang.foreign.Arena");
-    private static final ClassDesc CD_CEnum = ClassDesc.of("overrun.marshal.CEnum");
-    private static final ClassDesc CD_Charset = ClassDesc.of("java.nio.charset.Charset");
-    private static final ClassDesc CD_Checks = ClassDesc.of("overrun.marshal.Checks");
-    private static final ClassDesc CD_DowncallData = ClassDesc.of("overrun.marshal.internal.data.DowncallData");
-    private static final ClassDesc CD_IllegalStateException = ClassDesc.of("java.lang.IllegalStateException");
-    private static final ClassDesc CD_Marshal = ClassDesc.of("overrun.marshal.Marshal");
-    private static final ClassDesc CD_MemorySegment = ClassDesc.of("java.lang.foreign.MemorySegment");
-    private static final ClassDesc CD_MemoryStack = ClassDesc.of("overrun.marshal.MemoryStack");
-    private static final ClassDesc CD_SegmentAllocator = ClassDesc.of("java.lang.foreign.SegmentAllocator");
-    private static final ClassDesc CD_StandardCharsets = ClassDesc.of("java.nio.charset.StandardCharsets");
-    private static final ClassDesc CD_SymbolLookup = ClassDesc.of("java.lang.foreign.SymbolLookup");
-    private static final ClassDesc CD_Unmarshal = ClassDesc.of("overrun.marshal.Unmarshal");
-    private static final ClassDesc CD_Upcall = ClassDesc.of("overrun.marshal.Upcall");
-    private static final ClassDesc CD_StringArray = CD_String.arrayType();
-
-    private static final MethodTypeDesc MTD_Charset_String = MethodTypeDesc.of(CD_Charset, CD_String);
-    private static final MethodTypeDesc MTD_long = MethodTypeDesc.of(CD_long);
-    private static final MethodTypeDesc MTD_Map = MethodTypeDesc.of(CD_Map);
-    private static final MethodTypeDesc MTD_MemorySegment_Arena_Upcall = MethodTypeDesc.of(CD_MemorySegment, CD_Arena, CD_Upcall);
-    private static final MethodTypeDesc MTD_MemorySegment_SegmentAllocator_String = MethodTypeDesc.of(CD_MemorySegment,
-        CD_SegmentAllocator,
-        CD_String);
-    private static final MethodTypeDesc MTD_MemorySegment_SegmentAllocator_String_Charset = MethodTypeDesc.of(CD_MemorySegment,
-        CD_SegmentAllocator,
-        CD_String,
-        CD_Charset);
-    private static final MethodTypeDesc MTD_MemorySegment_SegmentAllocator_StringArray_Charset = MethodTypeDesc.of(CD_MemorySegment,
-        CD_SegmentAllocator,
-        CD_StringArray,
-        CD_Charset);
-    private static final MethodTypeDesc MTD_MemoryStack = MethodTypeDesc.of(CD_MemoryStack);
-    private static final MethodTypeDesc MTD_Object_Object = MethodTypeDesc.of(CD_Object, CD_Object);
-    private static final MethodTypeDesc MTD_String_MemorySegment = MethodTypeDesc.of(CD_String, CD_MemorySegment);
-    private static final MethodTypeDesc MTD_String_MemorySegment_Charset = MethodTypeDesc.of(CD_String, CD_MemorySegment, CD_Charset);
-    private static final MethodTypeDesc MTD_StringArray_MemorySegment = MethodTypeDesc.of(CD_StringArray, CD_MemorySegment);
-    private static final MethodTypeDesc MTD_StringArray_MemorySegment_Charset = MethodTypeDesc.of(CD_StringArray, CD_MemorySegment, CD_Charset);
-    private static final MethodTypeDesc MTD_SymbolLookup = MethodTypeDesc.of(CD_SymbolLookup);
-    private static final MethodTypeDesc MTD_void_int_int = MethodTypeDesc.of(CD_void, CD_int, CD_int);
-    private static final MethodTypeDesc MTD_void_long = MethodTypeDesc.of(CD_void, CD_long);
-    private static final MethodTypeDesc MTD_void_MemorySegment = MethodTypeDesc.of(CD_void, CD_MemorySegment);
-    private static final MethodTypeDesc MTD_void_MemorySegment_StringArray = MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_StringArray);
-    private static final MethodTypeDesc MTD_void_MemorySegment_StringArray_Charset = MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_StringArray, CD_Charset);
-    private static final MethodTypeDesc MTD_void_String_Throwable = MethodTypeDesc.of(CD_void, CD_String, CD_Throwable);
-
-    private static final DynamicConstantDesc<?> DCD_classData_DowncallData = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_DowncallData);
 
     private Downcall() {
     }
@@ -284,12 +239,12 @@ public final class Downcall {
         final String upperCase = charset.toUpperCase(Locale.ROOT);
         switch (upperCase) {
             case "UTF-8", "ISO-8859-1", "US-ASCII",
-                "UTF-16", "UTF-16BE", "UTF-16LE",
-                "UTF-32", "UTF-32BE", "UTF-32LE" ->
+                 "UTF-16", "UTF-16BE", "UTF-16LE",
+                 "UTF-32", "UTF-32BE", "UTF-32LE" ->
                 codeBuilder.getstatic(CD_StandardCharsets, upperCase.replace('-', '_'), CD_Charset);
             case "UTF_8", "ISO_8859_1", "US_ASCII",
-                "UTF_16", "UTF_16BE", "UTF_16LE",
-                "UTF_32", "UTF_32BE", "UTF_32LE" -> codeBuilder.getstatic(CD_StandardCharsets, upperCase, CD_Charset);
+                 "UTF_16", "UTF_16BE", "UTF_16LE",
+                 "UTF_32", "UTF_32BE", "UTF_32LE" -> codeBuilder.getstatic(CD_StandardCharsets, upperCase, CD_Charset);
             default -> codeBuilder.ldc(charset)
                 .invokestatic(CD_Charset, "forName", MTD_Charset_String);
         }
@@ -676,12 +631,14 @@ public final class Downcall {
                                     hasCharset ? MTD_String_MemorySegment_Charset : MTD_String_MemorySegment);
                             } else if (Struct.class.isAssignableFrom(returnType)) {
                                 blockCodeBuilder.ifThenElse(Opcode.IFNONNULL,
-                                    blockCodeBuilder1 -> blockCodeBuilder1.new_(cd_returnType)
-                                        .dup()
-                                        .aload(resultSlot)
-                                        .invokespecial(cd_returnType,
-                                            INIT_NAME,
-                                            MTD_void_MemorySegment),
+                                    blockCodeBuilder1 -> {
+                                        final var structAllocatorField = getStructAllocatorField(returnType);
+                                        Objects.requireNonNull(structAllocatorField);
+                                        blockCodeBuilder1.getstatic(cd_returnType, structAllocatorField.getName(), CD_StructAllocator)
+                                            .aload(resultSlot)
+                                            .invokevirtual(CD_StructAllocator, "of", MTD_Object_MemorySegment)
+                                            .checkcast(cd_returnType);
+                                    },
                                     CodeBuilder::aconst_null);
                             } else if (CEnum.class.isAssignableFrom(returnType)) {
                                 final Method wrapper = findCEnumWrapper(returnType);
@@ -909,28 +866,15 @@ public final class Downcall {
             // check method return type
             final Class<?> returnType = method.getReturnType();
             if (Struct.class.isAssignableFrom(returnType)) {
-                boolean foundConstructor = false;
-                for (var constructor : returnType.getDeclaredConstructors()) {
-                    final Class<?>[] types = constructor.getParameterTypes();
-                    if (types.length == 1 && types[0] == MemorySegment.class) {
-                        foundConstructor = true;
-                        break;
-                    }
-                }
-                if (!foundConstructor) {
-                    throw new IllegalStateException(STR.
-                        "The struct \{returnType} must contain a constructor that only accept one memory segment: \{exceptionStringMap.get(method)}");
-                }
-
-                boolean foundLayout = false;
+                boolean foundAllocator = false;
                 for (Field field : returnType.getDeclaredFields()) {
-                    if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class) {
-                        foundLayout = true;
+                    if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructAllocator.class) {
+                        foundAllocator = true;
                         break;
                     }
                 }
-                if (!foundLayout) {
-                    throw new IllegalStateException(STR."The struct \{returnType} must contain one public static field that is StructLayout");
+                if (!foundAllocator) {
+                    throw new IllegalStateException(STR."The struct \{returnType} must contain one public static field that is StructAllocator");
                 }
             } else if (!isValidReturnType(returnType)) {
                 throw new IllegalStateException(STR."Invalid return type: \{exceptionStringMap.get(method)}");
@@ -1022,18 +966,14 @@ public final class Downcall {
                         final boolean isSizedSeg = sizedSeg != null;
                         final boolean isSized = sized != null;
                         if (Struct.class.isAssignableFrom(returnType)) {
-                            StructLayout structLayout = null;
-                            for (Field field : returnType.getDeclaredFields()) {
-                                if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructLayout.class) {
-                                    try {
-                                        structLayout = (StructLayout) field.get(null);
-                                        break;
-                                    } catch (IllegalAccessException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                }
+                            final var structAllocatorField = getStructAllocatorField(returnType);
+                            Objects.requireNonNull(structAllocatorField);
+                            final StructLayout structLayout;
+                            try {
+                                structLayout = ((StructAllocator<?>) structAllocatorField.get(null)).layout();
+                            } catch (IllegalAccessException e) {
+                                throw new RuntimeException(e);
                             }
-                            Objects.requireNonNull(structLayout);
                             if (methodByValue) {
                                 retLayout = structLayout;
                             } else {
@@ -1109,5 +1049,14 @@ public final class Downcall {
             }
         });
         return new DowncallData(Collections.unmodifiableMap(descriptorMap1), Collections.unmodifiableMap(map), lookup);
+    }
+
+    private static Field getStructAllocatorField(Class<?> aClass) {
+        for (Field field : aClass.getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructAllocator.class) {
+                return field;
+            }
+        }
+        return null;
     }
 }

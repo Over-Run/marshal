@@ -63,7 +63,7 @@ public final class DowncallProvider {
             seg("testReturnCEnum", LOOKUP.findStatic(DowncallProvider.class, "testReturnCEnum", MethodType.methodType(int.class)), FunctionDescriptor.of(JAVA_INT));
             seg("testReturnUpcall", LOOKUP.findStatic(DowncallProvider.class, "testReturnUpcall", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
             seg("testReturnStruct", LOOKUP.findStatic(DowncallProvider.class, "testReturnStruct", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
-            seg("testReturnStructByValue", LOOKUP.findStatic(DowncallProvider.class, "testReturnStructByValue", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(Vector3.LAYOUT));
+            seg("testReturnStructByValue", LOOKUP.findStatic(DowncallProvider.class, "testReturnStructByValue", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(Vector3.OF.layout()));
             seg("testReturnStructSizedSeg", LOOKUP.findStatic(DowncallProvider.class, "testReturnStructSizedSeg", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
             seg("testReturnStructSized", LOOKUP.findStatic(DowncallProvider.class, "testReturnStructSized", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
             seg("testReturnIntArray", LOOKUP.findStatic(DowncallProvider.class, "testReturnIntArray", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
@@ -130,7 +130,7 @@ public final class DowncallProvider {
     }
 
     private static void testStruct(MemorySegment vector3) {
-        writeVector3(vector3.reinterpret(Vector3.LAYOUT.byteSize()), 1, 2, 3);
+        writeVector3(vector3.reinterpret(Vector3.OF.layout().byteSize()), 1, 2, 3);
     }
 
     private static int testReturnInt() {
@@ -154,21 +154,21 @@ public final class DowncallProvider {
     }
 
     private static MemorySegment testReturnStruct() {
-        final MemorySegment segment = ARENA.allocate(Vector3.LAYOUT);
+        final MemorySegment segment = ARENA.allocate(Vector3.OF.layout());
         writeVector3(segment, 4, 5, 6);
         return segment;
     }
 
     private static MemorySegment testReturnStructByValue() {
-        final MemorySegment segment = ARENA.allocate(Vector3.LAYOUT);
+        final MemorySegment segment = ARENA.allocate(Vector3.OF.layout());
         writeVector3(segment, 7, 8, 9);
         return segment;
     }
 
     private static MemorySegment testReturnStructSizedSeg() {
-        final MemorySegment segment = ARENA.allocate(Vector3.LAYOUT, 2L);
+        final MemorySegment segment = ARENA.allocate(Vector3.OF.layout(), 2L);
         writeVector3(segment, 1, 2, 3);
-        writeVector3(segment.asSlice(Vector3.LAYOUT.scale(0L, 1L)), 4, 5, 6);
+        writeVector3(segment.asSlice(Vector3.OF.layout().scale(0L, 1L)), 4, 5, 6);
         return segment;
     }
 

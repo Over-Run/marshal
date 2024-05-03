@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static overrun.marshal.test.TestUtil.*;
@@ -34,114 +33,115 @@ public final class StructTest {
     @Test
     void testSingleStruct() {
         try (Arena arena = Arena.ofConfined()) {
-            final Vector3 vector3 = new Vector3(arena);
-            assertEquals(0, Vector3.x.get(vector3, 0L));
-            assertEquals(0, Vector3.y.get(vector3, 0L));
-            assertEquals(0, Vector3.z.get(vector3, 0L));
-            assertEquals(0, Vector3.x.get(vector3));
-            assertEquals(0, Vector3.y.get(vector3));
-            assertEquals(0, Vector3.z.get(vector3));
+            final Vector3 vector3 = Vector3.OF.of(arena);
+            assertEquals(0, vector3.slice(0L).x());
+            assertEquals(0, vector3.slice(0L).y());
+            assertEquals(0, vector3.slice(0L).z());
+            assertEquals(0, vector3.x());
+            assertEquals(0, vector3.y());
+            assertEquals(0, vector3.z());
             assertDoesNotThrow(() -> {
-                Vector3.x.set(vector3, 1);
-                Vector3.y.set(vector3, 2);
+                vector3.x(1)
+                    .y(2);
             });
-            assertEquals(1, Vector3.x.get(vector3, 0L));
-            assertEquals(2, Vector3.y.get(vector3, 0L));
-            assertEquals(1, Vector3.x.get(vector3));
-            assertEquals(2, Vector3.y.get(vector3));
+            assertEquals(1, vector3.slice(0L).x());
+            assertEquals(2, vector3.slice(0L).y());
+            assertEquals(1, vector3.x());
+            assertEquals(2, vector3.y());
             assertDoesNotThrow(() -> {
-                Vector3.x.set(vector3, 0L, 3);
-                Vector3.y.set(vector3, 0L, 4);
+                vector3.slice(0L)
+                    .x(3)
+                    .y(4);
             });
-            assertEquals(3, Vector3.x.get(vector3, 0L));
-            assertEquals(4, Vector3.y.get(vector3, 0L));
-            assertEquals(3, Vector3.x.get(vector3));
-            assertEquals(4, Vector3.y.get(vector3));
+            assertEquals(3, vector3.slice(0L).x());
+            assertEquals(4, vector3.slice(0L).y());
+            assertEquals(3, vector3.x());
+            assertEquals(4, vector3.y());
         }
     }
 
     @Test
     void testInitializedStruct() {
         try (Arena arena = Arena.ofConfined()) {
-            final MemorySegment segment = arena.allocate(Vector3.LAYOUT);
+            final MemorySegment segment = arena.allocate(Vector3.OF.layout());
             segment.set(ValueLayout.JAVA_INT, 0L, 1);
             segment.set(ValueLayout.JAVA_INT, 4L, 2);
             segment.set(ValueLayout.JAVA_INT, 8L, 3);
-            final Vector3 vector3 = new Vector3(segment, 1L);
-            assertEquals(1, Vector3.x.get(vector3));
-            assertEquals(2, Vector3.y.get(vector3));
-            assertEquals(3, Vector3.z.get(vector3));
+            final Vector3 vector3 = Vector3.OF.of(segment, 1L);
+            assertEquals(1, vector3.x());
+            assertEquals(2, vector3.y());
+            assertEquals(3, vector3.z());
         }
     }
 
     @Test
     void testMultipleStruct() {
         try (Arena arena = Arena.ofConfined()) {
-            final Vector3 vector3 = new Vector3(arena, 2L);
-            Vector3.x.set(vector3, 0L, 1);
-            Vector3.y.set(vector3, 0L, 2);
-            Vector3.x.set(vector3, 1L, 3);
-            Vector3.y.set(vector3, 1L, 4);
-            assertEquals(1, Vector3.x.get(vector3));
-            assertEquals(2, Vector3.y.get(vector3));
-            assertEquals(3, Vector3.x.get(vector3, 1L));
-            assertEquals(4, Vector3.y.get(vector3, 1L));
+            final Vector3 vector3 = Vector3.OF.of(arena, 2L);
+            vector3.slice(0L).x(1).y(2);
+            vector3.slice(1L).x(3).y(4);
+            assertEquals(1, vector3.x());
+            assertEquals(2, vector3.y());
+            assertEquals(3, vector3.slice(1L).x());
+            assertEquals(4, vector3.slice(1L).y());
         }
     }
 
     @Test
     void testComplexStruct() {
         try (Arena arena = Arena.ofConfined()) {
-            final Vector3 vector3 = new Vector3(arena);
-            Vector3.x.set(vector3, 11);
-            Vector3.y.set(vector3, 12);
+            final Vector3 vector3 = Vector3.OF.of(arena);
+            vector3.x(11);
+            vector3.y(12);
 
-            final ComplexStruct struct = new ComplexStruct(arena);
-            ComplexStruct.Bool.set(struct, true);
-            ComplexStruct.Char.set(struct, '1');
-            ComplexStruct.Byte.set(struct, (byte) 1);
-            ComplexStruct.Short.set(struct, (short) 2);
-            ComplexStruct.Int.set(struct, 3);
-            ComplexStruct.Long.set(struct, 4L);
-            ComplexStruct.Float.set(struct, 5F);
-            ComplexStruct.Double.set(struct, 6D);
-            ComplexStruct.Address.set(struct, MemorySegment.ofAddress(7L));
-            ComplexStruct.Str.set(struct, arena, TEST_STRING);
-            ComplexStruct.UTF16Str.set(struct, arena, utf16Str(TEST_UTF16_STRING));
-            ComplexStruct.Addressable.set(struct, vector3);
-            ComplexStruct.Upcall.set(struct, arena, i -> i * 2);
-            ComplexStruct.IntArray.set(struct, arena, new int[]{8, 9});
+            final ComplexStruct struct = ComplexStruct.OF.of(arena);
+            struct.Bool(true)
+                .Char('1')
+                .Byte((byte) 1)
+                .Short((short) 2)
+                .Int(3)
+                .Long(4L)
+                .Float(5F)
+                .Double(6D)
+                .Address(MemorySegment.ofAddress(7L))
+                .javaStr(arena, TEST_STRING)
+                .javaUTF16Str(arena, utf16Str(TEST_UTF16_STRING))
+                .javaAddressable(vector3)
+                .javaUpcall(arena, i -> i * 2)
+                .javaIntArray(arena, new int[]{8, 9});
 
-            assertTrue(ComplexStruct.Bool.get(struct));
-            assertEquals('1', ComplexStruct.Char.get(struct));
-            assertEquals((byte) 1, ComplexStruct.Byte.get(struct));
-            assertEquals((short) 2, ComplexStruct.Short.get(struct));
-            assertEquals(3, ComplexStruct.Int.get(struct));
-            assertEquals(4L, ComplexStruct.Long.get(struct));
-            assertEquals(5F, ComplexStruct.Float.get(struct));
-            assertEquals(6D, ComplexStruct.Double.get(struct));
-            assertEquals(MemorySegment.ofAddress(7L), ComplexStruct.Address.get(struct));
-            assertEquals(TEST_STRING, ComplexStruct.Str.get(struct, TEST_STRING.getBytes(StandardCharsets.UTF_8).length + 1));
-            assertEquals(TEST_UTF16_STRING, ComplexStruct.UTF16Str.get(struct, utf16Str(TEST_UTF16_STRING).getBytes(StandardCharsets.UTF_16).length + 2));
-            final Vector3 getVector = ComplexStruct.Addressable.get(struct);
-            assertEquals(11, Vector3.x.get(getVector));
-            assertEquals(12, Vector3.y.get(getVector));
-            assertEquals(0, Vector3.z.get(getVector));
-            assertEquals(84, ComplexStruct.Upcall.get(struct, arena).invoke(42));
-            assertArrayEquals(new int[]{8, 9}, ComplexStruct.IntArray.get(struct, ValueLayout.JAVA_INT.scale(0L, 2L)));
+            assertTrue(struct.Bool());
+            assertEquals('1', struct.Char());
+            assertEquals((byte) 1, struct.Byte());
+            assertEquals((short) 2, struct.Short());
+            assertEquals(3, struct.Int());
+            assertEquals(4L, struct.Long());
+            assertEquals(5F, struct.Float());
+            assertEquals(6D, struct.Double());
+            assertEquals(MemorySegment.ofAddress(7L), struct.Address());
+            assertEquals(TEST_STRING, struct.javaStr());
+            assertEquals(TEST_UTF16_STRING, struct.javaUTF16Str());
+            final Vector3 getVector = struct.javaAddressable();
+            assertEquals(11, getVector.x());
+            assertEquals(12, getVector.y());
+            assertEquals(0, getVector.z());
+            assertEquals(84, struct.javaUpcall().invoke(42));
+            assertArrayEquals(new int[]{8, 9}, struct.javaIntArray(2));
+
+            assertEquals(3, struct.slice(0L).Int());
         }
     }
 
     @Test
     void testSizedArrayInStruct() {
         try (Arena arena = Arena.ofConfined()) {
-            final SizedArrayInStruct struct = new SizedArrayInStruct(arena);
-            assertEquals(0, SizedArrayInStruct.arr.get(struct, 0L));
-            assertEquals(0, SizedArrayInStruct.arr.get(struct, 1L));
-            SizedArrayInStruct.arr.set(struct, 0L, 4);
-            SizedArrayInStruct.arr.set(struct, 1L, 2);
-            assertEquals(4, SizedArrayInStruct.arr.get(struct, 0L));
-            assertEquals(2, SizedArrayInStruct.arr.get(struct, 1L));
+            final SizedArrayInStruct struct = SizedArrayInStruct.OF.of(arena);
+            assertEquals(0, struct.arr(0L));
+            assertEquals(0, struct.arr(1L));
+            struct.arr(0L, 4)
+                .arr(1L, 2);
+            assertEquals(4, struct.arr(0L));
+            assertEquals(2, struct.arr(1L));
         }
     }
 }

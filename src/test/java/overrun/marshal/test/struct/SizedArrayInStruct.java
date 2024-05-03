@@ -16,41 +16,23 @@
 
 package overrun.marshal.test.struct;
 
-import overrun.marshal.Marshal;
+import overrun.marshal.LayoutBuilder;
 import overrun.marshal.struct.Struct;
-import overrun.marshal.struct.StructHandle;
+import overrun.marshal.struct.StructAllocator;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.VarHandle;
+import java.lang.invoke.MethodHandles;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-public final class SizedArrayInStruct extends Struct {
-    public static final class Handle extends StructHandle {
-        private Handle(VarHandle varHandle) {
-            super(varHandle);
-        }
+public interface SizedArrayInStruct extends Struct<SizedArrayInStruct> {
+    StructAllocator<SizedArrayInStruct> OF = new StructAllocator<>(MethodHandles.lookup(), LayoutBuilder.struct()
+        .cArray("arr", 2L, ValueLayout.JAVA_INT)
+        .build());
 
-        public int get(Struct struct, long arrIndex) {
-            return (int) varHandle.get(Marshal.marshal(struct), 0L, 0L, arrIndex);
-        }
+    int arr(long index);
 
-        public void set(Struct struct, long arrIndex, int value) {
-            varHandle.set(Marshal.marshal(struct), 0L, 0L, arrIndex, value);
-        }
-    }
-
-    public static final StructLayout LAYOUT = MemoryLayout.structLayout(
-        MemoryLayout.sequenceLayout(2L, ValueLayout.JAVA_INT).withName("arr")
-    );
-    public static final Handle arr = new Handle(StructHandle.ofSizedArray(LAYOUT, "arr"));
-
-    public SizedArrayInStruct(SegmentAllocator allocator) {
-        super(allocator, LAYOUT);
-    }
+    SizedArrayInStruct arr(long index, int val);
 }
