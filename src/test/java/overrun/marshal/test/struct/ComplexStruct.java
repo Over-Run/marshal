@@ -16,87 +16,141 @@
 
 package overrun.marshal.test.struct;
 
+import overrun.marshal.LayoutBuilder;
 import overrun.marshal.Marshal;
 import overrun.marshal.Unmarshal;
 import overrun.marshal.struct.Struct;
-import overrun.marshal.struct.StructHandle;
+import overrun.marshal.struct.StructAllocator;
 import overrun.marshal.test.upcall.SimpleUpcall;
 
-import java.lang.foreign.*;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
 import java.nio.charset.StandardCharsets;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-public final class ComplexStruct extends Struct {
-    public static final StructLayout LAYOUT = MemoryLayout.structLayout(
-        ValueLayout.ADDRESS.withName("IntArray"),
-        ValueLayout.ADDRESS.withName("Upcall"),
-        ValueLayout.ADDRESS.withName("Addressable").withTargetLayout(Vector3.LAYOUT),
-        ValueLayout.ADDRESS.withName("UTF16Str"),
-        ValueLayout.ADDRESS.withName("Str"),
-        ValueLayout.ADDRESS.withName("Address"),
-        ValueLayout.JAVA_LONG.withName("Long"),
-        ValueLayout.JAVA_DOUBLE.withName("Double"),
-        ValueLayout.JAVA_INT.withName("Int"),
-        ValueLayout.JAVA_FLOAT.withName("Float"),
-        ValueLayout.JAVA_SHORT.withName("Short"),
-        ValueLayout.JAVA_CHAR.withName("Char"),
-        ValueLayout.JAVA_BYTE.withName("Byte"),
-        ValueLayout.JAVA_BOOLEAN.withName("Bool"),
-        MemoryLayout.paddingLayout(2L)
-    );
-    public static final StructHandle.Bool Bool = StructHandle.ofBoolean(LAYOUT, "Bool");
-    public static final StructHandle.Char Char = StructHandle.ofChar(LAYOUT, "Char");
-    public static final StructHandle.Byte Byte = StructHandle.ofByte(LAYOUT, "Byte");
-    public static final StructHandle.Short Short = StructHandle.ofShort(LAYOUT, "Short");
-    public static final StructHandle.Int Int = StructHandle.ofInt(LAYOUT, "Int");
-    public static final StructHandle.Float Float = StructHandle.ofFloat(LAYOUT, "Float");
-    public static final StructHandle.Long Long = StructHandle.ofLong(LAYOUT, "Long");
-    public static final StructHandle.Double Double = StructHandle.ofDouble(LAYOUT, "Double");
-    public static final StructHandle.Address Address = StructHandle.ofAddress(LAYOUT, "Address");
-    public static final StructHandle.Str Str = StructHandle.ofString(LAYOUT, "Str");
-    public static final StructHandle.Str UTF16Str = StructHandle.ofString(LAYOUT, "UTF16Str", StandardCharsets.UTF_16);
-    public static final StructHandle.Addressable<Vector3> Addressable = StructHandle.ofAddressable(LAYOUT, "Addressable", Vector3::new);
-    public static final StructHandle.Upcall<SimpleUpcall> Upcall = StructHandle.ofUpcall(LAYOUT, "Upcall", segment -> i -> SimpleUpcall.invoke(segment, i));
-    public static final StructHandle.Array<int[]> IntArray = StructHandle.ofArray(LAYOUT, "IntArray", Marshal::marshal, Unmarshal::unmarshalAsIntArray);
+public interface ComplexStruct extends Struct<ComplexStruct> {
+    StructAllocator<ComplexStruct> OF = new StructAllocator<>(MethodHandles.lookup(), LayoutBuilder.struct()
+        .cAddress("IntArray")
+        .cAddress("Upcall")
+        .cAddress("Addressable", Vector3.OF.layout())
+        .cAddress("UTF16Str")
+        .cAddress("Str")
+        .cAddress("Address")
+        .cLong("Long")
+        .cDouble("Double")
+        .cInt("Int")
+        .cFloat("Float")
+        .cShort("Short")
+        .cChar("Char")
+        .cByte("Byte")
+        .cBoolean("Bool")
+        .build());
 
-    /**
-     * Creates a struct with the given layout.
-     *
-     * @param segment      the segment
-     * @param elementCount the element count
-     */
-    public ComplexStruct(MemorySegment segment, long elementCount) {
-        super(segment, elementCount, LAYOUT);
+    @Override
+    ComplexStruct slice(long index, long count);
+
+    @Override
+    ComplexStruct slice(long index);
+
+    boolean Bool();
+
+    ComplexStruct Bool(boolean val);
+
+    char Char();
+
+    ComplexStruct Char(char val);
+
+    byte Byte();
+
+    ComplexStruct Byte(byte val);
+
+    short Short();
+
+    ComplexStruct Short(short val);
+
+    int Int();
+
+    ComplexStruct Int(int val);
+
+    long Long();
+
+    ComplexStruct Long(long val);
+
+    float Float();
+
+    ComplexStruct Float(float val);
+
+    double Double();
+
+    ComplexStruct Double(double val);
+
+    MemorySegment Address();
+
+    ComplexStruct Address(MemorySegment val);
+
+    MemorySegment Str();
+
+    ComplexStruct Str(MemorySegment val);
+
+    default String javaStr() {
+        return Unmarshal.unboundString(Str());
     }
 
-    /**
-     * Allocates a struct with the given layout.
-     *
-     * @param allocator    the allocator
-     * @param elementCount the element count
-     */
-    public ComplexStruct(SegmentAllocator allocator, long elementCount) {
-        super(allocator, elementCount, LAYOUT);
+    default ComplexStruct javaStr(SegmentAllocator allocator, String val) {
+        return Str(Marshal.marshal(allocator, val));
     }
 
-    /**
-     * Creates a struct with the given layout.
-     *
-     * @param segment the segment
-     */
-    public ComplexStruct(MemorySegment segment) {
-        super(segment, LAYOUT);
+    MemorySegment UTF16Str();
+
+    ComplexStruct UTF16Str(MemorySegment val);
+
+    default String javaUTF16Str() {
+        return Unmarshal.unboundString(UTF16Str(), StandardCharsets.UTF_16);
     }
 
-    /**
-     * Allocates a struct with the given layout.
-     *
-     * @param allocator the allocator
-     */
-    public ComplexStruct(SegmentAllocator allocator) {
-        super(allocator, LAYOUT);
+    default ComplexStruct javaUTF16Str(SegmentAllocator allocator, String val) {
+        return UTF16Str(Marshal.marshal(allocator, val, StandardCharsets.UTF_16));
+    }
+
+    MemorySegment Addressable();
+
+    ComplexStruct Addressable(MemorySegment val);
+
+    default Vector3 javaAddressable() {
+        return Vector3.OF.of(Addressable());
+    }
+
+    default ComplexStruct javaAddressable(Vector3 val) {
+        return Addressable(Marshal.marshal(val));
+    }
+
+    MemorySegment Upcall();
+
+    ComplexStruct Upcall(MemorySegment val);
+
+    default SimpleUpcall javaUpcall() {
+        return i -> SimpleUpcall.invoke(Upcall(), i);
+    }
+
+    default ComplexStruct javaUpcall(Arena arena, SimpleUpcall val) {
+        return Upcall(Marshal.marshal(arena, val));
+    }
+
+    MemorySegment IntArray();
+
+    ComplexStruct IntArray(MemorySegment val);
+
+    default int[] javaIntArray(int size) {
+        return Unmarshal.unmarshalAsIntArray(IntArray().reinterpret(ValueLayout.JAVA_INT.scale(0L, size)));
+    }
+
+    default ComplexStruct javaIntArray(SegmentAllocator allocator, int[] val) {
+        return IntArray(Marshal.marshal(allocator, val));
     }
 }

@@ -60,11 +60,11 @@ public final class DowncallTest {
     @Test
     void testStruct() {
         try (Arena arena = Arena.ofConfined()) {
-            final Vector3 vector3 = new Vector3(arena);
+            final Vector3 vector3 = Vector3.OF.of(arena);
             d.testStruct(vector3);
-            assertEquals(1, Vector3.x.get(vector3));
-            assertEquals(2, Vector3.y.get(vector3));
-            assertEquals(3, Vector3.z.get(vector3));
+            assertEquals(1, vector3.x());
+            assertEquals(2, vector3.y());
+            assertEquals(3, vector3.z());
         }
     }
 
@@ -96,13 +96,13 @@ public final class DowncallTest {
     void testReturnStruct() {
         try (Arena arena = Arena.ofConfined()) {
             final Vector3 returnStruct = d.testReturnStruct();
-            assertEquals(4, Vector3.x.get(returnStruct));
-            assertEquals(5, Vector3.y.get(returnStruct));
-            assertEquals(6, Vector3.z.get(returnStruct));
+            assertEquals(4, returnStruct.x());
+            assertEquals(5, returnStruct.y());
+            assertEquals(6, returnStruct.z());
             final Vector3 returnStructByValue = d.testReturnStructByValue(arena);
-            assertEquals(7, Vector3.x.get(returnStructByValue));
-            assertEquals(8, Vector3.y.get(returnStructByValue));
-            assertEquals(9, Vector3.z.get(returnStructByValue));
+            assertEquals(7, returnStructByValue.x());
+            assertEquals(8, returnStructByValue.y());
+            assertEquals(9, returnStructByValue.z());
         }
     }
 
@@ -113,12 +113,12 @@ public final class DowncallTest {
     }
 
     private void assertStructSized(Vector3 vector3) {
-        assertEquals(1, Vector3.x.get(vector3));
-        assertEquals(2, Vector3.y.get(vector3));
-        assertEquals(3, Vector3.z.get(vector3));
-        assertEquals(4, Vector3.x.get(vector3, 1L));
-        assertEquals(5, Vector3.y.get(vector3, 1L));
-        assertEquals(6, Vector3.z.get(vector3, 1L));
+        assertEquals(1, vector3.x());
+        assertEquals(2, vector3.y());
+        assertEquals(3, vector3.z());
+        assertEquals(4, vector3.slice(1L).x());
+        assertEquals(5, vector3.slice(1L).y());
+        assertEquals(6, vector3.slice(1L).z());
     }
 
     @Test

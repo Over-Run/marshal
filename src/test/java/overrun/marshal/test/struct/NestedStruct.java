@@ -20,19 +20,39 @@ import overrun.marshal.LayoutBuilder;
 import overrun.marshal.struct.Struct;
 import overrun.marshal.struct.StructAllocator;
 
-import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-public interface SizedArrayInStruct extends Struct<SizedArrayInStruct> {
-    StructAllocator<SizedArrayInStruct> OF = new StructAllocator<>(MethodHandles.lookup(), LayoutBuilder.struct()
-        .cArray("arr", 2L, ValueLayout.JAVA_INT)
+public interface NestedStruct extends Struct<NestedStruct> {
+    StructAllocator<NestedStruct> OF = new StructAllocator<>(MethodHandles.lookup(), LayoutBuilder.struct()
+        .cStruct("vec3", Vector3.OF.layout())
+        .cArray("vec3arr", 2, Vector3.OF.layout())
         .build());
 
-    int arr(long index);
+    int vec3$x();
 
-    SizedArrayInStruct arr(long index, int val);
+    NestedStruct vec3$x(int val);
+
+    int vec3$y();
+
+    NestedStruct vec3$y(int val);
+
+    int vec3$z();
+
+    NestedStruct vec3$z(int val);
+
+    int vec3arr$x(long index);
+
+    NestedStruct vec3arr$x(long index, int val);
+
+    int vec3arr$y(long index);
+
+    NestedStruct vec3arr$y(long index, int val);
+
+    int vec3arr$z(long index);
+
+    NestedStruct vec3arr$z(long index, int val);
 }

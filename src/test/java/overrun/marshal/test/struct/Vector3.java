@@ -16,64 +16,30 @@
 
 package overrun.marshal.test.struct;
 
+import overrun.marshal.LayoutBuilder;
 import overrun.marshal.struct.Struct;
-import overrun.marshal.struct.StructHandle;
-import overrun.marshal.struct.StructHandleView;
+import overrun.marshal.struct.StructAllocator;
 
-import java.lang.foreign.*;
+import java.lang.invoke.MethodHandles;
 
 /**
  * @author squid233
  * @since 0.1.0
  */
-public final class Vector3 extends Struct {
-    /**
-     * The struct layout.
-     */
-    public static final StructLayout LAYOUT = MemoryLayout.structLayout(
-        ValueLayout.JAVA_INT.withName("x"),
-        ValueLayout.JAVA_INT.withName("y"),
-        ValueLayout.JAVA_INT.withName("z")
-    );
-    public static final StructHandle.Int x = StructHandle.ofInt(LAYOUT, "x");
-    public static final StructHandle.Int y = StructHandle.ofInt(LAYOUT, "y");
-    public static final StructHandleView.Int z = StructHandle.ofInt(LAYOUT, "z");
+public interface Vector3 extends Struct<Vector3> {
+    StructAllocator<Vector3> OF = new StructAllocator<>(MethodHandles.lookup(), LayoutBuilder.struct()
+        .cInt("x")
+        .cInt("y")
+        .cInt("z")
+        .build());
 
-    /**
-     * Creates a struct with the given layout.
-     *
-     * @param segment      the segment
-     * @param elementCount the element count
-     */
-    public Vector3(MemorySegment segment, long elementCount) {
-        super(segment, elementCount, LAYOUT);
-    }
+    int x();
 
-    /**
-     * Allocates a struct with the given layout.
-     *
-     * @param allocator    the allocator
-     * @param elementCount the element count
-     */
-    public Vector3(SegmentAllocator allocator, long elementCount) {
-        super(allocator, elementCount, LAYOUT);
-    }
+    int y();
 
-    /**
-     * Creates a struct with the given layout.
-     *
-     * @param segment the segment
-     */
-    public Vector3(MemorySegment segment) {
-        super(segment, LAYOUT);
-    }
+    int z();
 
-    /**
-     * Allocates a struct with the given layout.
-     *
-     * @param allocator the allocator
-     */
-    public Vector3(SegmentAllocator allocator) {
-        super(allocator, LAYOUT);
-    }
+    Vector3 x(int val);
+
+    Vector3 y(int val);
 }

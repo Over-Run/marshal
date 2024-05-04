@@ -17,81 +17,24 @@
 package overrun.marshal.struct;
 
 import overrun.marshal.Addressable;
+import overrun.marshal.Unmarshal;
 
-import java.lang.foreign.*;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SequenceLayout;
+import java.lang.foreign.StructLayout;
+import java.util.Objects;
 
 /**
  * The representation of a C structure.
- * <h2>Struct handles</h2>
- * You can access an element of a structure via {@linkplain StructHandle}.
- * The struct handle provides accessor where to set and get the element of a structure.
- * You can get a read-only struct handle by declaring it with the {@linkplain StructHandleView view} variants.
- * <h2>Example</h2>
- * <pre>{@code
- * class Point extends Struct {
- *     public static final StructLayout LAYOUT = MemoryLayout.structLayout(
- *         ValueLayout.JAVA_INT.withName("x"),
- *         ValueLayout.JAVA_INT.withName("y")
- *     );
- *     public static final StructHandle.Int x = StructHandle.ofInt(LAYOUT, "x");
- *     // read-only
- *     public static final StructHandleView.Int y = StructHandle.ofInt(LAYOUT, "y");
- *     // constructors ...
- * }
- * }</pre>
  *
+ * @param <T> the type of the actual structure interface
  * @author squid233
+ * @see StructAllocator
+ * @see overrun.marshal.LayoutBuilder LayoutBuilder
  * @since 0.1.0
  */
-public class Struct implements Addressable {
-    private final MemorySegment segment;
-    private final StructLayout layout;
-    private final SequenceLayout sequenceLayout;
-
-    /**
-     * Creates a struct with the given layout.
-     *
-     * @param segment      the segment
-     * @param elementCount the element count
-     * @param layout       the struct layout
-     */
-    public Struct(MemorySegment segment, long elementCount, StructLayout layout) {
-        this.segment = segment;
-        this.layout = layout;
-        this.sequenceLayout = MemoryLayout.sequenceLayout(elementCount, layout);
-    }
-
-    /**
-     * Allocates a struct with the given layout.
-     *
-     * @param allocator    the allocator
-     * @param elementCount the element count
-     * @param layout       the struct layout
-     */
-    public Struct(SegmentAllocator allocator, long elementCount, StructLayout layout) {
-        this(allocator.allocate(layout, elementCount), elementCount, layout);
-    }
-
-    /**
-     * Creates a struct with the given layout.
-     *
-     * @param segment the segment
-     * @param layout  the struct layout
-     */
-    public Struct(MemorySegment segment, StructLayout layout) {
-        this(segment, estimateCount(segment, layout), layout);
-    }
-
-    /**
-     * Allocates a struct with the given layout.
-     *
-     * @param allocator the allocator
-     * @param layout    the struct layout
-     */
-    public Struct(SegmentAllocator allocator, StructLayout layout) {
-        this(allocator, 1L, layout);
-    }
-
+public interface Struct<T extends Struct<T>> extends Addressable {
     /**
      * Estimates the struct count of the given segment.
      *
@@ -99,36 +42,48 @@ public class Struct implements Addressable {
      * @param layout  the struct layout
      * @return the count
      */
-    public static long estimateCount(MemorySegment segment, StructLayout layout) {
-        return segment.spliterator(layout).estimateSize();
+    static long estimateCount(MemorySegment segment, StructLayout layout) {
+        if (Unmarshal.isNullPointer(segment)) return 0L;
+        return Math.divideExact(segment.byteSize(), Objects.requireNonNull(layout).byteSize());
     }
+
+    /**
+     * Makes a slice of this structure starts at the given index.
+     *
+     * @param index the start index
+     * @param count the count
+     * @return the slice of this structure
+     */
+    T slice(long index, long count);
+
+    /**
+     * Makes a slice of this structure with the given index.
+     *
+     * @param index the index
+     * @return the slice of this structure
+     */
+    T slice(long index);
 
     /**
      * {@return the segment of this struct}
      */
     @Override
-    public MemorySegment segment() {
-        return segment;
-    }
+    MemorySegment segment();
 
     /**
      * {@return the layout of this struct}
      */
-    public StructLayout layout() {
-        return layout;
-    }
+    StructLayout layout();
 
     /**
      * {@return the sequence layout of this struct buffer}
      */
-    public SequenceLayout sequenceLayout() {
-        return sequenceLayout;
+    default SequenceLayout sequenceLayout() {
+        return MemoryLayout.sequenceLayout(elementCount(), layout());
     }
 
     /**
      * {@return the element count of this struct buffer}
      */
-    public long elementCount() {
-        return sequenceLayout().elementCount();
-    }
+    long elementCount();
 }
