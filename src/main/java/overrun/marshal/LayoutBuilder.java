@@ -196,6 +196,17 @@ public abstract class LayoutBuilder<L extends MemoryLayout, T extends LayoutBuil
     }
 
     /**
+     * Adds a struct.
+     *
+     * @param name         the name
+     * @param structLayout the struct layout
+     * @return this
+     */
+    public T cStruct(String name, StructLayout structLayout) {
+        return add(structLayout, name);
+    }
+
+    /**
      * The struct layout builder that aligns memory layouts with the C structure alignment.
      */
     public static final class Struct extends LayoutBuilder<StructLayout, Struct> {

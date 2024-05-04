@@ -29,9 +29,11 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static java.lang.constant.ConstantDescs.*;
 import static overrun.marshal.internal.Constants.*;
@@ -79,6 +81,22 @@ import static overrun.marshal.internal.Constants.*;
  * int nestArr(long index0, long index1);
  * S nestArr(long index0, long index1, int val);
  * }</pre>
+ * <h3>Nested structures</h3>
+ * Append '$' before the name of the member to access a nested structure.
+ * <pre>{@code
+ * struct P { int x; int y; }
+ * interface S {
+ *     (LayoutBuilder.struct()
+ *                   .cStruct("point", P.layout)
+ *                   .cArray("pointArr", 2L, P.layout))
+ *     int point$x();
+ *     S point$x(int val);
+ *     int point$y();
+ *     int pointArr$x(long index);
+ *     S pointArr$x(long index, int val);
+ *     int pointArr$y(long index);
+ * }
+ * }</pre>
  * <h2>Slices</h2>
  * Use {@code slice} to access a struct array.
  * <pre>{@code
@@ -88,6 +106,9 @@ import static overrun.marshal.internal.Constants.*;
  * }
  * }</pre>
  * <h2>Example</h2>
+ * The constructor requires a lookup object with <strong>full privilege access</strong>.
+ * <p>
+ * Use {@link MethodHandles#lookup()} to obtain it.
  * <pre>{@code
  * interface Point {
  *     StructAllocator<Point> OF = new StructAllocator(
@@ -182,12 +203,12 @@ public final class StructAllocator<T> {
             // slice methods
             Class<?> sliceLongLongClass = Struct.class;
             try {
-                sliceLongLongClass = caller.getDeclaredMethod("slice", long.class, long.class).getDeclaringClass();
+                sliceLongLongClass = caller.getDeclaredMethod("slice", long.class, long.class).getReturnType();
             } catch (NoSuchMethodException _) {
             }
             Class<?> sliceLongClass = Struct.class;
             try {
-                sliceLongClass = caller.getDeclaredMethod("slice", long.class).getDeclaringClass();
+                sliceLongClass = caller.getDeclaredMethod("slice", long.class).getReturnType();
             } catch (NoSuchMethodException _) {
             }
             classBuilder.withMethodBody("slice", MethodTypeDesc.of(sliceLongLongClass.describeConstable().orElseThrow(), CD_long, CD_long), Modifier.PUBLIC, codeBuilder -> codeBuilder
@@ -228,66 +249,69 @@ public final class StructAllocator<T> {
                 .areturn());
 
             // members
-            layout.memberLayouts().forEach(memoryLayout -> {
-                switch (memoryLayout) {
-                    case GroupLayout _ -> throw new UnsupportedOperationException();
-                    case SequenceLayout sequenceLayout -> {
-                        final String name = sequenceLayout.name().orElseThrow();
-                        final SeqResult result = findValueLayoutSeq(sequenceLayout);
-                        final int count = result.count();
-                        final ClassDesc returnDesc = ClassDesc.ofDescriptor(result.layout().carrier().descriptorString());
-                        final TypeKind returnKind = TypeKind.from(returnDesc);
+            for (MemoryLayout memberLayout : layout.memberLayouts()) {
+                switch (memberLayout) {
+                    case GroupLayout _, SequenceLayout _ -> {
+                        final String name = memberLayout.name().orElseThrow();
+                        final var results = findValueLayout(memberLayout);
 
-                        // var handle
-                        final String vhName = STR."_VH_\{name}";
-                        classBuilder.withField(vhName, CD_VarHandle, Modifier.PRIVATE | Modifier.FINAL | Modifier.STATIC);
+                        for (FindResult result : results) {
+                            final String methodName = STR."\{name}\{result.appendName()}";
+                            final int indexCount = result.indexCount();
+                            final ClassDesc returnDesc = ClassDesc.ofDescriptor(result.layout().carrier().descriptorString());
+                            final TypeKind returnKind = TypeKind.from(returnDesc);
 
-                        // getter
-                        final var getterParams = makeClassDescriptors(list -> {
-                            for (int i = 0; i < count; i++) {
-                                list.add(CD_long);
-                            }
-                        });
-                        classBuilder.withMethodBody(name, MethodTypeDesc.of(returnDesc, getterParams), Modifier.PUBLIC, codeBuilder -> {
-                            codeBuilder.getstatic(cd_thisClass, vhName, CD_VarHandle)
-                                .aload(codeBuilder.receiverSlot())
-                                .getfield(cd_thisClass, "_segment", CD_MemorySegment)
-                                .lconst_0();
-                            for (int i = 0; i < count; i++) {
-                                codeBuilder.lload(codeBuilder.parameterSlot(i));
-                            }
-                            codeBuilder.invokevirtual(CD_VarHandle, "get", MethodTypeDesc.of(returnDesc, makeClassDescriptors(list -> {
-                                    list.add(CD_MemorySegment);
+                            // var handle
+                            final String vhName = STR."_VH_\{methodName}";
+                            classBuilder.withField(vhName, CD_VarHandle, Modifier.PRIVATE | Modifier.FINAL | Modifier.STATIC);
+
+                            // getter
+                            final var getterParams = makeClassDescriptors(list -> {
+                                for (int i = 0; i < indexCount; i++) {
                                     list.add(CD_long);
-                                    list.addAll(getterParams);
-                                })))
-                                .returnInstruction(returnKind);
-                        });
+                                }
+                            });
+                            classBuilder.withMethodBody(methodName, MethodTypeDesc.of(returnDesc, getterParams), Modifier.PUBLIC, codeBuilder -> {
+                                codeBuilder.getstatic(cd_thisClass, vhName, CD_VarHandle)
+                                    .aload(codeBuilder.receiverSlot())
+                                    .getfield(cd_thisClass, "_segment", CD_MemorySegment)
+                                    .lconst_0();
+                                for (int i = 0; i < indexCount; i++) {
+                                    codeBuilder.lload(codeBuilder.parameterSlot(i));
+                                }
+                                codeBuilder.invokevirtual(CD_VarHandle, "get", MethodTypeDesc.of(returnDesc, makeClassDescriptors(list -> {
+                                        list.add(CD_MemorySegment);
+                                        list.add(CD_long);
+                                        list.addAll(getterParams);
+                                    })))
+                                    .returnInstruction(returnKind);
+                            });
 
-                        // setter
-                        final List<ClassDesc> setterParams = makeClassDescriptors(list -> {
-                            for (int i = 0; i < count; i++) {
-                                list.add(CD_long);
-                            }
-                            list.add(returnDesc);
-                        });
-                        classBuilder.withMethodBody(name, MethodTypeDesc.of(cd_caller, setterParams), Modifier.PUBLIC, codeBuilder -> {
-                            codeBuilder.getstatic(cd_thisClass, vhName, CD_VarHandle)
-                                .aload(codeBuilder.receiverSlot())
-                                .getfield(cd_thisClass, "_segment", CD_MemorySegment)
-                                .lconst_0();
-                            for (int i = 0; i < count; i++) {
-                                codeBuilder.lload(codeBuilder.parameterSlot(i));
-                            }
-                            codeBuilder.loadInstruction(returnKind, codeBuilder.parameterSlot(count))
-                                .invokevirtual(CD_VarHandle, "set", MethodTypeDesc.of(CD_void, makeClassDescriptors(list -> {
-                                    list.add(CD_MemorySegment);
+                            // setter
+                            final List<ClassDesc> setterParams = makeClassDescriptors(list -> {
+                                for (int i = 0; i < indexCount; i++) {
                                     list.add(CD_long);
-                                    list.addAll(setterParams);
-                                })))
-                                .aload(codeBuilder.receiverSlot())
-                                .areturn();
-                        });
+                                }
+                                list.add(returnDesc);
+                            });
+                            classBuilder.withMethodBody(methodName, MethodTypeDesc.of(cd_caller, setterParams), Modifier.PUBLIC, codeBuilder -> {
+                                codeBuilder.getstatic(cd_thisClass, vhName, CD_VarHandle)
+                                    .aload(codeBuilder.receiverSlot())
+                                    .getfield(cd_thisClass, "_segment", CD_MemorySegment)
+                                    .lconst_0();
+                                for (int i = 0; i < indexCount; i++) {
+                                    codeBuilder.lload(codeBuilder.parameterSlot(i));
+                                }
+                                codeBuilder.loadInstruction(returnKind, codeBuilder.parameterSlot(indexCount))
+                                    .invokevirtual(CD_VarHandle, "set", MethodTypeDesc.of(CD_void, makeClassDescriptors(list -> {
+                                        list.add(CD_MemorySegment);
+                                        list.add(CD_long);
+                                        list.addAll(setterParams);
+                                    })))
+                                    .aload(codeBuilder.receiverSlot())
+                                    .areturn();
+                            });
+                        }
                     }
                     case ValueLayout valueLayout -> {
                         final String name = valueLayout.name().orElseThrow();
@@ -322,34 +346,43 @@ public final class StructAllocator<T> {
                     case PaddingLayout _ -> {
                     }
                 }
-            });
+            }
 
             // class initializer
             classBuilder.withMethodBody(CLASS_INIT_NAME, MTD_void, Modifier.STATIC, codeBuilder -> {
-                layout.memberLayouts().forEach(memoryLayout -> {
-                    switch (memoryLayout) {
-                        case GroupLayout _ -> throw new UnsupportedOperationException();
-                        case SequenceLayout sequenceLayout -> {
-                            final String name = sequenceLayout.name().orElseThrow();
-                            final SeqResult result = findValueLayoutSeq(sequenceLayout);
+                for (MemoryLayout memberLayout : layout.memberLayouts()) {
+                    switch (memberLayout) {
+                        case GroupLayout _, SequenceLayout _ -> {
+                            final String name = memberLayout.name().orElseThrow();
+                            final var results = findValueLayout(memberLayout);
 
-                            // var handle
-                            codeBuilder.ldc(DCD_classData_StructLayout)
-                                .ldc(result.count() + 1)
-                                .anewarray(CD_MemoryLayout_PathElement)
-                                .dup()
-                                .iconst_0()
-                                .ldc(name)
-                                .invokestatic(CD_MemoryLayout_PathElement, "groupElement", MTD_MemoryLayout_PathElement_String, true)
-                                .aastore();
-                            for (int i = 0, c = result.count(); i < c; i++) {
-                                codeBuilder.dup()
-                                    .ldc(i + 1)
-                                    .invokestatic(CD_MemoryLayout_PathElement, "sequenceElement", MTD_MemoryLayout_PathElement, true)
+                            for (FindResult result : results) {
+                                // var handle
+                                codeBuilder.ldc(DCD_classData_StructLayout)
+                                    .ldc(result.elems().size() + 1)
+                                    .anewarray(CD_MemoryLayout_PathElement)
+                                    .dup()
+                                    .iconst_0()
+                                    .ldc(name)
+                                    .invokestatic(CD_MemoryLayout_PathElement, "groupElement", MTD_MemoryLayout_PathElement_String, true)
                                     .aastore();
+                                int i = 0;
+                                for (Elem elem : result.elems()) {
+                                    codeBuilder.dup()
+                                        .ldc(i + 1);
+                                    switch (elem) {
+                                        case GroupElem groupElem -> codeBuilder
+                                            .ldc(groupElem.name)
+                                            .invokestatic(CD_MemoryLayout_PathElement, "groupElement", MTD_MemoryLayout_PathElement_String, true);
+                                        case SeqElem _ -> codeBuilder
+                                            .invokestatic(CD_MemoryLayout_PathElement, "sequenceElement", MTD_MemoryLayout_PathElement, true);
+                                    }
+                                    codeBuilder.aastore();
+                                    i++;
+                                }
+                                codeBuilder.invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout_PathElementArray)
+                                    .putstatic(cd_thisClass, STR."_VH_\{name}\{result.appendName()}", CD_VarHandle);
                             }
-                            codeBuilder.invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout_PathElementArray)
-                                .putstatic(cd_thisClass, STR."_VH_\{name}", CD_VarHandle);
                         }
                         case ValueLayout valueLayout -> {
                             final String name = valueLayout.name().orElseThrow();
@@ -369,28 +402,64 @@ public final class StructAllocator<T> {
                         case PaddingLayout _ -> {
                         }
                     }
-                });
+                }
                 codeBuilder.return_();
             });
         });
     }
 
-    private record SeqResult(int count, ValueLayout layout) {
+    private sealed interface Elem {
     }
 
-    private static SeqResult findValueLayoutSeq(MemoryLayout layout) {
-        MemoryLayout layout1 = layout;
-        int count = 0;
-        while (!(layout1 instanceof ValueLayout valueLayout)) {
-            count++;
-            switch (layout1) {
-                case GroupLayout _ -> throw new UnsupportedOperationException();
-                case PaddingLayout _ -> throw new IllegalArgumentException();
-                case SequenceLayout sequenceLayout -> layout1 = sequenceLayout.elementLayout();
-                default -> throw new IllegalStateException(STR."Unexpected value: \{layout1}");
+    private static final class SeqElem implements Elem {
+        private static final SeqElem INSTANCE = new SeqElem();
+    }
+
+    private record GroupElem(String name) implements Elem {
+    }
+
+    private record FindResult(List<Elem> elems, ValueLayout layout) {
+        private int indexCount() {
+            int c = 0;
+            for (Elem elem : elems) {
+                if (elem instanceof SeqElem) c++;
             }
+            return c;
         }
-        return new SeqResult(count, valueLayout);
+
+        public String appendName() {
+            return elems.stream()
+                .filter(elem -> elem instanceof GroupElem)
+                .map(elem -> STR."$\{((GroupElem) elem).name}")
+                .collect(Collectors.joining());
+        }
+    }
+
+    private static List<FindResult> findValueLayout(MemoryLayout layout) {
+        return findValueLayout(new ArrayList<>(), layout);
+    }
+
+    private static List<FindResult> findValueLayout(List<Elem> elems, MemoryLayout layout) {
+        List<FindResult> results = new ArrayList<>();
+        switch (layout) {
+            case GroupLayout groupLayout -> {
+                for (MemoryLayout memberLayout : groupLayout.memberLayouts()) {
+                    results.addAll(findValueLayout(append(elems, new GroupElem(memberLayout.name().orElseThrow())), memberLayout));
+                }
+            }
+            case PaddingLayout _ -> {
+            }
+            case SequenceLayout sequenceLayout ->
+                results.addAll(findValueLayout(append(elems, SeqElem.INSTANCE), sequenceLayout.elementLayout()));
+            case ValueLayout valueLayout -> results.add(new FindResult(List.copyOf(elems), valueLayout));
+        }
+        return Collections.unmodifiableList(results);
+    }
+
+    private static List<Elem> append(List<Elem> list, Elem e) {
+        var l = new ArrayList<>(list);
+        l.add(e);
+        return l;
     }
 
     private static List<ClassDesc> makeClassDescriptors(Consumer<List<ClassDesc>> consumer) {

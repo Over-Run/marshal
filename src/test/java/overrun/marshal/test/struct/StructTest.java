@@ -144,4 +144,38 @@ public final class StructTest {
             assertEquals(2, struct.arr(1L));
         }
     }
+
+    @Test
+    void testNestedStruct() {
+        try (Arena arena = Arena.ofConfined()) {
+            final NestedStruct struct = NestedStruct.OF.of(arena);
+            assertEquals(0, struct.vec3$x());
+            assertEquals(0, struct.vec3$y());
+            assertEquals(0, struct.vec3$z());
+            assertEquals(0, struct.vec3arr$x(0));
+            assertEquals(0, struct.vec3arr$y(0));
+            assertEquals(0, struct.vec3arr$z(0));
+            assertEquals(0, struct.vec3arr$x(1));
+            assertEquals(0, struct.vec3arr$y(1));
+            assertEquals(0, struct.vec3arr$z(1));
+            struct.vec3$x(1)
+                .vec3$y(2)
+                .vec3$z(3)
+                .vec3arr$x(0, 4)
+                .vec3arr$y(0, 5)
+                .vec3arr$z(0, 6)
+                .vec3arr$x(1, 7)
+                .vec3arr$y(1, 8)
+                .vec3arr$z(1, 9);
+            assertEquals(1, struct.vec3$x());
+            assertEquals(2, struct.vec3$y());
+            assertEquals(3, struct.vec3$z());
+            assertEquals(4, struct.vec3arr$x(0));
+            assertEquals(5, struct.vec3arr$y(0));
+            assertEquals(6, struct.vec3arr$z(0));
+            assertEquals(7, struct.vec3arr$x(1));
+            assertEquals(8, struct.vec3arr$y(1));
+            assertEquals(9, struct.vec3arr$z(1));
+        }
+    }
 }
