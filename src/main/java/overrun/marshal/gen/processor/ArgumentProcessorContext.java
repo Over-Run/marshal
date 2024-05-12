@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,20 +14,26 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen.processor;
+
+import overrun.marshal.gen.Convert;
+
+import java.lang.reflect.Parameter;
+
 /**
- * The core module
+ * The argument processor context
  *
+ * @param parameter     parameter
+ * @param parameterSlot parameter slot
+ * @param allocatorSlot allocator slot
+ * @param convert       boolean convert
  * @author squid233
  * @since 0.1.0
  */
-module io.github.overrun.marshal {
-    exports overrun.marshal;
-    exports overrun.marshal.gen;
-    exports overrun.marshal.gen.processor;
-    exports overrun.marshal.struct;
-
-    opens overrun.marshal.internal.data;
-
-    requires static org.jetbrains.annotations;
-    requires jdk.jshell;
+public record ArgumentProcessorContext(
+    Parameter parameter,
+    int parameterSlot,
+    int allocatorSlot,
+    Convert convert
+) {
 }

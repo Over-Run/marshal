@@ -19,7 +19,8 @@ package overrun.marshal.gen;
 import java.lang.annotation.*;
 
 /**
- * Marks an element that needs to convert from {@code boolean} to the given type.
+ * Marks a parameter that needs to convert from {@code boolean} to the given type,
+ * or a return type that needs to convert from the given type to {@code boolean}.
  * <p>
  * The type of the marked element must be {@code boolean}; otherwise this annotation will be ignored.
  * <h2>Example</h2>

@@ -16,8 +16,10 @@
 
 package overrun.marshal;
 
-import overrun.marshal.gen.Type;
 import overrun.marshal.gen.*;
+import overrun.marshal.gen.processor.ArgumentProcessor;
+import overrun.marshal.gen.processor.ArgumentProcessorContext;
+import overrun.marshal.gen.processor.ProcessorTypes;
 import overrun.marshal.internal.DowncallOptions;
 import overrun.marshal.internal.data.DowncallData;
 import overrun.marshal.struct.ByValue;
@@ -45,6 +47,7 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.ClassFile.*;
 import static java.lang.constant.ConstantDescs.*;
 import static overrun.marshal.internal.Constants.*;
+import static overrun.marshal.internal.StringCharset.getCharset;
 
 /**
  * Downcall library loader.
@@ -190,18 +193,6 @@ public final class Downcall {
         return "unmarshal";
     }
 
-    private static String marshalFromBooleanMethod(Type type) {
-        return switch (type) {
-            case CHAR -> "marshalAsChar";
-            case BYTE -> "marshalAsByte";
-            case SHORT -> "marshalAsShort";
-            case INT -> "marshalAsInt";
-            case LONG -> "marshalAsLong";
-            case FLOAT -> "marshalAsFloat";
-            case DOUBLE -> "marshalAsDouble";
-        };
-    }
-
     // type
 
     private static ValueLayout getValueLayout(Class<?> carrier) {
@@ -221,41 +212,6 @@ public final class Downcall {
                (aClass == String.class ||
                 aClass.isArray() ||
                 Upcall.class.isAssignableFrom(aClass));
-    }
-
-    // string charset
-
-    private static boolean hasCharset(StrCharset strCharset) {
-        return strCharset != null && !strCharset.value().isBlank();
-    }
-
-    private static String getCharset(AnnotatedElement element) {
-        final StrCharset strCharset = element.getDeclaredAnnotation(StrCharset.class);
-        return hasCharset(strCharset) ? strCharset.value() : null;
-    }
-
-    private static void getCharset(CodeBuilder codeBuilder, String charset) {
-        final String upperCase = charset.toUpperCase(Locale.ROOT);
-        switch (upperCase) {
-            case "UTF-8", "ISO-8859-1", "US-ASCII",
-                 "UTF-16", "UTF-16BE", "UTF-16LE",
-                 "UTF-32", "UTF-32BE", "UTF-32LE" ->
-                codeBuilder.getstatic(CD_StandardCharsets, upperCase.replace('-', '_'), CD_Charset);
-            case "UTF_8", "ISO_8859_1", "US_ASCII",
-                 "UTF_16", "UTF_16BE", "UTF_16LE",
-                 "UTF_32", "UTF_32BE", "UTF_32LE" -> codeBuilder.getstatic(CD_StandardCharsets, upperCase, CD_Charset);
-            default -> codeBuilder.ldc(charset)
-                .invokestatic(CD_Charset, "forName", MTD_Charset_String);
-        }
-    }
-
-    private static boolean getCharset(CodeBuilder codeBuilder, AnnotatedElement element) {
-        final String charset = getCharset(element);
-        if (charset != null) {
-            getCharset(codeBuilder, charset);
-            return true;
-        }
-        return false;
     }
 
     // class desc
@@ -433,6 +389,7 @@ public final class Downcall {
                                 targetClass.isInterface()
                             ).returnInstruction(returnTypeKind);
                         } else {
+                            //region body
                             final boolean hasAllocator =
                                 !parameters.isEmpty() &&
                                 SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
@@ -533,69 +490,16 @@ public final class Downcall {
                                         if (refSlot != null) {
                                             blockCodeBuilder.aload(refSlot);
                                         } else {
-                                            final int slot = blockCodeBuilder.parameterSlot(i);
-                                            final Convert convert = parameter.getDeclaredAnnotation(Convert.class);
-                                            if (convert != null && type == boolean.class) {
-                                                final Type convertType = convert.value();
-                                                blockCodeBuilder.loadInstruction(
-                                                    TypeKind.fromDescriptor(type.descriptorString()).asLoadable(),
-                                                    slot
-                                                ).invokestatic(CD_Marshal,
-                                                    marshalFromBooleanMethod(convertType),
-                                                    MethodTypeDesc.of(convertType.classDesc(), CD_boolean));
-                                            } else if (type.isPrimitive() ||
-                                                       type == MemorySegment.class ||
-                                                       SegmentAllocator.class.isAssignableFrom(type)) {
-                                                blockCodeBuilder.loadInstruction(
-                                                    TypeKind.fromDescriptor(type.descriptorString()).asLoadable(),
-                                                    slot
-                                                );
-                                            } else if (type == String.class) {
-                                                blockCodeBuilder.aload(allocatorSlot)
-                                                    .aload(slot);
-                                                if (getCharset(blockCodeBuilder, parameter)) {
-                                                    blockCodeBuilder.invokestatic(CD_Marshal,
-                                                        "marshal",
-                                                        MTD_MemorySegment_SegmentAllocator_String_Charset);
-                                                } else {
-                                                    blockCodeBuilder.invokestatic(CD_Marshal,
-                                                        "marshal",
-                                                        MTD_MemorySegment_SegmentAllocator_String);
-                                                }
-                                            } else if (Addressable.class.isAssignableFrom(type) ||
-                                                       CEnum.class.isAssignableFrom(type)) {
-                                                blockCodeBuilder.aload(slot)
-                                                    .invokestatic(CD_Marshal,
-                                                        "marshal",
-                                                        MethodTypeDesc.of(cd_parameterDowncall, convertToMarshalCD(type)));
-                                            } else if (Upcall.class.isAssignableFrom(type)) {
-                                                blockCodeBuilder.aload(allocatorSlot)
-                                                    .checkcast(CD_Arena)
-                                                    .aload(slot)
-                                                    .invokestatic(CD_Marshal,
-                                                        "marshal",
-                                                        MTD_MemorySegment_Arena_Upcall);
-                                            } else if (type.isArray()) {
-                                                final Class<?> componentType = type.getComponentType();
-                                                final boolean isStringArray = componentType == String.class;
-                                                final boolean isUpcallArray = Upcall.class.isAssignableFrom(componentType);
-                                                blockCodeBuilder.aload(allocatorSlot);
-                                                if (isUpcallArray) {
-                                                    blockCodeBuilder.checkcast(CD_Arena);
-                                                }
-                                                blockCodeBuilder.aload(slot);
-                                                if (isStringArray && getCharset(blockCodeBuilder, parameter)) {
-                                                    blockCodeBuilder.invokestatic(CD_Marshal,
-                                                        "marshal",
-                                                        MTD_MemorySegment_SegmentAllocator_StringArray_Charset);
-                                                } else {
-                                                    blockCodeBuilder.invokestatic(CD_Marshal,
-                                                        "marshal",
-                                                        MethodTypeDesc.of(CD_MemorySegment,
-                                                            isUpcallArray ? CD_Arena : CD_SegmentAllocator,
-                                                            convertToMarshalCD(componentType).arrayType()));
-                                                }
-                                            }
+                                            ArgumentProcessor.getInstance().process(
+                                                blockCodeBuilder,
+                                                ProcessorTypes.fromClass(type),
+                                                new ArgumentProcessorContext(
+                                                    parameter,
+                                                    blockCodeBuilder.parameterSlot(i),
+                                                    allocatorSlot,
+                                                    parameter.getDeclaredAnnotation(Convert.class)
+                                                )
+                                            );
                                         }
 
                                         parameterCDList.add(cd_parameterDowncall);
@@ -734,6 +638,7 @@ public final class Downcall {
                                     blockCodeBuilder.athrow();
                                 })
                             );
+                            //endregion
                         }
                     }));
             });
