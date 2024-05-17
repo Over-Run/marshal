@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,20 +14,26 @@
  * copies or substantial portions of the Software.
  */
 
+package overrun.marshal.gen.processor;
+
+import java.lang.classfile.CodeBuilder;
+
 /**
- * The core module
+ * Processor
  *
+ * @param <T> target type
+ * @param <C> context type
  * @author squid233
  * @since 0.1.0
  */
-module io.github.overrun.marshal {
-    exports overrun.marshal;
-    exports overrun.marshal.gen;
-    exports overrun.marshal.gen.processor;
-    exports overrun.marshal.struct;
-
-    opens overrun.marshal.internal.data;
-
-    requires static org.jetbrains.annotations;
-    requires jdk.jshell;
+public interface Processor<T, C> {
+    /**
+     * Processes with the context
+     *
+     * @param builder the code builder
+     * @param type    the type
+     * @param context the context
+     * @return {@code true} if should continue; {@code false} otherwise
+     */
+    boolean process(CodeBuilder builder, T type, C context);
 }
