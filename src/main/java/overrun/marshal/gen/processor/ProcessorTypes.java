@@ -35,6 +35,9 @@ import java.util.Objects;
 public final class ProcessorTypes {
     private static final Map<Class<?>, ProcessorType> map = new HashMap<>(0);
 
+    private ProcessorTypes() {
+    }
+
     /**
      * Get the processor type from the given class.
      *

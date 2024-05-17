@@ -35,12 +35,12 @@ import static overrun.marshal.internal.Constants.*;
  */
 public sealed interface ProcessorType {
     /**
-     * @return the class desc for method handles
+     * {@return the class desc for method handles}
      */
     ClassDesc downcallClassDesc();
 
     /**
-     * @return the class desc for methods in {@link overrun.marshal.Marshal}
+     * {@return the class desc for methods in {@link overrun.marshal.Marshal}}
      */
     ClassDesc marshalClassDesc();
 
@@ -244,6 +244,8 @@ public sealed interface ProcessorType {
 
     /**
      * Array type
+     *
+     * @param componentType the component type
      */
     record Array(ProcessorType componentType) implements ProcessorType {
         @Override

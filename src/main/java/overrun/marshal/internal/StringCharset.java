@@ -31,6 +31,9 @@ import static overrun.marshal.internal.Constants.*;
  * @since 0.1.0
  */
 public final class StringCharset {
+    private StringCharset() {
+    }
+
     /**
      * {@return hasCharset}
      *
@@ -51,6 +54,8 @@ public final class StringCharset {
     }
 
     /**
+     * {@return getCharset}
+     *
      * @param codeBuilder codeBuilder
      * @param charset     charset
      */
