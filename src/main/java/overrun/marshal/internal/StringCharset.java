@@ -54,7 +54,7 @@ public final class StringCharset {
     }
 
     /**
-     * {@return getCharset}
+     * getCharset
      *
      * @param codeBuilder codeBuilder
      * @param charset     charset
