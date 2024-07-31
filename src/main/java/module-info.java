@@ -29,5 +29,4 @@ module io.github.overrun.marshal {
     opens overrun.marshal.internal.data;
 
     requires static org.jetbrains.annotations;
-    requires jdk.jshell;
 }
