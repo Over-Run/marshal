@@ -42,6 +42,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.ClassFile.*;
@@ -209,7 +210,7 @@ public final class Downcall {
 
     private static boolean requireAllocator(Class<?> aClass) {
         return !aClass.isPrimitive() &&
-               (aClass == String.class ||
+            (aClass == String.class ||
                 aClass.isArray() ||
                 Upcall.class.isAssignableFrom(aClass));
     }
@@ -245,16 +246,16 @@ public final class Downcall {
             .filter(method -> method.getDeclaredAnnotation(annotation) != null)
             .filter(predicate)
             .findFirst()
-            .orElseThrow(() -> new IllegalStateException(STR.
-                "Couldn't find wrapper method in \{aClass}; mark it with @\{annotation.getSimpleName()}"));
+            .orElseThrow(() -> new IllegalStateException(
+                "Couldn't find wrapper method in " + aClass + "; mark it with @" + annotation.getSimpleName()));
     }
 
     private static Method findCEnumWrapper(Class<?> aClass) {
         return findWrapper(aClass, CEnum.Wrapper.class, method -> {
             final var types = method.getParameterTypes();
             return types.length == 1 &&
-                   types[0] == int.class &&
-                   CEnum.class.isAssignableFrom(method.getReturnType());
+                types[0] == int.class &&
+                CEnum.class.isAssignableFrom(method.getReturnType());
         });
     }
 
@@ -262,18 +263,22 @@ public final class Downcall {
     private static <T> T loadBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
         Class<?> _targetClass = null, targetClass;
         Map<String, FunctionDescriptor> _descriptorMap = null, descriptorMap;
+        UnaryOperator<MethodHandle> _transform = null, transform;
 
         for (DowncallOption option : options) {
-            if (option instanceof DowncallOptions.TargetClass(var aClass)) {
-                _targetClass = aClass;
-            } else if (option instanceof DowncallOptions.Descriptors(var map)) {
-                _descriptorMap = map;
+            switch (option) {
+                case DowncallOptions.TargetClass(var aClass) -> _targetClass = aClass;
+                case DowncallOptions.Descriptors(var map) -> _descriptorMap = map;
+                case DowncallOptions.Transform(var operator) -> _transform = operator;
+                case null, default -> {
+                }
             }
         }
 
         final Class<?> lookupClass = caller.lookupClass();
         targetClass = _targetClass != null ? _targetClass : lookupClass;
         descriptorMap = _descriptorMap != null ? _descriptorMap : Map.of();
+        transform = _transform != null ? _transform : UnaryOperator.identity();
 
         final List<Method> methodList = Arrays.stream(targetClass.getMethods())
             .filter(Predicate.not(Downcall::shouldSkip))
@@ -288,9 +293,9 @@ public final class Downcall {
 
         //region method handles
         final AtomicInteger handleCount = new AtomicInteger();
-        methodList.forEach(method -> {
+        for (Method method : methodList) {
             final String entrypoint = getMethodEntrypoint(method);
-            final String handleName = STR."$mh\{handleCount.getAndIncrement()}";
+            final String handleName = "$mh" + handleCount.getAndIncrement();
             final var parameters = List.of(method.getParameters());
 
             final DowncallMethodData methodData = new DowncallMethodData(
@@ -299,14 +304,14 @@ public final class Downcall {
                 exceptionStringMap.get(method),
                 parameters,
                 method.getDeclaredAnnotation(ByValue.class) == null &&
-                !parameters.isEmpty() &&
-                SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType())
+                    !parameters.isEmpty() &&
+                    SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType())
             );
             methodDataMap.put(method, methodData);
-        });
+        }
         //endregion
 
-        final DowncallData downcallData = generateData(methodDataMap, lookup, descriptorMap);
+        final DowncallData downcallData = generateData(methodDataMap, lookup, descriptorMap, transform);
 
         final byte[] bytes = cf.build(cd_thisClass, classBuilder -> {
             classBuilder.withFlags(ACC_FINAL | ACC_SUPER);
@@ -320,13 +325,13 @@ public final class Downcall {
             }
 
             //region method handles
-            methodDataMap.values().forEach(data -> {
+            for (DowncallMethodData data : methodDataMap.values()) {
                 if (downcallData.handleMap().get(data.entrypoint()) != null) {
                     classBuilder.withField(data.handleName(),
                         CD_MethodHandle,
                         ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
                 }
-            });
+            }
             //endregion
 
             //region constructor
@@ -344,7 +349,9 @@ public final class Downcall {
             //endregion
 
             //region methods
-            methodDataMap.forEach((method, methodData) -> {
+            for (var entry : methodDataMap.entrySet()) {
+                Method method = entry.getKey();
+                DowncallMethodData methodData = entry.getValue();
                 final var returnType = method.getReturnType();
                 final String methodName = method.getName();
                 final int modifiers = method.getModifiers();
@@ -392,11 +399,11 @@ public final class Downcall {
                             //region body
                             final boolean hasAllocator =
                                 !parameters.isEmpty() &&
-                                SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
+                                    SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
                             final boolean shouldAddStack =
                                 !parameters.isEmpty() &&
-                                !SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType()) &&
-                                parameters.stream().anyMatch(parameter -> requireAllocator(parameter.getType()));
+                                    !SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType()) &&
+                                    parameters.stream().anyMatch(parameter -> requireAllocator(parameter.getType()));
                             final int stackSlot;
                             final int stackPointerSlot;
                             final int allocatorSlot;
@@ -486,9 +493,8 @@ public final class Downcall {
                                         final Class<?> type = parameter.getType();
                                         final ClassDesc cd_parameterDowncall = convertToDowncallCD(parameter, type);
 
-                                        final Integer refSlot = parameterRefSlot.get(parameter);
-                                        if (refSlot != null) {
-                                            blockCodeBuilder.aload(refSlot);
+                                        if (parameterRefSlot.containsKey(parameter)) {
+                                            blockCodeBuilder.aload(parameterRefSlot.get(parameter));
                                         } else {
                                             ArgumentProcessor.getInstance().process(
                                                 blockCodeBuilder,
@@ -641,7 +647,7 @@ public final class Downcall {
                             //endregion
                         }
                     }));
-            });
+            }
             //endregion
 
             //region DirectAccess
@@ -715,9 +721,9 @@ public final class Downcall {
         final Class<?> returnType = method.getReturnType();
         final boolean b =
             method.getDeclaredAnnotation(Skip.class) != null ||
-            Modifier.isStatic(method.getModifiers()) ||
-            method.isSynthetic() ||
-            Modifier.isFinal(method.getModifiers());
+                Modifier.isStatic(method.getModifiers()) ||
+                method.isSynthetic() ||
+                Modifier.isFinal(method.getModifiers());
         if (b) {
             return true;
         }
@@ -741,8 +747,8 @@ public final class Downcall {
             }
         } else if (
             returnType == boolean.class && length == 1 && types[0] == Object.class && "equals".equals(methodName) ||
-            returnType == void.class && length == 1 && types[0] == long.class && "wait".equals(methodName) ||
-            returnType == void.class && length == 2 && types[0] == long.class && types[1] == long.class && "wait".equals(methodName)
+                returnType == void.class && length == 1 && types[0] == long.class && "wait".equals(methodName) ||
+                returnType == void.class && length == 2 && types[0] == long.class && types[1] == long.class && "wait".equals(methodName)
         ) {
             return true;
         }
@@ -760,16 +766,14 @@ public final class Downcall {
     }
 
     private static String createExceptionString(Method method) {
-        return STR."""
-            \{method.getReturnType().getCanonicalName()} \
-            \{method.getDeclaringClass().getCanonicalName()}.\{method.getName()}\
-            \{Arrays.stream(method.getParameterTypes()).map(Class::getCanonicalName)
-            .collect(Collectors.joining(", ", "(", ")"))}""";
+        return method.getReturnType().getCanonicalName() + " " +
+            method.getDeclaringClass().getCanonicalName() + "." + method.getName() +
+            Arrays.stream(method.getParameterTypes()).map(Class::getCanonicalName)
+                .collect(Collectors.joining(", ", "(", ")"));
     }
 
     private static void verifyMethods(List<Method> list, Map<Method, String> exceptionStringMap) {
-        list.forEach(method -> {
-            // check method return type
+        for (Method method : list) {// check method return type
             final Class<?> returnType = method.getReturnType();
             if (Struct.class.isAssignableFrom(returnType)) {
                 boolean foundAllocator = false;
@@ -780,10 +784,10 @@ public final class Downcall {
                     }
                 }
                 if (!foundAllocator) {
-                    throw new IllegalStateException(STR."The struct \{returnType} must contain one public static field that is StructAllocator");
+                    throw new IllegalStateException("The struct " + returnType + " must contain one public static field that is StructAllocator");
                 }
             } else if (!isValidReturnType(returnType)) {
-                throw new IllegalStateException(STR."Invalid return type: \{exceptionStringMap.get(method)}");
+                throw new IllegalStateException("Invalid return type: " + exceptionStringMap.get(method));
             }
 
             // check method parameter
@@ -792,59 +796,65 @@ public final class Downcall {
             for (Parameter parameter : method.getParameters()) {
                 final Class<?> type = parameter.getType();
                 if (Upcall.class.isAssignableFrom(type) && !isFirstArena) {
-                    throw new IllegalStateException(STR."The first parameter of method \{method} is not an arena; however, the parameter \{parameter} is an upcall");
+                    throw new IllegalStateException("The first parameter of method " + method + " is not an arena; however, the parameter " + parameter + " is an upcall");
                 } else if (!isValidParamType(type)) {
-                    throw new IllegalStateException(STR."Invalid parameter: \{parameter} in \{method}");
+                    throw new IllegalStateException("Invalid parameter: " + parameter + " in " + method);
                 }
             }
-        });
+        }
     }
 
     private static boolean isValidParamArrayType(Class<?> aClass) {
         if (!aClass.isArray()) return false;
         final Class<?> type = aClass.getComponentType();
         return type.isPrimitive() ||
-               type == MemorySegment.class ||
-               type == String.class ||
-               Addressable.class.isAssignableFrom(type) ||
-               Upcall.class.isAssignableFrom(type) ||
-               CEnum.class.isAssignableFrom(type);
+            type == MemorySegment.class ||
+            type == String.class ||
+            Addressable.class.isAssignableFrom(type) ||
+            Upcall.class.isAssignableFrom(type) ||
+            CEnum.class.isAssignableFrom(type);
     }
 
     private static boolean isValidReturnArrayType(Class<?> aClass) {
         if (!aClass.isArray()) return false;
         final Class<?> type = aClass.getComponentType();
         return type.isPrimitive() ||
-               type == MemorySegment.class ||
-               type == String.class;
+            type == MemorySegment.class ||
+            type == String.class;
     }
 
     private static boolean isValidParamType(Class<?> aClass) {
         return aClass.isPrimitive() ||
-               aClass == MemorySegment.class ||
-               aClass == String.class ||
-               SegmentAllocator.class.isAssignableFrom(aClass) ||
-               Addressable.class.isAssignableFrom(aClass) ||
-               Upcall.class.isAssignableFrom(aClass) ||
-               CEnum.class.isAssignableFrom(aClass) ||
-               isValidParamArrayType(aClass);
+            aClass == MemorySegment.class ||
+            aClass == String.class ||
+            SegmentAllocator.class.isAssignableFrom(aClass) ||
+            Addressable.class.isAssignableFrom(aClass) ||
+            Upcall.class.isAssignableFrom(aClass) ||
+            CEnum.class.isAssignableFrom(aClass) ||
+            isValidParamArrayType(aClass);
     }
 
     private static boolean isValidReturnType(Class<?> aClass) {
         return aClass.isPrimitive() ||
-               aClass == MemorySegment.class ||
-               aClass == String.class ||
-               Struct.class.isAssignableFrom(aClass) ||
-               CEnum.class.isAssignableFrom(aClass) ||
-               isValidReturnArrayType(aClass) ||
-               aClass == MethodHandle.class;
+            aClass == MemorySegment.class ||
+            aClass == String.class ||
+            Struct.class.isAssignableFrom(aClass) ||
+            CEnum.class.isAssignableFrom(aClass) ||
+            isValidReturnArrayType(aClass) ||
+            aClass == MethodHandle.class;
     }
 
-    private static DowncallData generateData(Map<Method, DowncallMethodData> methodDataMap, SymbolLookup lookup, Map<String, FunctionDescriptor> descriptorMap) {
+    private static DowncallData generateData(
+        Map<Method, DowncallMethodData> methodDataMap,
+        SymbolLookup lookup,
+        Map<String, FunctionDescriptor> descriptorMap,
+        UnaryOperator<MethodHandle> transform) {
         final Map<String, FunctionDescriptor> descriptorMap1 = HashMap.newHashMap(methodDataMap.size());
         final Map<String, MethodHandle> map = HashMap.newHashMap(methodDataMap.size());
 
-        methodDataMap.forEach((method, methodData) -> {
+        for (var entry : methodDataMap.entrySet()) {
+            Method method = entry.getKey();
+            DowncallMethodData methodData = entry.getValue();
             final String entrypoint = methodData.entrypoint();
             final Optional<MemorySegment> optional = lookup.find(entrypoint);
 
@@ -946,14 +956,14 @@ public final class Downcall {
                 }
 
                 if (!map.containsKey(entrypoint)) {
-                    map.put(entrypoint, LINKER.downcallHandle(optional.get(), descriptor, options));
+                    map.put(entrypoint, transform.apply(LINKER.downcallHandle(optional.get(), descriptor, options)));
                 }
             } else if (method.isDefault()) {
                 map.putIfAbsent(entrypoint, null);
             } else {
-                throw new UnsatisfiedLinkError(STR."unresolved symbol: \{entrypoint} (\{descriptor}): \{methodData.exceptionString()}");
+                throw new UnsatisfiedLinkError("unresolved symbol: " + entrypoint + " (" + descriptor + "): " + methodData.exceptionString());
             }
-        });
+        }
         return new DowncallData(Collections.unmodifiableMap(descriptorMap1), Collections.unmodifiableMap(map), lookup);
     }
 

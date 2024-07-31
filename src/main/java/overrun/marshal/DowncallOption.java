@@ -19,7 +19,9 @@ package overrun.marshal;
 import overrun.marshal.internal.DowncallOptions;
 
 import java.lang.foreign.FunctionDescriptor;
+import java.lang.invoke.MethodHandle;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 /**
  * Downcall option.
@@ -28,8 +30,7 @@ import java.util.Map;
  * @since 0.1.0
  */
 public sealed interface DowncallOption
-    permits DowncallOptions.Descriptors,
-    DowncallOptions.TargetClass {
+    permits DowncallOptions.Descriptors, DowncallOptions.TargetClass, DowncallOptions.Transform {
     /**
      * Specifies the target class.
      *
@@ -48,5 +49,15 @@ public sealed interface DowncallOption
      */
     static DowncallOption descriptors(Map<String, FunctionDescriptor> descriptorMap) {
         return new DowncallOptions.Descriptors(descriptorMap);
+    }
+
+    /**
+     * Specifies the method handle transformer.
+     *
+     * @param transform the transforming function
+     * @return the option instance
+     */
+    static DowncallOption transform(UnaryOperator<MethodHandle> transform) {
+        return new DowncallOptions.Transform(transform);
     }
 }

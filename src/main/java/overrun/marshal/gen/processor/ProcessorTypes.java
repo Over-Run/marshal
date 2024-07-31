@@ -60,7 +60,7 @@ public final class ProcessorTypes {
         if (CEnum.class.isAssignableFrom(aClass)) return ProcessorType.CEnum.INSTANCE;
         if (Upcall.class.isAssignableFrom(aClass)) return ProcessorType.Upcall.INSTANCE;
         if (aClass.isArray()) return new ProcessorType.Array(fromClass(aClass.componentType()));
-        return Objects.requireNonNull(map.get(aClass), STR."Cannot find processor type of \{aClass}");
+        return Objects.requireNonNull(map.get(aClass), "Cannot find processor type of " + aClass);
     }
 
     /**

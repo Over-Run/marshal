@@ -19,7 +19,9 @@ package overrun.marshal.internal;
 import overrun.marshal.DowncallOption;
 
 import java.lang.foreign.FunctionDescriptor;
+import java.lang.invoke.MethodHandle;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 /**
  * Downcall options.
@@ -46,5 +48,13 @@ public final class DowncallOptions {
      */
 
     public record Descriptors(Map<String, FunctionDescriptor> descriptorMap) implements DowncallOption {
+    }
+
+    /**
+     * specify method handle transform
+     *
+     * @param operator the transform function
+     */
+    public record Transform(UnaryOperator<MethodHandle> operator) implements DowncallOption {
     }
 }

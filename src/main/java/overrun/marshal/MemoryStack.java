@@ -117,7 +117,7 @@ public sealed class MemoryStack implements Arena {
 
     private void frameOverflow() {
         if (DEBUG) {
-            Configurations.apiLog(STR."[WARNING] Out of frame stack space (\{frames.length}) in thread: \{Thread.currentThread()}");
+            Configurations.apiLog("[WARNING] Out of frame stack space (" + frames.length + ") in thread: " + Thread.currentThread());
         }
         frames = Arrays.copyOf(frames, frames.length * 3 / 2);
     }

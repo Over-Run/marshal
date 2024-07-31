@@ -256,13 +256,13 @@ public final class StructAllocator<T> {
                         final var results = findValueLayout(memberLayout);
 
                         for (FindResult result : results) {
-                            final String methodName = STR."\{name}\{result.appendName()}";
+                            final String methodName = name + result.appendName();
                             final int indexCount = result.indexCount();
                             final ClassDesc returnDesc = ClassDesc.ofDescriptor(result.layout().carrier().descriptorString());
                             final TypeKind returnKind = TypeKind.from(returnDesc);
 
                             // var handle
-                            final String vhName = STR."_VH_\{methodName}";
+                            final String vhName = "_VH_" + methodName;
                             classBuilder.withField(vhName, CD_VarHandle, Modifier.PRIVATE | Modifier.FINAL | Modifier.STATIC);
 
                             // getter
@@ -319,7 +319,7 @@ public final class StructAllocator<T> {
                         final TypeKind returnKind = TypeKind.from(returnDesc);
 
                         // var handle
-                        final String vhName = STR."_VH_\{name}";
+                        final String vhName = "_VH_" + name;
                         classBuilder.withField(vhName, CD_VarHandle, Modifier.PRIVATE | Modifier.FINAL | Modifier.STATIC);
 
                         // getter
@@ -381,7 +381,7 @@ public final class StructAllocator<T> {
                                     i++;
                                 }
                                 codeBuilder.invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout_PathElementArray)
-                                    .putstatic(cd_thisClass, STR."_VH_\{name}\{result.appendName()}", CD_VarHandle);
+                                    .putstatic(cd_thisClass, "_VH_" + name + result.appendName(), CD_VarHandle);
                             }
                         }
                         case ValueLayout valueLayout -> {
@@ -397,7 +397,7 @@ public final class StructAllocator<T> {
                                 .invokestatic(CD_MemoryLayout_PathElement, "groupElement", MTD_MemoryLayout_PathElement_String, true)
                                 .aastore()
                                 .invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout_PathElementArray)
-                                .putstatic(cd_thisClass, STR."_VH_\{name}", CD_VarHandle);
+                                .putstatic(cd_thisClass, "_VH_" + name, CD_VarHandle);
                         }
                         case PaddingLayout _ -> {
                         }
@@ -430,7 +430,7 @@ public final class StructAllocator<T> {
         public String appendName() {
             return elems.stream()
                 .filter(elem -> elem instanceof GroupElem)
-                .map(elem -> STR."$\{((GroupElem) elem).name}")
+                .map(elem -> "$" + ((GroupElem) elem).name)
                 .collect(Collectors.joining());
         }
     }
