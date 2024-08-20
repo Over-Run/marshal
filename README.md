@@ -6,7 +6,7 @@ Marshal allows you to conveniently create native library bindings with [FFM API]
 
 ~~See [wiki](https://github.com/Over-Run/marshal/wiki) for more information.~~
 
-This library requires JDK 22 or newer.
+This library requires JDK 23 or newer.
 
 ## Overview
 
@@ -95,7 +95,7 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    implementation("io.github.over-run:marshal:0.1.0-alpha.28-jdk22")
+    implementation("io.github.over-run:marshal:0.1.0-alpha.29-jdk23")
 }
 ```
 

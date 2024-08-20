@@ -161,7 +161,7 @@ public final class Downcall {
         codeBuilder.aload(codeBuilder.receiverSlot());
         for (int i = 0, size = parameters.size(); i < size; i++) {
             final var parameter = parameters.get(i);
-            codeBuilder.loadInstruction(
+            codeBuilder.loadLocal(
                 TypeKind.fromDescriptor(parameter.getType().descriptorString())
                     .asLoadable(),
                 codeBuilder.parameterSlot(i));
@@ -394,7 +394,7 @@ public final class Downcall {
                                 methodName,
                                 mtd_method,
                                 targetClass.isInterface()
-                            ).returnInstruction(returnTypeKind);
+                            ).return_(returnTypeKind);
                         } else {
                             //region body
                             final boolean hasAllocator =
@@ -520,7 +520,7 @@ public final class Downcall {
                                     } else {
                                         final TypeKind typeKind = TypeKind.from(cd_returnTypeDowncall);
                                         resultSlot = blockCodeBuilder.allocateLocal(typeKind);
-                                        blockCodeBuilder.storeInstruction(typeKind, resultSlot);
+                                        blockCodeBuilder.storeLocal(typeKind, resultSlot);
                                     }
 
                                     // copy ref result
@@ -566,7 +566,7 @@ public final class Downcall {
                                         } else {
                                             unmarshalSlot = -1;
                                         }
-                                        blockCodeBuilder.loadInstruction(TypeKind.from(cd_returnTypeDowncall), resultSlot);
+                                        blockCodeBuilder.loadLocal(TypeKind.from(cd_returnTypeDowncall), resultSlot);
                                     }
                                     final Convert convert = method.getDeclaredAnnotation(Convert.class);
                                     if (convert != null && returnType == boolean.class) {
@@ -612,18 +612,18 @@ public final class Downcall {
                                     // reset stack
                                     if (shouldAddStack) {
                                         if (!returnVoid) {
-                                            blockCodeBuilder.storeInstruction(returnTypeKind, unmarshalSlot);
+                                            blockCodeBuilder.storeLocal(returnTypeKind, unmarshalSlot);
                                         }
                                         blockCodeBuilder.aload(stackSlot)
                                             .lload(stackPointerSlot)
                                             .invokevirtual(CD_MemoryStack, "setPointer", MTD_void_long);
                                         if (!returnVoid) {
-                                            blockCodeBuilder.loadInstruction(returnTypeKind, unmarshalSlot);
+                                            blockCodeBuilder.loadLocal(returnTypeKind, unmarshalSlot);
                                         }
                                     }
 
                                     // return
-                                    blockCodeBuilder.returnInstruction(returnTypeKind);
+                                    blockCodeBuilder.return_(returnTypeKind);
                                 },
                                 catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
                                     final int slot = blockCodeBuilder.allocateLocal(TypeKind.ReferenceType);

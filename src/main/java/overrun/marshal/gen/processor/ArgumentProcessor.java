@@ -47,14 +47,14 @@ public final class ArgumentProcessor implements Processor<ProcessorType, Argumen
                 if (value == ProcessorType.Value.BOOLEAN &&
                     context.convert() != null) {
                     final Type convertType = context.convert().value();
-                    builder.loadInstruction(
+                    builder.loadLocal(
                         value.typeKind(),
                         context.parameterSlot()
                     ).invokestatic(CD_Marshal,
                         marshalFromBooleanMethod(convertType),
                         MethodTypeDesc.of(convertType.classDesc(), CD_boolean));
                 } else {
-                    builder.loadInstruction(
+                    builder.loadLocal(
                         value.typeKind().asLoadable(),
                         context.parameterSlot()
                     );

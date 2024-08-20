@@ -284,7 +284,7 @@ public final class StructAllocator<T> {
                                         list.add(CD_long);
                                         list.addAll(getterParams);
                                     })))
-                                    .returnInstruction(returnKind);
+                                    .return_(returnKind);
                             });
 
                             // setter
@@ -302,7 +302,7 @@ public final class StructAllocator<T> {
                                 for (int i = 0; i < indexCount; i++) {
                                     codeBuilder.lload(codeBuilder.parameterSlot(i));
                                 }
-                                codeBuilder.loadInstruction(returnKind, codeBuilder.parameterSlot(indexCount))
+                                codeBuilder.loadLocal(returnKind, codeBuilder.parameterSlot(indexCount))
                                     .invokevirtual(CD_VarHandle, "set", MethodTypeDesc.of(CD_void, makeClassDescriptors(list -> {
                                         list.add(CD_MemorySegment);
                                         list.add(CD_long);
@@ -329,7 +329,7 @@ public final class StructAllocator<T> {
                             .getfield(cd_thisClass, "_segment", CD_MemorySegment)
                             .lconst_0()
                             .invokevirtual(CD_VarHandle, "get", MethodTypeDesc.of(returnDesc, CD_MemorySegment, CD_long))
-                            .returnInstruction(returnKind));
+                            .return_(returnKind));
 
                         // setter
                         classBuilder.withMethodBody(name, MethodTypeDesc.of(cd_caller, returnDesc), Modifier.PUBLIC, codeBuilder -> {
@@ -337,7 +337,7 @@ public final class StructAllocator<T> {
                                 .aload(codeBuilder.receiverSlot())
                                 .getfield(cd_thisClass, "_segment", CD_MemorySegment)
                                 .lconst_0()
-                                .loadInstruction(returnKind, codeBuilder.parameterSlot(0))
+                                .loadLocal(returnKind, codeBuilder.parameterSlot(0))
                                 .invokevirtual(CD_VarHandle, "set", MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_long, returnDesc));
                             codeBuilder.aload(codeBuilder.receiverSlot())
                                 .areturn();
