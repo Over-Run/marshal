@@ -74,7 +74,7 @@ public final class ArgumentProcessor implements Processor<ProcessorType, Argumen
                         MTD_MemorySegment_SegmentAllocator_String);
                 }
             }
-            case ProcessorType.Addr _, ProcessorType.CEnum _ -> builder
+            case ProcessorType.Addr _ -> builder
                 .aload(context.parameterSlot())
                 .invokestatic(CD_Marshal,
                     "marshal",

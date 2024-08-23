@@ -197,29 +197,6 @@ public sealed interface ProcessorType {
     }
 
     /**
-     * {@link overrun.marshal.CEnum}
-     */
-    final class CEnum implements ProcessorType {
-        /**
-         * The instance
-         */
-        public static final CEnum INSTANCE = new CEnum();
-
-        private CEnum() {
-        }
-
-        @Override
-        public ClassDesc downcallClassDesc() {
-            return CD_int;
-        }
-
-        @Override
-        public ClassDesc marshalClassDesc() {
-            return CD_CEnum;
-        }
-    }
-
-    /**
      * {@link overrun.marshal.Upcall}
      */
     final class Upcall implements ProcessorType {

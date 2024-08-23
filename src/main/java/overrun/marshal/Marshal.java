@@ -38,7 +38,6 @@ import static java.lang.foreign.ValueLayout.*;
 public final class Marshal {
     private static final VarHandle vh_addressArray = arrayVarHandle(ADDRESS);
     static final VarHandle vh_booleanArray = arrayVarHandle(JAVA_BOOLEAN);
-    private static final VarHandle vh_intArray = arrayVarHandle(JAVA_INT);
 
     private Marshal() {
     }
@@ -140,16 +139,6 @@ public final class Marshal {
     public static MemorySegment marshal(SegmentAllocator allocator, @Nullable String string, Charset charset) {
         if (string == null) return MemorySegment.NULL;
         return allocator.allocateFrom(string, charset);
-    }
-
-    /**
-     * Converts the given CEnum to an integer.
-     *
-     * @param cEnum the CEnum
-     * @return the integer
-     */
-    public static int marshal(@Nullable CEnum cEnum) {
-        return cEnum != null ? cEnum.value() : 0;
     }
 
     /**
@@ -326,23 +315,6 @@ public final class Marshal {
      */
     public static MemorySegment marshal(SegmentAllocator allocator, String @Nullable [] arr, Charset charset) {
         return marshal(allocator, arr, (segmentAllocator, str) -> marshal(segmentAllocator, str, charset));
-    }
-
-    /**
-     * Converts the given array to a segment.
-     *
-     * @param allocator the allocator
-     * @param arr       the array
-     * @return the segment
-     */
-    public static MemorySegment marshal(SegmentAllocator allocator, CEnum @Nullable [] arr) {
-        if (arr == null) return MemorySegment.NULL;
-        final MemorySegment segment = allocator.allocate(JAVA_INT, arr.length);
-        for (int i = 0; i < arr.length; i++) {
-            final CEnum cEnum = arr[i];
-            vh_intArray.set(segment, (long) i, cEnum != null ? cEnum.value() : 0);
-        }
-        return segment;
     }
 
     /**

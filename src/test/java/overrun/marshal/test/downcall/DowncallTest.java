@@ -19,7 +19,6 @@ package overrun.marshal.test.downcall;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import overrun.marshal.test.MyEnum;
 import overrun.marshal.test.TestUtil;
 import overrun.marshal.test.struct.Vector3;
 import overrun.marshal.test.upcall.SimpleUpcall;
@@ -77,11 +76,6 @@ public final class DowncallTest {
     void testReturnString() {
         Assertions.assertEquals(TestUtil.TEST_STRING, d.testReturnString());
         assertEquals(TestUtil.TEST_UTF16_STRING, d.testReturnUTF16String());
-    }
-
-    @Test
-    void testReturnCEnum() {
-        Assertions.assertEquals(MyEnum.B, d.testReturnCEnum());
     }
 
     @Test

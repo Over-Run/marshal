@@ -38,10 +38,6 @@ public final class Constants {
      */
     public static final ClassDesc CD_Arena = ClassDesc.of("java.lang.foreign.Arena");
     /**
-     * CD_CEnum
-     */
-    public static final ClassDesc CD_CEnum = ClassDesc.of("overrun.marshal.CEnum");
-    /**
      * CD_Charset
      */
     public static final ClassDesc CD_Charset = ClassDesc.of("java.nio.charset.Charset");
@@ -72,6 +68,7 @@ public final class Constants {
     /**
      * CD_MemoryStack
      */
+    @Deprecated
     public static final ClassDesc CD_MemoryStack = ClassDesc.of("overrun.marshal.MemoryStack");
     /**
      * CD_SegmentAllocator

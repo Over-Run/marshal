@@ -34,6 +34,9 @@ val projDevelopers = arrayOf(
     Developer("squid233")
 )
 
+val junitVersion: String by rootProject
+val memstackVersion: String by rootProject
+
 data class Organization(
     val name: String,
     val url: String
@@ -82,13 +85,14 @@ allprojects {
         //maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots") }
 
         //maven { url = uri("https://oss.oss.sonatype.org/content/repositories/releases") }
-        //maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases") }
+        maven { url = uri("https://s01.oss.sonatype.org/content/repositories/releases") }
     }
 
     dependencies {
         // add your dependencies
         compileOnly("org.jetbrains:annotations:24.1.0")
-        testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+        testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+        api("io.github.over-run:memstack:$memstackVersion")
     }
 
     tasks.withType<Test> {

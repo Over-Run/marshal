@@ -16,12 +16,11 @@
 
 package overrun.marshal.test.downcall;
 
+import io.github.overrun.memstack.MemoryStack;
 import overrun.marshal.DowncallOption;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.Downcall;
-import overrun.marshal.MemoryStack;
 import overrun.marshal.gen.*;
-import overrun.marshal.test.MyEnum;
 import overrun.marshal.test.struct.Vector3;
 import overrun.marshal.test.upcall.SimpleUpcall;
 
@@ -63,8 +62,6 @@ public interface IDowncall {
 
     void testUTF16String(@StrCharset("UTF-16") String s);
 
-    void testCEnum(MyEnum myEnum);
-
     int testUpcall(Arena arena, SimpleUpcall upcall);
 
     void testIntArray(int[] arr);
@@ -85,8 +82,6 @@ public interface IDowncall {
 
     @StrCharset("UTF-16")
     String testReturnUTF16String();
-
-    MyEnum testReturnCEnum();
 
     MemorySegment testReturnUpcall(Arena arena);
 

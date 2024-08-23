@@ -53,18 +53,21 @@ public final class Configurations {
      * <p>
      * The default value is {@code false}.
      */
+    @Deprecated(since = "0.1.0-alpha.30", forRemoval = true)
     public static final Entry<Boolean> DEBUG_STACK = new Entry<>(() -> false);
     /**
      * The default stack size in KiB of {@link MemoryStack}.
      * <p>
      * The default value is {@code 64}.
      */
+    @Deprecated(since = "0.1.0-alpha.30", forRemoval = true)
     public static final Entry<Long> STACK_SIZE = new Entry<>(() -> 64L);
     /**
      * The default stack frames of {@link MemoryStack}.
      * <p>
      * The default value is {@code 8}.
      */
+    @Deprecated(since = "0.1.0-alpha.30", forRemoval = true)
     public static final Entry<Integer> STACK_FRAMES = new Entry<>(() -> 8);
     private static Consumer<String> apiLogger = System.err::println;
 

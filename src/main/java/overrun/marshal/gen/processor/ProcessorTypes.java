@@ -17,7 +17,6 @@
 package overrun.marshal.gen.processor;
 
 import overrun.marshal.Addressable;
-import overrun.marshal.CEnum;
 import overrun.marshal.Upcall;
 
 import java.lang.foreign.MemorySegment;
@@ -57,7 +56,6 @@ public final class ProcessorTypes {
         if (aClass == String.class) return ProcessorType.Str.INSTANCE;
         if (SegmentAllocator.class.isAssignableFrom(aClass)) return ProcessorType.Allocator.INSTANCE;
         if (Addressable.class.isAssignableFrom(aClass)) return ProcessorType.Addr.INSTANCE;
-        if (CEnum.class.isAssignableFrom(aClass)) return ProcessorType.CEnum.INSTANCE;
         if (Upcall.class.isAssignableFrom(aClass)) return ProcessorType.Upcall.INSTANCE;
         if (aClass.isArray()) return new ProcessorType.Array(fromClass(aClass.componentType()));
         return Objects.requireNonNull(map.get(aClass), "Cannot find processor type of " + aClass);

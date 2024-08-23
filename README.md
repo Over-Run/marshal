@@ -34,24 +34,17 @@ interface GLFW {
     int GLFW_KEY_A = 65;
 
     /**
-     * Sets the swap interval.
-     *
-     * @param interval the interval
+     * A normal function
      */
     void glfwSwapInterval(int interval);
 
     /**
-     * Gets the window position.
+     * A function with ref parameters.
      * Marks the array parameter as a place to store the value returned by C
-     *
-     * @param window the window
-     * @param posX   the position x
-     * @param posY   the position y
      */
     void glfwGetWindowPos(MemorySegment window, @Ref int[] posX, @Ref int[] posY);
 
     /**
-     * Creates a window.
      * Requires a segment allocator to allocate the string;
      * if the first parameter is not segment allocator, then the memory stack is used
      *
@@ -95,7 +88,7 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    implementation("io.github.over-run:marshal:0.1.0-alpha.29-jdk23")
+    implementation("io.github.over-run:marshal:0.1.0-alpha.30-jdk23")
 }
 ```
 

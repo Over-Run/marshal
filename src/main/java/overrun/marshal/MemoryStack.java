@@ -34,6 +34,7 @@ import static java.lang.foreign.ValueLayout.*;
  * @see Configurations#DEBUG_STACK
  * @since 0.1.0
  */
+@Deprecated(since = "0.1.0-alpha.30", forRemoval = true)
 public sealed class MemoryStack implements Arena {
     private static final boolean CHECKS = Configurations.CHECKS.get();
     private static final boolean DEBUG = Configurations.DEBUG.get();
