@@ -65,7 +65,6 @@ public final class DowncallProvider {
             seg("testReturnStruct", LOOKUP.findStatic(DowncallProvider.class, "testReturnStruct", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
             seg("testReturnStructByValue", LOOKUP.findStatic(DowncallProvider.class, "testReturnStructByValue", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(Vector3.OF.layout()));
             seg("testReturnStructSizedSeg", LOOKUP.findStatic(DowncallProvider.class, "testReturnStructSizedSeg", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
-            seg("testReturnStructSized", LOOKUP.findStatic(DowncallProvider.class, "testReturnStructSized", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
             seg("testReturnIntArray", LOOKUP.findStatic(DowncallProvider.class, "testReturnIntArray", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
             seg("testSizedIntArray", LOOKUP.findStatic(DowncallProvider.class, "testSizedIntArray", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
             seg("testReturnSizedSeg", LOOKUP.findStatic(DowncallProvider.class, "testReturnSizedSeg", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
@@ -170,10 +169,6 @@ public final class DowncallProvider {
         writeVector3(segment, 1, 2, 3);
         writeVector3(segment.asSlice(Vector3.OF.layout().scale(0L, 1L)), 4, 5, 6);
         return segment;
-    }
-
-    private static MemorySegment testReturnStructSized() {
-        return testReturnStructSizedSeg();
     }
 
     private static MemorySegment testReturnIntArray() {

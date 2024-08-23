@@ -161,6 +161,7 @@ tasks.withType<Javadoc> {
         encoding = "UTF-8"
         locale = "en_US"
         windowTitle = "$projName $projVersion Javadoc"
+        jFlags("-Duser.language=en-US")
         if (this is StandardJavadocDocletOptions) {
             charSet = "UTF-8"
             isAuthor = true

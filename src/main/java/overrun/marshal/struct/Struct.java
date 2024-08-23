@@ -16,7 +16,6 @@
 
 package overrun.marshal.struct;
 
-import overrun.marshal.Addressable;
 import overrun.marshal.Unmarshal;
 
 import java.lang.foreign.MemoryLayout;
@@ -34,7 +33,7 @@ import java.util.Objects;
  * @see overrun.marshal.LayoutBuilder LayoutBuilder
  * @since 0.1.0
  */
-public interface Struct<T extends Struct<T>> extends Addressable {
+public interface Struct<T extends Struct<T>> {
     /**
      * Estimates the struct count of the given segment.
      *
@@ -67,7 +66,6 @@ public interface Struct<T extends Struct<T>> extends Addressable {
     /**
      * {@return the segment of this struct}
      */
-    @Override
     MemorySegment segment();
 
     /**

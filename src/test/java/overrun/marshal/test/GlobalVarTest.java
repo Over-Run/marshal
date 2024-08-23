@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import overrun.marshal.DirectAccess;
 import overrun.marshal.Downcall;
-import overrun.marshal.gen.Skip;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -40,23 +39,18 @@ public final class GlobalVarTest {
     private static final SymbolLookup LOOKUP = name -> "globalVar".equals(name) ? Optional.of(globalVar) : Optional.empty();
 
     static {
-        globalVar.set(ValueLayout.JAVA_INT, 0L, 42 );
+        globalVar.set(ValueLayout.JAVA_INT, 0L, 42);
     }
 
     interface I extends DirectAccess {
         I INSTANCE = Downcall.load(MethodHandles.lookup(), LOOKUP);
-
-        @Skip
-        default int testGlobalVariable() {
-            return symbolLookup().find("globalVar")
-                .orElseThrow()
-                .reinterpret(ValueLayout.JAVA_INT.byteSize())
-                .get(ValueLayout.JAVA_INT, 0L);
-        }
+        MemorySegment myGlobalVar = INSTANCE.symbolLookup().findOrThrow("globalVar");
     }
 
     @Test
     void testGlobalVariable() {
-        Assertions.assertEquals(42, I.INSTANCE.testGlobalVariable());
+        Assertions.assertEquals(42, I.myGlobalVar
+            .reinterpret(ValueLayout.JAVA_INT.byteSize())
+            .get(ValueLayout.JAVA_INT, 0L));
     }
 }

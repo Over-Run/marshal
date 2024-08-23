@@ -80,10 +80,8 @@ public final class DowncallTest {
 
     @Test
     void testReturnUpcall() {
-        try (Arena arena = Arena.ofConfined()) {
-            final MemorySegment upcall = d.testReturnUpcall(arena);
-            assertEquals(84, SimpleUpcall.invoke(upcall, 42));
-        }
+        final MemorySegment upcall = d.testReturnUpcall();
+        assertEquals(84, SimpleUpcall.invoke(upcall, 42));
     }
 
     @Test
@@ -103,7 +101,6 @@ public final class DowncallTest {
     @Test
     void testReturnStructSized() {
         assertStructSized(d.testReturnStructSizedSeg());
-        assertStructSized(d.testReturnStructSized());
     }
 
     private void assertStructSized(Vector3 vector3) {

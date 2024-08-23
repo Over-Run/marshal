@@ -570,4 +570,17 @@ public final class Unmarshal {
             dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L, charset);
         }
     }
+
+    /**
+     * Copies from the given segment to the destination.
+     *
+     * @param src the source segment
+     * @param dst the destination
+     */
+    public static void copy(MemorySegment src, MemorySegment @Nullable [] dst) {
+        if (isNullPointer(src) || dst == null) return;
+        for (int i = 0; i < dst.length; i++) {
+            dst[i] = ((MemorySegment) Marshal.vh_addressArray.get(src, (long) i));
+        }
+    }
 }

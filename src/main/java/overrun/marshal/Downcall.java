@@ -17,10 +17,9 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.*;
-import overrun.marshal.gen.processor.ArgumentProcessor;
-import overrun.marshal.gen.processor.ArgumentProcessorContext;
-import overrun.marshal.gen.processor.ProcessorTypes;
+import overrun.marshal.gen.processor.*;
 import overrun.marshal.internal.DowncallOptions;
+import overrun.marshal.internal.StringCharset;
 import overrun.marshal.internal.data.DowncallData;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.Struct;
@@ -28,7 +27,6 @@ import overrun.marshal.struct.StructAllocator;
 
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
-import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
@@ -37,6 +35,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -47,7 +47,6 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.ClassFile.*;
 import static java.lang.constant.ConstantDescs.*;
 import static overrun.marshal.internal.Constants.*;
-import static overrun.marshal.internal.StringCharset.getCharset;
 
 /**
  * Downcall library loader.
@@ -218,7 +217,7 @@ public final class Downcall {
 
     private static ClassDesc convertToDowncallCD(AnnotatedElement element, Class<?> aClass) {
         final Convert convert = element.getDeclaredAnnotation(Convert.class);
-        if (convert != null && aClass == boolean.class) return convert.value().classDesc();
+        if (convert != null && aClass == boolean.class) return convert.value().downcallClassDesc();
         if (aClass.isPrimitive()) return aClass.describeConstable().orElseThrow();
         if (SegmentAllocator.class.isAssignableFrom(aClass)) return CD_SegmentAllocator;
         if (aClass == Object.class) return CD_Object;
@@ -228,13 +227,14 @@ public final class Downcall {
     private static ClassDesc convertToMarshalCD(Class<?> aClass) {
         if (aClass.isPrimitive() ||
             aClass == String.class) return aClass.describeConstable().orElseThrow();
-        if (Addressable.class.isAssignableFrom(aClass)) return CD_Addressable;
+        if (Struct.class.isAssignableFrom(aClass)) return CD_Struct;
         if (Upcall.class.isAssignableFrom(aClass)) return CD_Upcall;
         return CD_MemorySegment;
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T> T loadBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
+    // TODO
+    /*private*/
+    public static Map.Entry<byte[], DowncallData> buildBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
         Class<?> _targetClass = null, targetClass;
         Map<String, FunctionDescriptor> _descriptorMap = null, descriptorMap;
         UnaryOperator<MethodHandle> _transform = null, transform;
@@ -257,9 +257,9 @@ public final class Downcall {
         final List<Method> methodList = Arrays.stream(targetClass.getMethods())
             .filter(Predicate.not(Downcall::shouldSkip))
             .toList();
-        final Map<Method, String> exceptionStringMap = methodList.stream()
-            .collect(Collectors.toUnmodifiableMap(Function.identity(), Downcall::createExceptionString));
-        verifyMethods(methodList, exceptionStringMap);
+        final Map<Method, String> signatureStringMap = methodList.stream()
+            .collect(Collectors.toUnmodifiableMap(Function.identity(), Downcall::createSignatureString));
+        verifyMethods(methodList, signatureStringMap);
 
         final ClassFile cf = of();
         final ClassDesc cd_thisClass = ClassDesc.of(lookupClass.getPackageName(), DEFAULT_NAME);
@@ -272,14 +272,23 @@ public final class Downcall {
             final String handleName = "$mh" + handleCount.getAndIncrement();
             final var parameters = List.of(method.getParameters());
 
+            boolean byValue = method.getDeclaredAnnotation(ByValue.class) != null;
+            AllocatorRequirement allocatorRequirement = parameters.stream()
+                .reduce(byValue ? AllocatorRequirement.ALLOCATOR : AllocatorRequirement.NONE,
+                    (requirement, parameter) -> AllocatorRequirement.stricter(
+                        requirement,
+                        ProcessorTypes.fromClass(parameter.getType()).allocationRequirement()
+                    ), AllocatorRequirement::stricter);
             final DowncallMethodData methodData = new DowncallMethodData(
                 entrypoint,
                 handleName,
-                exceptionStringMap.get(method),
+                signatureStringMap.get(method),
                 parameters,
-                method.getDeclaredAnnotation(ByValue.class) == null &&
+                !byValue &&
                     !parameters.isEmpty() &&
-                    SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType())
+                    allocatorRequirement != AllocatorRequirement.NONE &&
+                    SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType()),
+                allocatorRequirement
             );
             methodDataMap.put(method, methodData);
         }
@@ -287,7 +296,7 @@ public final class Downcall {
 
         final DowncallData downcallData = generateData(methodDataMap, lookup, descriptorMap, transform);
 
-        final byte[] bytes = cf.build(cd_thisClass, classBuilder -> {
+        return Map.entry(cf.build(cd_thisClass, classBuilder -> {
             classBuilder.withFlags(ACC_FINAL | ACC_SUPER);
 
             // inherit
@@ -336,12 +345,12 @@ public final class Downcall {
                         .map(parameter -> ClassDesc.ofDescriptor(parameter.getType().descriptorString()))
                         .toList());
 
-                final String handleName = methodData.handleName();
-                classBuilder.withMethod(methodName,
+                classBuilder.withMethodBody(methodName,
                     mtd_method,
                     Modifier.isPublic(modifiers) ? ACC_PUBLIC : ACC_PROTECTED,
-                    methodBuilder -> methodBuilder.withCode(codeBuilder -> {
-                        final TypeKind returnTypeKind = TypeKind.from(cd_returnType).asLoadable();
+                    codeBuilder -> {
+                        final String handleName = methodData.handleName();
+                        final TypeKind returnTypeKind = TypeKind.from(cd_returnType);
 
                         // returns MethodHandle
                         if (returnType == MethodHandle.class) {
@@ -374,282 +383,130 @@ public final class Downcall {
                         }
 
                         //region body
-                        final boolean hasAllocator =
-                            !parameters.isEmpty() &&
-                                SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
-                        final boolean shouldAddStack =
-                            !parameters.isEmpty() &&
-                                !SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType()) &&
-                                parameters.stream().anyMatch(parameter -> requireAllocator(parameter.getType()));
-                        final int stackSlot;
-                        final int stackPointerSlot;
-                        final int allocatorSlot;
 
-                        if (shouldAddStack) {
-                            stackSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
-                            stackPointerSlot = codeBuilder.allocateLocal(TypeKind.LongType);
-                            allocatorSlot = stackSlot;
+                        AllocatorRequirement allocatorRequirement = methodData.allocatorRequirement();
+                        boolean isFirstAllocator = !parameters.isEmpty() &&
+                            SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
+                        boolean hasMemoryStack = switch (allocatorRequirement) {
+                            case NONE, ALLOCATOR, ARENA -> false;
+                            case STACK -> !isFirstAllocator;
+                        };
+
+                        var beforeReturnContext = new BeforeReturnProcessor.Context(hasMemoryStack);
+
+                        CheckProcessor.getInstance().process(codeBuilder, new CheckProcessor.Context(parameters));
+
+                        int allocatorSlot;
+                        if (isFirstAllocator) {
+                            allocatorSlot = codeBuilder.parameterSlot(0);
+                        } else if (hasMemoryStack) {
+                            allocatorSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
+                            codeBuilder.invokestatic(CD_MemoryStack,
+                                "pushLocal",
+                                MTD_MemoryStack,
+                                true
+                            ).astore(allocatorSlot);
                         } else {
-                            stackSlot = -1;
-                            stackPointerSlot = -1;
-                            allocatorSlot = hasAllocator ? codeBuilder.parameterSlot(0) : -1;
-                        }
-
-                        final Map<Parameter, Integer> parameterRefSlot = HashMap.newHashMap(Math.toIntExact(parameters.stream()
-                            .filter(parameter -> parameter.getDeclaredAnnotation(Ref.class) != null)
-                            .count()));
-
-                        // check size
-                        for (int i = 0, size = parameters.size(); i < size; i++) {
-                            final Parameter parameter = parameters.get(i);
-                            final Sized sized = parameter.getDeclaredAnnotation(Sized.class);
-                            final Class<?> type = parameter.getType();
-                            if (sized == null || !type.isArray()) {
-                                continue;
-                            }
-                            codeBuilder.ldc(sized.value())
-                                .aload(codeBuilder.parameterSlot(i))
-                                .arraylength()
-                                .invokestatic(CD_Checks,
-                                    "checkArraySize",
-                                    MTD_void_int_int);
-                        }
-
-                        // initialize stack
-                        if (shouldAddStack) {
-                            codeBuilder.invokestatic(CD_MemoryStack, "stackGet", MTD_MemoryStack)
-                                .astore(stackSlot)
-                                .aload(stackSlot)
-                                .invokevirtual(CD_MemoryStack, "pointer", MTD_long)
-                                .lstore(stackPointerSlot);
+                            allocatorSlot = -1;
                         }
 
                         codeBuilder.trying(
                             blockCodeBuilder -> {
-                                final boolean skipFirstParam = methodData.skipFirstParam();
-                                final int parameterSize = parameters.size();
+                                // before invoke
+                                Map<Parameter, Integer> refSlotMap = new HashMap<>();
+                                BeforeInvokeProcessor.getInstance().process(blockCodeBuilder,
+                                    new BeforeInvokeProcessor.Context(parameters, refSlotMap, allocatorSlot));
 
-                                final ClassDesc cd_returnTypeDowncall = convertToDowncallCD(method, returnType);
-                                final boolean returnVoid = returnType == void.class;
-
-                                // ref
-                                for (int i = 0, size = parameters.size(); i < size; i++) {
-                                    final Parameter parameter = parameters.get(i);
-                                    if (parameter.getDeclaredAnnotation(Ref.class) == null) {
-                                        continue;
-                                    }
-                                    final Class<?> type = parameter.getType();
-                                    if (type.isArray()) {
-                                        final Class<?> componentType = type.getComponentType();
-                                        final int slot = blockCodeBuilder.allocateLocal(TypeKind.ReferenceType);
-                                        blockCodeBuilder.aload(allocatorSlot)
-                                            .aload(blockCodeBuilder.parameterSlot(i));
-
-                                        if (componentType == String.class && getCharset(blockCodeBuilder, parameter)) {
-                                            blockCodeBuilder.invokestatic(CD_Marshal,
-                                                "marshal",
-                                                MTD_MemorySegment_SegmentAllocator_StringArray_Charset
-                                            ).astore(slot);
-                                        } else {
-                                            blockCodeBuilder.invokestatic(CD_Marshal,
-                                                "marshal",
-                                                MethodTypeDesc.of(CD_MemorySegment,
-                                                    CD_SegmentAllocator,
-                                                    convertToMarshalCD(componentType).arrayType())
-                                            ).astore(slot);
-                                        }
-                                        parameterRefSlot.put(parameter, slot);
-                                    }
-                                }
-
-                                // invocation
-                                final List<ClassDesc> parameterCDList = new ArrayList<>(skipFirstParam ? parameterSize - 1 : parameterSize);
+                                // invoke
                                 blockCodeBuilder.getstatic(cd_thisClass, handleName, CD_MethodHandle);
-                                for (int i = skipFirstParam ? 1 : 0; i < parameterSize; i++) {
-                                    final Parameter parameter = parameters.get(i);
-                                    final Class<?> type = parameter.getType();
-                                    final ClassDesc cd_parameterDowncall = convertToDowncallCD(parameter, type);
-
-                                    if (parameterRefSlot.containsKey(parameter)) {
-                                        blockCodeBuilder.aload(parameterRefSlot.get(parameter));
+                                List<ClassDesc> downcallClassDescList = new ArrayList<>();
+                                for (int i = methodData.skipFirstParam() ? 1 : 0, size = parameters.size(); i < size; i++) {
+                                    Parameter parameter = parameters.get(i);
+                                    ProcessorType processorType = ProcessorTypes.fromParameter(parameter);
+                                    if (refSlotMap.containsKey(parameter)) {
+                                        blockCodeBuilder.aload(refSlotMap.get(parameter));
                                     } else {
-                                        ArgumentProcessor.getInstance().process(
-                                            blockCodeBuilder,
-                                            ProcessorTypes.fromClass(type),
-                                            new ArgumentProcessorContext(
-                                                parameter,
+                                        MarshalProcessor.getInstance().process(blockCodeBuilder,
+                                            new MarshalProcessor.Context(processorType,
+                                                StringCharset.getCharset(parameter),
                                                 blockCodeBuilder.parameterSlot(i),
-                                                allocatorSlot,
-                                                parameter.getDeclaredAnnotation(Convert.class)
-                                            )
-                                        );
+                                                allocatorSlot));
                                     }
-
-                                    parameterCDList.add(cd_parameterDowncall);
+                                    downcallClassDescList.add(processorType.downcallClassDesc());
                                 }
+                                ProcessorType returnProcessorType = ProcessorTypes.fromMethod(method);
+                                ClassDesc cd_returnDowncall = returnProcessorType.downcallClassDesc();
+                                TypeKind returnDowncallTypeKind = TypeKind.from(cd_returnDowncall);
                                 blockCodeBuilder.invokevirtual(CD_MethodHandle,
                                     "invokeExact",
-                                    MethodTypeDesc.of(cd_returnTypeDowncall, parameterCDList));
-
-                                final int resultSlot;
-                                if (returnVoid) {
-                                    resultSlot = -1;
-                                } else {
-                                    final TypeKind typeKind = TypeKind.from(cd_returnTypeDowncall);
-                                    resultSlot = blockCodeBuilder.allocateLocal(typeKind);
-                                    blockCodeBuilder.storeLocal(typeKind, resultSlot);
+                                    MethodTypeDesc.of(cd_returnDowncall, downcallClassDescList));
+                                boolean returnVoid = returnType == void.class;
+                                int resultSlot = returnVoid ? -1 : blockCodeBuilder.allocateLocal(returnDowncallTypeKind);
+                                if (!returnVoid) {
+                                    blockCodeBuilder.storeLocal(returnDowncallTypeKind, resultSlot);
                                 }
 
-                                // copy ref result
-                                for (int i = 0, size = parameters.size(); i < size; i++) {
-                                    final Parameter parameter = parameters.get(i);
-                                    final Class<?> type = parameter.getType();
-                                    final Class<?> componentType = type.getComponentType();
-                                    if (parameter.getDeclaredAnnotation(Ref.class) != null &&
-                                        type.isArray()) {
-                                        final boolean isPrimitiveArray = componentType.isPrimitive();
-                                        final boolean isStringArray = componentType == String.class;
-                                        if (isPrimitiveArray || isStringArray) {
-                                            final int refSlot = parameterRefSlot.get(parameter);
-                                            final int parameterSlot = blockCodeBuilder.parameterSlot(i);
-                                            blockCodeBuilder.aload(refSlot)
-                                                .aload(parameterSlot);
-                                            if (isPrimitiveArray) {
-                                                blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                                    "copy",
-                                                    MethodTypeDesc.of(CD_void, CD_MemorySegment, ClassDesc.ofDescriptor(type.descriptorString())));
-                                            } else {
-                                                if (getCharset(blockCodeBuilder, parameter)) {
-                                                    blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                                        "copy",
-                                                        MTD_void_MemorySegment_StringArray_Charset);
-                                                } else {
-                                                    blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                                        "copy",
-                                                        MTD_void_MemorySegment_StringArray);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                // after invoke
+                                AfterInvokeProcessor.getInstance().process(blockCodeBuilder, new AfterInvokeProcessor.Context(parameters, refSlotMap));
 
-                                // wrap return value
-                                final int unmarshalSlot;
-                                if (returnVoid) {
-                                    unmarshalSlot = -1;
-                                } else {
-                                    if (shouldAddStack) {
-                                        unmarshalSlot = blockCodeBuilder.allocateLocal(returnTypeKind);
-                                    } else {
-                                        unmarshalSlot = -1;
-                                    }
-                                    blockCodeBuilder.loadLocal(TypeKind.from(cd_returnTypeDowncall), resultSlot);
-                                }
-                                final Convert convert = method.getDeclaredAnnotation(Convert.class);
-                                if (convert != null && returnType == boolean.class) {
-                                    blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                        "unmarshalAsBoolean",
-                                        MethodTypeDesc.of(CD_boolean, convert.value().classDesc()));
-                                } else if (returnType == String.class) {
-                                    final boolean hasCharset = getCharset(blockCodeBuilder, method);
-                                    blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                        "unboundString",
-                                        hasCharset ? MTD_String_MemorySegment_Charset : MTD_String_MemorySegment);
-                                } else if (Struct.class.isAssignableFrom(returnType)) {
-                                    blockCodeBuilder.ifThenElse(Opcode.IFNONNULL,
-                                        blockCodeBuilder1 -> {
-                                            final var structAllocatorField = getStructAllocatorField(returnType);
-                                            Objects.requireNonNull(structAllocatorField);
-                                            blockCodeBuilder1.getstatic(cd_returnType, structAllocatorField.getName(), CD_StructAllocator)
-                                                .aload(resultSlot)
-                                                .invokevirtual(CD_StructAllocator, "of", MTD_Object_MemorySegment)
-                                                .checkcast(cd_returnType);
-                                        },
-                                        CodeBuilder::aconst_null);
-                                } else if (returnType.isArray()) {
-                                    final Class<?> componentType = returnType.getComponentType();
-                                    if (componentType == String.class) {
-                                        final boolean hasCharset = getCharset(blockCodeBuilder, method);
-                                        blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                            "unmarshalAsStringArray",
-                                            hasCharset ? MTD_StringArray_MemorySegment_Charset : MTD_StringArray_MemorySegment);
-                                    } else if (componentType.isPrimitive() || componentType == MemorySegment.class) {
-                                        blockCodeBuilder.invokestatic(CD_Unmarshal,
-                                            unmarshalMethod(returnType),
-                                            MethodTypeDesc.of(cd_returnType, CD_MemorySegment));
-                                    }
-                                }
-
-                                // reset stack
-                                if (shouldAddStack) {
-                                    if (!returnVoid) {
-                                        blockCodeBuilder.storeLocal(returnTypeKind, unmarshalSlot);
-                                    }
-                                    blockCodeBuilder.aload(stackSlot)
-                                        .lload(stackPointerSlot)
-                                        .invokevirtual(CD_MemoryStack, "setPointer", MTD_void_long);
-                                    if (!returnVoid) {
-                                        blockCodeBuilder.loadLocal(returnTypeKind, unmarshalSlot);
-                                    }
-                                }
+                                // before return
+                                BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
 
                                 // return
+                                UnmarshalProcessor.getInstance().process(blockCodeBuilder,
+                                    new UnmarshalProcessor.Context(returnProcessorType,
+                                        StringCharset.getCharset(method),
+                                        resultSlot));
                                 blockCodeBuilder.return_(returnTypeKind);
                             },
                             catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
-                                final int slot = blockCodeBuilder.allocateLocal(TypeKind.ReferenceType);
-                                // create exception
+                                BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
+                                // rethrow the exception
+                                int slot = blockCodeBuilder.allocateLocal(TypeKind.ReferenceType);
                                 blockCodeBuilder.astore(slot)
                                     .new_(CD_IllegalStateException)
                                     .dup()
-                                    .ldc(methodData.exceptionString())
+                                    .ldc(methodData.signatureString())
                                     .aload(slot)
-                                    .invokespecial(CD_IllegalStateException, INIT_NAME, MTD_void_String_Throwable);
-                                // reset stack
-                                if (shouldAddStack) {
-                                    blockCodeBuilder.aload(stackSlot)
-                                        .lload(stackPointerSlot)
-                                        .invokevirtual(CD_MemoryStack, "setPointer", MTD_void_long);
-                                }
-                                // throw
-                                blockCodeBuilder.athrow();
-                            })
-                        );
+                                    .invokespecial(CD_IllegalStateException, INIT_NAME, MTD_void_String_Throwable)
+                                    .athrow();
+                            }));
+
                         //endregion
-                    }));
+                    });
             }
             //endregion
 
             //region DirectAccess
             final boolean hasDirectAccess = DirectAccess.class.isAssignableFrom(targetClass);
             if (hasDirectAccess) {
-                classBuilder.withMethod("functionDescriptors",
+                classBuilder.withMethodBody("functionDescriptors",
                     MTD_Map,
                     ACC_PUBLIC,
-                    methodBuilder -> methodBuilder.withCode(codeBuilder -> codeBuilder
+                    codeBuilder -> codeBuilder
                         .ldc(DCD_classData_DowncallData)
                         .invokevirtual(CD_DowncallData, "descriptorMap", MTD_Map)
-                        .areturn()));
-                classBuilder.withMethod("methodHandles",
+                        .areturn());
+                classBuilder.withMethodBody("methodHandles",
                     MTD_Map,
                     ACC_PUBLIC,
-                    methodBuilder -> methodBuilder.withCode(codeBuilder -> codeBuilder
+                    codeBuilder -> codeBuilder
                         .ldc(DCD_classData_DowncallData)
                         .invokevirtual(CD_DowncallData, "handleMap", MTD_Map)
-                        .areturn()));
-                classBuilder.withMethod("symbolLookup",
+                        .areturn());
+                classBuilder.withMethodBody("symbolLookup",
                     MTD_SymbolLookup,
                     ACC_PUBLIC,
-                    methodBuilder -> methodBuilder.withCode(codeBuilder -> codeBuilder
+                    codeBuilder -> codeBuilder
                         .ldc(DCD_classData_DowncallData)
                         .invokevirtual(CD_DowncallData, "symbolLookup", MTD_SymbolLookup)
-                        .areturn()));
+                        .areturn());
             }
             //endregion
 
             //region class initializer
-            classBuilder.withMethod(CLASS_INIT_NAME, MTD_void, ACC_STATIC,
-                methodBuilder -> methodBuilder.withCode(codeBuilder -> {
+            classBuilder.withMethodBody(CLASS_INIT_NAME, MTD_void, ACC_STATIC,
+                codeBuilder -> {
                     final int handleMapSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
                     codeBuilder.ldc(DCD_classData_DowncallData)
                         .invokevirtual(CD_DowncallData, "handleMap", MTD_Map)
@@ -669,14 +526,27 @@ public final class Downcall {
                     });
 
                     codeBuilder.return_();
-                }));
+                });
             //endregion
-        });
+        }), downcallData);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T loadBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
+        var built = buildBytecode(caller, lookup, options);
 
         try {
+            //TODO
+            if (DEBUG) {
+                Path path = Path.of("run/" + caller.lookupClass().getSimpleName() + ".class");
+                if (Files.notExists(path.getParent())) {
+                    Files.createDirectories(path.getParent());
+                }
+                Files.write(path, built.getKey());
+            }
             final MethodHandles.Lookup hiddenClass = caller.defineHiddenClassWithClassData(
-                bytes,
-                downcallData,
+                built.getKey(),
+                built.getValue(),
                 true,
                 MethodHandles.Lookup.ClassOption.STRONG
             );
@@ -735,15 +605,17 @@ public final class Downcall {
         return false;
     }
 
-    private static String createExceptionString(Method method) {
+    private static String createSignatureString(Method method) {
         return method.getReturnType().getCanonicalName() + " " +
             method.getDeclaringClass().getCanonicalName() + "." + method.getName() +
             Arrays.stream(method.getParameterTypes()).map(Class::getCanonicalName)
                 .collect(Collectors.joining(", ", "(", ")"));
     }
 
-    private static void verifyMethods(List<Method> list, Map<Method, String> exceptionStringMap) {
-        for (Method method : list) {// check method return type
+    private static void verifyMethods(List<Method> list, Map<Method, String> signatureStringMap) {
+        for (Method method : list) {
+            String signature = signatureStringMap.get(method);
+            // check method return type
             final Class<?> returnType = method.getReturnType();
             if (Struct.class.isAssignableFrom(returnType)) {
                 boolean foundAllocator = false;
@@ -757,11 +629,12 @@ public final class Downcall {
                     throw new IllegalStateException("The struct " + returnType + " must contain one public static field that is StructAllocator");
                 }
             } else if (!isValidReturnType(returnType)) {
-                throw new IllegalStateException("Invalid return type: " + exceptionStringMap.get(method));
+                throw new IllegalStateException("Invalid return type: " + signature);
             }
 
             // check method parameter
             final Class<?>[] types = method.getParameterTypes();
+            final boolean isFirstAllocator = types.length > 0 && SegmentAllocator.class.isAssignableFrom(types[0]);
             final boolean isFirstArena = types.length > 0 && Arena.class.isAssignableFrom(types[0]);
             for (Parameter parameter : method.getParameters()) {
                 final Class<?> type = parameter.getType();
@@ -771,44 +644,62 @@ public final class Downcall {
                     throw new IllegalStateException("Invalid parameter: " + parameter + " in " + method);
                 }
             }
+
+            // check allocator requirement
+            boolean byValue = method.getDeclaredAnnotation(ByValue.class) != null;
+            AllocatorRequirement allocatorRequirement = byValue ?
+                AllocatorRequirement.ALLOCATOR :
+                AllocatorRequirement.NONE;
+            Object strictObject = byValue ? "annotation @ByValue" : null;
+            for (Parameter parameter : method.getParameters()) {
+                final Class<?> type = parameter.getType();
+                ProcessorType processorType = ProcessorTypes.fromClass(type);
+                AllocatorRequirement previous = allocatorRequirement;
+                allocatorRequirement = AllocatorRequirement.stricter(allocatorRequirement, processorType.allocationRequirement());
+                if (allocatorRequirement != previous) {
+                    strictObject = parameter;
+                }
+            }
+            switch (allocatorRequirement) {
+                case NONE, STACK -> {
+                }
+                case ALLOCATOR -> {
+                    if (!isFirstAllocator) {
+                        throw new IllegalStateException("A segment allocator is required by " + strictObject + ": " + signature);
+                    }
+                }
+                case ARENA -> {
+                    if (!isFirstArena) {
+                        throw new IllegalStateException("An arena is required by " + strictObject + ": " + signature);
+                    }
+                }
+                default -> throw new IllegalStateException("Invalid allocator requirement: " + allocatorRequirement);
+            }
+
+            // check Sized annotation
+            boolean sized = method.getDeclaredAnnotation(Sized.class) != null;
+            boolean sizedSeg = method.getDeclaredAnnotation(SizedSeg.class) != null;
+            if (sized && sizedSeg) {
+                throw new IllegalStateException("Cannot be annotated with both @Sized and @SizedSeg: " + signature);
+            }
+            if (sized) {
+                if (!returnType.isArray()) {
+                    throw new IllegalStateException("Return type annotated with @Sized must be an array: " + signature);
+                }
+            } else if (sizedSeg) {
+                if (returnType != MemorySegment.class && !Struct.class.isAssignableFrom(returnType)) {
+                    throw new IllegalStateException("Return type annotated with @SizedSeg must be MemorySegment or Struct: " + signature);
+                }
+            }
         }
     }
 
-    private static boolean isValidParamArrayType(Class<?> aClass) {
-        if (!aClass.isArray()) return false;
-        final Class<?> type = aClass.getComponentType();
-        return type.isPrimitive() ||
-            type == MemorySegment.class ||
-            type == String.class ||
-            Addressable.class.isAssignableFrom(type) ||
-            Upcall.class.isAssignableFrom(type);
-    }
-
-    private static boolean isValidReturnArrayType(Class<?> aClass) {
-        if (!aClass.isArray()) return false;
-        final Class<?> type = aClass.getComponentType();
-        return type.isPrimitive() ||
-            type == MemorySegment.class ||
-            type == String.class;
-    }
-
     private static boolean isValidParamType(Class<?> aClass) {
-        return aClass.isPrimitive() ||
-            aClass == MemorySegment.class ||
-            aClass == String.class ||
-            SegmentAllocator.class.isAssignableFrom(aClass) ||
-            Addressable.class.isAssignableFrom(aClass) ||
-            Upcall.class.isAssignableFrom(aClass) ||
-            isValidParamArrayType(aClass);
+        return ProcessorTypes.isRegistered(aClass);
     }
 
     private static boolean isValidReturnType(Class<?> aClass) {
-        return aClass.isPrimitive() ||
-            aClass == MemorySegment.class ||
-            aClass == String.class ||
-            Struct.class.isAssignableFrom(aClass) ||
-            isValidReturnArrayType(aClass) ||
-            aClass == MethodHandle.class;
+        return aClass == MethodHandle.class || ProcessorTypes.isRegistered(aClass);
     }
 
     private static DowncallData generateData(
@@ -823,7 +714,6 @@ public final class Downcall {
             Method method = entry.getKey();
             DowncallMethodData methodData = entry.getValue();
             final String entrypoint = methodData.entrypoint();
-            final Optional<MemorySegment> optional = lookup.find(entrypoint);
 
             // function descriptor
             final FunctionDescriptor descriptor;
@@ -849,8 +739,7 @@ public final class Downcall {
                         final boolean isSizedSeg = sizedSeg != null;
                         final boolean isSized = sized != null;
                         if (Struct.class.isAssignableFrom(returnType)) {
-                            final var structAllocatorField = getStructAllocatorField(returnType);
-                            Objects.requireNonNull(structAllocatorField);
+                            final var structAllocatorField = Objects.requireNonNull(getStructAllocatorField(returnType));
                             final StructLayout structLayout;
                             try {
                                 structLayout = ((StructAllocator<?>) structAllocatorField.get(null)).layout();
@@ -912,6 +801,7 @@ public final class Downcall {
 
             descriptorMap1.put(entrypoint, descriptor);
 
+            final Optional<MemorySegment> optional = lookup.find(entrypoint);
             if (optional.isPresent()) {
                 // linker options
                 final Linker.Option[] options;
@@ -928,10 +818,13 @@ public final class Downcall {
             } else if (method.isDefault()) {
                 map.putIfAbsent(entrypoint, null);
             } else {
-                throw new UnsatisfiedLinkError("unresolved symbol: " + entrypoint + " (" + descriptor + "): " + methodData.exceptionString());
+                throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + methodData.signatureString());
             }
         }
-        return new DowncallData(Collections.unmodifiableMap(descriptorMap1), Collections.unmodifiableMap(map), lookup);
+        return new DowncallData(Collections.unmodifiableMap(descriptorMap1),
+            Collections.unmodifiableMap(map),
+            lookup,
+            ProcessorTypes.collect(ProcessorType.Struct.class));
     }
 
     private static Field getStructAllocatorField(Class<?> aClass) {

@@ -14,19 +14,36 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal;
+package overrun.marshal.gen.processor;
 
-import java.lang.foreign.MemorySegment;
+import java.lang.classfile.CodeBuilder;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * An object that holds a memory segment.
+ * A processor with a list of processors
  *
+ * @param <C> context type
  * @author squid233
  * @since 0.1.0
  */
-public interface Addressable {
+public abstract class BaseProcessor<C> implements Processor<C> {
     /**
-     * {@return the memory segment of this object}
+     * processors
      */
-    MemorySegment segment();
+    protected final List<Processor<C>> processors = new ArrayList<>();
+
+    @Override
+    public boolean process(CodeBuilder builder, C context) {
+        for (var processor : processors) {
+            if (!processor.process(builder, context)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void addProcessor(Processor<C> processor) {
+        processors.add(processor);
+    }
 }

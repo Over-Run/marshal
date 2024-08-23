@@ -16,7 +16,7 @@
 
 package overrun.marshal.gen;
 
-import overrun.marshal.Configurations;
+import overrun.marshal.MarshalConfigs;
 
 import java.lang.annotation.*;
 
@@ -29,7 +29,7 @@ import java.lang.annotation.*;
  * }</pre>
  *
  * @author squid233
- * @see Configurations#CHECK_ARRAY_SIZE
+ * @see MarshalConfigs#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
 @Documented

@@ -21,19 +21,17 @@ import java.lang.classfile.CodeBuilder;
 /**
  * Processor
  *
- * @param <T> target type
  * @param <C> context type
  * @author squid233
  * @since 0.1.0
  */
-public interface Processor<T, C> {
+public interface Processor<C> {
     /**
      * Processes with the context
      *
      * @param builder the code builder
-     * @param type    the type
      * @param context the context
      * @return {@code true} if should continue; {@code false} otherwise
      */
-    boolean process(CodeBuilder builder, T type, C context);
+    boolean process(CodeBuilder builder, C context);
 }

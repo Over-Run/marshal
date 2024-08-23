@@ -59,7 +59,10 @@ public final class StringCharset {
      * @param codeBuilder codeBuilder
      * @param charset     charset
      */
-    public static void getCharset(CodeBuilder codeBuilder, String charset) {
+    public static boolean getCharset(CodeBuilder codeBuilder, String charset) {
+        if (charset == null) {
+            return false;
+        }
         final String upperCase = charset.toUpperCase(Locale.ROOT);
         switch (upperCase) {
             case "UTF-8", "ISO-8859-1", "US-ASCII",
@@ -72,20 +75,6 @@ public final class StringCharset {
             default -> codeBuilder.ldc(charset)
                 .invokestatic(CD_Charset, "forName", MTD_Charset_String);
         }
-    }
-
-    /**
-     * {@return getCharset}
-     *
-     * @param codeBuilder codeBuilder
-     * @param element     element
-     */
-    public static boolean getCharset(CodeBuilder codeBuilder, AnnotatedElement element) {
-        final String charset = getCharset(element);
-        if (charset != null) {
-            getCharset(codeBuilder, charset);
-            return true;
-        }
-        return false;
+        return true;
     }
 }

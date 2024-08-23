@@ -16,6 +16,8 @@
 
 package overrun.marshal.gen;
 
+import overrun.marshal.gen.processor.ProcessorType;
+
 import java.lang.annotation.*;
 
 /**
@@ -25,10 +27,10 @@ import java.lang.annotation.*;
  * The type of the marked element must be {@code boolean}; otherwise this annotation will be ignored.
  * <h2>Example</h2>
  * <pre>{@code
- * @Convert(Type.INT)
+ * @Convert(ProcessorType.BoolConvert.INT)
  * boolean returnInt();
  *
- * void acceptInt(@Convert(Type.INT) boolean i);
+ * void acceptInt(@Convert(ProcessorType.BoolConvert.INT) boolean i);
  * }</pre>
  *
  * @author squid233
@@ -41,5 +43,5 @@ public @interface Convert {
     /**
      * {@return the type to be converted}
      */
-    Type value();
+    ProcessorType.BoolConvert value();
 }

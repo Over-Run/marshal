@@ -16,6 +16,8 @@
 
 package overrun.marshal.gen;
 
+import overrun.marshal.gen.processor.ProcessorType;
+
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.ValueLayout;
 
@@ -31,38 +33,40 @@ public enum Type {
     /**
      * {@code char} type
      */
-    CHAR(CD_char, ValueLayout.JAVA_CHAR),
+    CHAR(CD_char, ValueLayout.JAVA_CHAR, ProcessorType.Value.CHAR),
     /**
      * {@code byte} type
      */
-    BYTE(CD_byte, ValueLayout.JAVA_BYTE),
+    BYTE(CD_byte, ValueLayout.JAVA_BYTE, ProcessorType.Value.BYTE),
     /**
      * {@code short} type
      */
-    SHORT(CD_short, ValueLayout.JAVA_SHORT),
+    SHORT(CD_short, ValueLayout.JAVA_SHORT, ProcessorType.Value.SHORT),
     /**
      * {@code int} type
      */
-    INT(CD_int, ValueLayout.JAVA_INT),
+    INT(CD_int, ValueLayout.JAVA_INT, ProcessorType.Value.INT),
     /**
      * {@code long} type
      */
-    LONG(CD_long, ValueLayout.JAVA_LONG),
+    LONG(CD_long, ValueLayout.JAVA_LONG, ProcessorType.Value.LONG),
     /**
      * {@code float} type
      */
-    FLOAT(CD_float, ValueLayout.JAVA_FLOAT),
+    FLOAT(CD_float, ValueLayout.JAVA_FLOAT, ProcessorType.Value.FLOAT),
     /**
      * {@code double} type
      */
-    DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE);
+    DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE, ProcessorType.Value.DOUBLE);
 
     private final ClassDesc classDesc;
     private final ValueLayout layout;
+    private final ProcessorType.Value processorType;
 
-    Type(ClassDesc classDesc, ValueLayout layout) {
+    Type(ClassDesc classDesc, ValueLayout layout, ProcessorType.Value processorType) {
         this.classDesc = classDesc;
         this.layout = layout;
+        this.processorType = processorType;
     }
 
     /**
@@ -77,5 +81,12 @@ public enum Type {
      */
     public ValueLayout layout() {
         return layout;
+    }
+
+    /**
+     * {@return the processor type of this type}
+     */
+    public ProcessorType.Value processorType() {
+        return processorType;
     }
 }

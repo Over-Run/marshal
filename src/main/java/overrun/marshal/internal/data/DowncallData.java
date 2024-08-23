@@ -16,6 +16,8 @@
 
 package overrun.marshal.internal.data;
 
+import overrun.marshal.gen.processor.ProcessorType;
+
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
@@ -27,12 +29,14 @@ import java.util.Map;
  * @param descriptorMap descriptorMap
  * @param handleMap     handleMap
  * @param symbolLookup  symbolLookup
+ * @param structTypeMap structTypeMap
  * @author squid233
  * @since 0.1.0
  */
 public record DowncallData(
     Map<String, FunctionDescriptor> descriptorMap,
     Map<String, MethodHandle> handleMap,
-    SymbolLookup symbolLookup
+    SymbolLookup symbolLookup,
+    Map<Class<?>, ProcessorType.Struct> structTypeMap
 ) {
 }

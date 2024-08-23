@@ -14,26 +14,28 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen.processor;
+package overrun.marshal.struct;
 
-import overrun.marshal.gen.Convert;
-
-import java.lang.reflect.Parameter;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.StructLayout;
 
 /**
- * The argument processor context
+ * Specification of {@link StructAllocator}.
  *
- * @param parameter     parameter
- * @param parameterSlot parameter slot
- * @param allocatorSlot allocator slot
- * @param convert       boolean convert
  * @author squid233
  * @since 0.1.0
  */
-public record ArgumentProcessorContext(
-    Parameter parameter,
-    int parameterSlot,
-    int allocatorSlot,
-    Convert convert
-) {
+public interface StructAllocatorSpec<T> {
+    /**
+     * Creates a struct with the given segment.
+     *
+     * @param segment the segment
+     * @return the instance of the struct
+     */
+    T of(MemorySegment segment);
+
+    /**
+     * {@return the layout of this struct}
+     */
+    StructLayout layout();
 }
