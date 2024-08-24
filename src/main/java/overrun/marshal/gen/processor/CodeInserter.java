@@ -24,7 +24,7 @@ import java.util.List;
  * @author squid233
  * @since 0.1.0
  */
-public abstract class CodeInserter<T> {
+public abstract class CodeInserter<T> implements Processor<CodeInserter<T>> {
     private final List<CodeInserter<T>> list = new ArrayList<>();
 
     public void process(CodeBuilder builder, T context) {
@@ -33,6 +33,7 @@ public abstract class CodeInserter<T> {
         }
     }
 
+    @Override
     public void addProcessor(CodeInserter<T> processor) {
         list.add(processor);
     }

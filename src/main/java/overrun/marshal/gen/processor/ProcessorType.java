@@ -21,9 +21,7 @@ import overrun.marshal.struct.StructAllocatorSpec;
 
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.ValueLayout;
+import java.lang.foreign.*;
 import java.util.Locale;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -41,6 +39,11 @@ public sealed interface ProcessorType {
      * {@return the class desc for method handles (functions in C)}
      */
     ClassDesc downcallClassDesc();
+
+    /**
+     * {@return the memory layout for functions in C}
+     */
+    MemoryLayout downcallLayout();
 
     /**
      * {@return the allocator requirement}
@@ -85,6 +88,11 @@ public sealed interface ProcessorType {
         @Override
         public ClassDesc downcallClassDesc() {
             return CD_void;
+        }
+
+        @Override
+        public MemoryLayout downcallLayout() {
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -158,16 +166,14 @@ public sealed interface ProcessorType {
             return typeKind;
         }
 
-        /**
-         * {@return the layout of this type}
-         */
-        public ValueLayout layout() {
-            return layout;
-        }
-
         @Override
         public ClassDesc downcallClassDesc() {
             return classDesc;
+        }
+
+        @Override
+        public ValueLayout downcallLayout() {
+            return layout;
         }
 
         @Override
@@ -231,16 +237,14 @@ public sealed interface ProcessorType {
             return typeKind;
         }
 
-        /**
-         * {@return the layout of this type}
-         */
-        public ValueLayout layout() {
-            return layout;
-        }
-
         @Override
         public ClassDesc downcallClassDesc() {
             return classDesc;
+        }
+
+        @Override
+        public ValueLayout downcallLayout() {
+            return layout;
         }
 
         @Override
@@ -272,6 +276,11 @@ public sealed interface ProcessorType {
         }
 
         @Override
+        public MemoryLayout downcallLayout() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.NONE; // this is invalid
         }
@@ -297,6 +306,11 @@ public sealed interface ProcessorType {
         @Override
         public ClassDesc downcallClassDesc() {
             return CD_MemorySegment;
+        }
+
+        @Override
+        public ValueLayout downcallLayout() {
+            return ValueLayout.ADDRESS;
         }
 
         @Override
@@ -346,6 +360,11 @@ public sealed interface ProcessorType {
         @Override
         public ClassDesc downcallClassDesc() {
             return CD_MemorySegment;
+        }
+
+        @Override
+        public MemoryLayout downcallLayout() {
+            return allocatorSpec != null ? allocatorSpec.layout() : ValueLayout.ADDRESS;
         }
 
         @Override
@@ -405,6 +424,11 @@ public sealed interface ProcessorType {
         }
 
         @Override
+        public ValueLayout downcallLayout() {
+            return ValueLayout.ADDRESS;
+        }
+
+        @Override
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.ARENA;
         }
@@ -424,6 +448,11 @@ public sealed interface ProcessorType {
         @Override
         public ClassDesc downcallClassDesc() {
             return CD_MemorySegment;
+        }
+
+        @Override
+        public ValueLayout downcallLayout() {
+            return ValueLayout.ADDRESS;
         }
 
         @Override

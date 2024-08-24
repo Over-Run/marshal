@@ -24,7 +24,7 @@ import java.util.List;
  * @author squid233
  * @since 0.1.0
  */
-public abstract class TypedCodeProcessor<T> {
+public abstract class TypedCodeProcessor<T> implements Processor<TypedCodeProcessor<T>> {
     private final List<TypedCodeProcessor<T>> list = new ArrayList<>();
 
     public boolean process(CodeBuilder builder, ProcessorType type, T context) {
@@ -36,6 +36,7 @@ public abstract class TypedCodeProcessor<T> {
         throw new IllegalStateException(this.getClass().getSimpleName() + ": type '" + type + "' was not processed");
     }
 
+    @Override
     public void addProcessor(TypedCodeProcessor<T> processor) {
         list.add(processor);
     }

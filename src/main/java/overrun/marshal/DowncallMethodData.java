@@ -24,11 +24,12 @@ import java.util.List;
 /**
  * Holds downcall method name
  *
- * @param entrypoint           entrypoint
- * @param signatureString      signatureString
- * @param parameters           parameters
- * @param skipFirstParam       skipFirstParam
- * @param allocatorRequirement allocatorRequirement
+ * @param entrypoint                   entrypoint
+ * @param signatureString              signatureString
+ * @param parameters                   parameters
+ * @param invokeSkipFirstParameter     invokeSkipFirstParameter
+ * @param descriptorSkipFirstParameter descriptorSkipFirstParameter
+ * @param allocatorRequirement         allocatorRequirement
  * @author squid233
  * @since 0.1.0
  */
@@ -36,7 +37,8 @@ record DowncallMethodData(
     String entrypoint,
     String signatureString,
     List<Parameter> parameters,
-    boolean skipFirstParam,
+    boolean invokeSkipFirstParameter,
+    boolean descriptorSkipFirstParameter,
     AllocatorRequirement allocatorRequirement
 ) {
 }

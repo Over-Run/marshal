@@ -16,7 +16,6 @@
 
 package overrun.marshal.test.downcall;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import overrun.marshal.test.TestUtil;
@@ -68,13 +67,28 @@ public final class DowncallTest {
     }
 
     @Test
+    void testStructByValue() {
+        try (Arena arena = Arena.ofConfined()) {
+            final Vector3 vector3 = Vector3.OF.of(arena);
+            MemorySegment segment = vector3.segment();
+            segment.set(ValueLayout.JAVA_INT, 0, 42);
+            segment.set(ValueLayout.JAVA_INT, 4, 43);
+            segment.set(ValueLayout.JAVA_INT, 8, 44);
+            d.testStructByValue(vector3);
+            assertEquals(42, vector3.x());
+            assertEquals(43, vector3.y());
+            assertEquals(44, vector3.z());
+        }
+    }
+
+    @Test
     void testReturnInt() {
         assertEquals(42, d.testReturnInt());
     }
 
     @Test
     void testReturnString() {
-        Assertions.assertEquals(TestUtil.TEST_STRING, d.testReturnString());
+        assertEquals(TestUtil.TEST_STRING, d.testReturnString());
         assertEquals(TestUtil.TEST_UTF16_STRING, d.testReturnUTF16String());
     }
 

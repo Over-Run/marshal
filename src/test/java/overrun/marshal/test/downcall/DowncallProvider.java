@@ -57,6 +57,7 @@ public final class DowncallProvider {
             seg("testIntArray", LOOKUP.findStatic(DowncallProvider.class, "testIntArray", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
             seg("testVarArgsJava", LOOKUP.findStatic(DowncallProvider.class, "testVarArgsJava", MethodType.methodType(void.class, int.class, MemorySegment.class)), FunctionDescriptor.ofVoid(JAVA_INT, ADDRESS));
             seg("testStruct", LOOKUP.findStatic(DowncallProvider.class, "testStruct", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
+            seg("testStructByValue", LOOKUP.findStatic(DowncallProvider.class, "testStructByValue", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(Vector3.OF.layout()));
             seg("testReturnInt", LOOKUP.findStatic(DowncallProvider.class, "testReturnInt", MethodType.methodType(int.class)), FunctionDescriptor.of(JAVA_INT));
             seg("testReturnString", LOOKUP.findStatic(DowncallProvider.class, "testReturnString", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
             seg("testReturnUTF16String", LOOKUP.findStatic(DowncallProvider.class, "testReturnUTF16String", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
@@ -130,6 +131,12 @@ public final class DowncallProvider {
 
     private static void testStruct(MemorySegment vector3) {
         writeVector3(vector3.reinterpret(Vector3.OF.layout().byteSize()), 1, 2, 3);
+    }
+
+    private static void testStructByValue(MemorySegment vector3) {
+        // simulates writing.
+        // the content in the original structure cannot be modified because it is passed-by-value
+        writeVector3(vector3, 1, 2, 3);
     }
 
     private static int testReturnInt() {

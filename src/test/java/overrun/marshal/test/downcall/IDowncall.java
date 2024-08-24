@@ -80,6 +80,8 @@ public interface IDowncall {
 
     void testStruct(Vector3 vector3);
 
+    void testStructByValue(@ByValue Vector3 vector3);
+
     int testReturnInt();
 
     String testReturnString();
@@ -97,7 +99,7 @@ public interface IDowncall {
     @ByValue
     Vector3 testReturnStructByValue(SegmentAllocator allocator, int i);
 
-    @SizedSeg(2L)
+    @Sized(2L)
     Vector3 testReturnStructSizedSeg();
 
     @Sized(2)
@@ -105,7 +107,7 @@ public interface IDowncall {
 
     void testSizedIntArray(@Sized(2) int[] arr);
 
-    @SizedSeg(4L)
+    @Sized(4L)
     MemorySegment testReturnSizedSeg();
 
     void testRefIntArray(@Ref int[] arr);

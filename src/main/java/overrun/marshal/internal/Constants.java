@@ -379,9 +379,9 @@ public final class Constants {
      */
     public static final MethodTypeDesc MTD_VarHandle_MemoryLayout$PathElementArray = MethodTypeDesc.of(CD_VarHandle, CD_MemoryLayout$PathElement.arrayType());
     /**
-     * MTD_void_int_int
+     * MTD_void_long_int
      */
-    public static final MethodTypeDesc MTD_void_int_int = MethodTypeDesc.of(CD_void, CD_int, CD_int);
+    public static final MethodTypeDesc MTD_void_long_int = MethodTypeDesc.of(CD_void, CD_long, CD_int);
     /**
      * MTD_void_MemorySegment_long
      */

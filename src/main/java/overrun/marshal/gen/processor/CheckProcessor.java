@@ -22,8 +22,7 @@ import java.lang.classfile.CodeBuilder;
 import java.lang.reflect.Parameter;
 import java.util.List;
 
-import static overrun.marshal.internal.Constants.CD_Checks;
-import static overrun.marshal.internal.Constants.MTD_void_int_int;
+import static overrun.marshal.internal.Constants.*;
 
 /**
  * insert check codes
@@ -48,7 +47,7 @@ public final class CheckProcessor extends CodeInserter<CheckProcessor.Context> {
                         .arraylength()
                         .invokestatic(CD_Checks,
                             "checkArraySize",
-                            MTD_void_int_int);
+                            MTD_void_long_int);
                 }
             }
         }

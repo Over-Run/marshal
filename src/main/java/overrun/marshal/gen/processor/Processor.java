@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,31 +14,12 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
-
-import overrun.marshal.MarshalConfigs;
-
-import java.lang.annotation.*;
+package overrun.marshal.gen.processor;
 
 /**
- * Marks a memory segment as fix-sized.
- * <h2>Example</h2>
- * <pre>{@code
- * @SizedSeg(0x7FFFFFFFFFFFFFFFL)
- * MemorySegment segment;
- * }</pre>
- *
  * @author squid233
- * @see MarshalConfigs#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
-@Documented
-@Target({ElementType.METHOD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.RUNTIME)
-@Deprecated
-public @interface SizedSeg {
-    /**
-     * {@return the size of the memory segment}
-     */
-    long value();
+public interface Processor<T extends Processor<T>> {
+    void addProcessor(T processor);
 }
