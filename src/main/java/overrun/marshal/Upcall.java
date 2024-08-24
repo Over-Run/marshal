@@ -18,6 +18,7 @@ package overrun.marshal;
 
 import overrun.marshal.gen.processor.ProcessorType;
 import overrun.marshal.gen.processor.ProcessorTypes;
+import overrun.marshal.gen.processor.UnmarshalProcessor;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
@@ -31,6 +32,10 @@ import java.lang.invoke.MethodHandles;
  * <p>
  * The target method must <strong>NOT</strong> throw any exception.
  * Otherwise, the JVM might crash.
+ * <p>
+ * Returning an {@code Upcall} from a downcall method requires a
+ * {@linkplain ProcessorTypes#registerUpcall(Class, ProcessorType.Upcall.Factory) registration} to tell
+ * {@link UnmarshalProcessor} how to create an instance of the {@code Upcall}.
  * <h2>Example</h2>
  * <pre>{@code
  * // The implementation must be public if you use Type
@@ -38,11 +43,7 @@ import java.lang.invoke.MethodHandles;
  * @FunctionalInterface
  * public interface MyCallback extends Upcall {
  *     // Create a type wrapper
- *     // (Optional) Register to ProcessorTypes to allow C functions to return the upcall instance
- *     Type<MyCallback> TYPE = Upcall.register(
- *         Upcall.type("invoke", FunctionDescriptor.of(JAVA_INT, JAVA_INT)),
- *         stub -> i -> invoke(stub, i)
- *     );
+ *     Type<MyCallback> TYPE = Upcall.type("invoke", FunctionDescriptor.of(JAVA_INT, JAVA_INT));
  *
  *     // The function to be invoked in C
  *     int invoke(int i);
@@ -118,19 +119,6 @@ public interface Upcall {
      */
     static <T extends Upcall> Type<T> type(Class<T> tClass, String targetName, FunctionDescriptor descriptor) {
         return new Type<>(tClass, targetName, descriptor);
-    }
-
-    /**
-     * Registers the given type to {@link ProcessorTypes}.
-     *
-     * @param type    the {@link Type}
-     * @param factory the factory
-     * @param <T>     the type of the upcall
-     * @return {@code type}
-     */
-    static <T extends Upcall> Type<T> register(Type<T> type, ProcessorType.Upcall.Factory<T> factory) {
-        ProcessorTypes.registerUpcall(type.typeClass, factory);
-        return type;
     }
 
     /**

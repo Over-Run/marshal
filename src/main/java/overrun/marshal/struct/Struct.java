@@ -17,6 +17,8 @@
 package overrun.marshal.struct;
 
 import overrun.marshal.Unmarshal;
+import overrun.marshal.gen.processor.ProcessorTypes;
+import overrun.marshal.gen.processor.UnmarshalProcessor;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -26,6 +28,10 @@ import java.util.Objects;
 
 /**
  * The representation of a C structure.
+ * <p>
+ * Returning a {@code Struct} from a downcall method requires a
+ * {@linkplain ProcessorTypes#registerStruct(Class, StructAllocatorSpec) registration} to tell
+ * {@link UnmarshalProcessor} how to create an instance of the {@code Struct}.
  *
  * @param <T> the type of the actual structure interface
  * @author squid233

@@ -17,7 +17,6 @@
 package overrun.marshal.struct;
 
 import overrun.marshal.LayoutBuilder;
-import overrun.marshal.gen.processor.ProcessorTypes;
 
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.TypeKind;
@@ -146,7 +145,6 @@ public final class StructAllocator<T> implements StructAllocatorSpec<T> {
      * @param layout the struct layout
      */
     public StructAllocator(MethodHandles.Lookup lookup, StructLayout layout) {
-        ProcessorTypes.registerStruct(lookup.lookupClass(), this);
         this.layout = layout;
         final byte[] bytes = buildBytecode(lookup, layout);
         try {

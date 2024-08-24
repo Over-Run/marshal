@@ -97,6 +97,12 @@ import static overrun.marshal.internal.Constants.*;
  * MethodHandle mh_glClear();
  * default void glClear(int mask) throws Throwable { mh_glClear().invokeExact(mask); }
  * }</pre>
+ * <h2>Processor Types</h2>
+ * Processor types are used to process builtin and custom types.
+ * You can {@linkplain ProcessorTypes#register(Class, ProcessorType) register} a type
+ * and {@linkplain BaseProcessor#addProcessor(Processor) add} your own processor.
+ * <p>
+ * For custom types, you must add processors to {@link MarshalProcessor} and {@link UnmarshalProcessor}.
  * <h2>Example</h2>
  * <pre>{@code
  * public interface GL {
@@ -177,6 +183,7 @@ public final class Downcall {
 
     // type
 
+    @Deprecated
     private static ValueLayout getValueLayout(Class<?> carrier) {
         if (carrier == boolean.class) return ValueLayout.JAVA_BOOLEAN;
         if (carrier == char.class) return ValueLayout.JAVA_CHAR;
@@ -555,20 +562,10 @@ public final class Downcall {
     private static void verifyMethods(List<Method> list, Map<Method, String> signatureStringMap) {
         for (Method method : list) {
             String signature = signatureStringMap.get(method);
+
             // check method return type
             final Class<?> returnType = method.getReturnType();
-            if (Struct.class.isAssignableFrom(returnType)) {
-                boolean foundAllocator = false;
-                for (Field field : returnType.getDeclaredFields()) {
-                    if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructAllocator.class) {
-                        foundAllocator = true;
-                        break;
-                    }
-                }
-                if (!foundAllocator) {
-                    throw new IllegalStateException("The struct " + returnType + " must contain one public static field that is StructAllocator");
-                }
-            } else if (!isValidReturnType(returnType)) {
+            if (!isValidReturnType(returnType)) {
                 throw new IllegalStateException("Invalid return type: " + signature);
             }
 
@@ -637,7 +634,7 @@ public final class Downcall {
     }
 
     private static boolean isValidReturnType(Class<?> aClass) {
-        return aClass == MethodHandle.class || ProcessorTypes.isRegistered(aClass);
+        return aClass == MethodHandle.class || ProcessorTypes.isRegisteredExactly(aClass);
     }
 
     private static DowncallData generateData(
@@ -764,6 +761,7 @@ public final class Downcall {
             lookup);
     }
 
+    @Deprecated
     private static Field getStructAllocatorField(Class<?> aClass) {
         for (Field field : aClass.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructAllocator.class) {

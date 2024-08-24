@@ -24,7 +24,6 @@ import java.lang.constant.ClassDesc;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
-import java.util.Objects;
 
 import static java.lang.constant.ConstantDescs.*;
 import static overrun.marshal.internal.Constants.CD_MemorySegment;
@@ -296,6 +295,10 @@ public sealed interface ProcessorType {
             this.allocatorSpec = allocatorSpec;
         }
 
+        public static IllegalStateException noAllocatorException(Class<?> typeClass) {
+            return new IllegalStateException("No allocator registered for struct " + typeClass);
+        }
+
         public Class<?> typeClass() {
             return typeClass;
         }
@@ -306,7 +309,10 @@ public sealed interface ProcessorType {
         }
 
         public StructAllocatorSpec<?> checkAllocator() {
-            return Objects.requireNonNull(allocatorSpec(), "No allocator for struct " + typeClass);
+            if (allocatorSpec() != null) {
+                return allocatorSpec();
+            }
+            throw noAllocatorException(typeClass());
         }
 
         @Override
@@ -335,6 +341,10 @@ public sealed interface ProcessorType {
             this.factory = factory;
         }
 
+        public static IllegalStateException noFactoryException(Class<?> typeClass) {
+            return new IllegalStateException("No factory registered for upcall " + typeClass);
+        }
+
         @FunctionalInterface
         public interface Factory<T extends overrun.marshal.Upcall> {
             T create(MemorySegment stub);
@@ -350,7 +360,10 @@ public sealed interface ProcessorType {
         }
 
         public Factory<T> checkFactory() {
-            return Objects.requireNonNull(factory(), "No factory for upcall " + typeClass());
+            if (factory() != null) {
+                return factory();
+            }
+            throw noFactoryException(typeClass());
         }
 
         @Override

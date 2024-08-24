@@ -25,7 +25,6 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -38,7 +37,6 @@ import java.util.NoSuchElementException;
  */
 public final class ProcessorTypes {
     private static final Map<Class<?>, ProcessorType> map = new LinkedHashMap<>();
-    private static final Map<Class<?>, ProcessorType> mapImmutable = Collections.unmodifiableMap(map);
 
     static {
         register(void.class, ProcessorType.Void.INSTANCE);
@@ -167,5 +165,18 @@ public final class ProcessorTypes {
             }
         }
         return false;
+    }
+
+    /**
+     * {@return {@code true} if the given class is registered}
+     * For an array type, returns {@code true} if its component type is registered.
+     * <p>
+     * Unlike {@link #isRegistered(Class)}, this method disallows superclasses.
+     *
+     * @param aClass the class
+     */
+    public static boolean isRegisteredExactly(Class<?> aClass) {
+        if (aClass.isArray()) return isRegisteredExactly(aClass.componentType());
+        return map.containsKey(aClass);
     }
 }

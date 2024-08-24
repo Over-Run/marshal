@@ -21,6 +21,7 @@ import overrun.marshal.Downcall;
 import overrun.marshal.DowncallOption;
 import overrun.marshal.gen.*;
 import overrun.marshal.gen.processor.ProcessorType;
+import overrun.marshal.gen.processor.ProcessorTypes;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.test.struct.Vector3;
 import overrun.marshal.test.upcall.SimpleUpcall;
@@ -40,6 +41,8 @@ public interface IDowncall {
     Map<String, FunctionDescriptor> MAP = Map.of("testDefault", FunctionDescriptor.of(ValueLayout.JAVA_INT));
 
     static IDowncall getInstance(boolean testDefaultNull) {
+        ProcessorTypes.registerStruct(Vector3.class, Vector3.OF);
+        ProcessorTypes.registerUpcall(SimpleUpcall.class, stub -> i -> SimpleUpcall.invoke(stub, i));
         return Downcall.load(MethodHandles.lookup(), DowncallProvider.lookup(testDefaultNull), DowncallOption.descriptors(MAP));
     }
 

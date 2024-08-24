@@ -31,10 +31,7 @@ import java.lang.foreign.ValueLayout;
  */
 @FunctionalInterface
 public interface SimpleUpcall extends Upcall {
-    Type<SimpleUpcall> TYPE = Upcall.register(
-        Upcall.type("invoke", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT)),
-        stub -> i -> invoke(stub, i)
-    );
+    Type<SimpleUpcall> TYPE = Upcall.type("invoke", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
 
     int invoke(int i);
 
