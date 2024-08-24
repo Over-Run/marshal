@@ -562,8 +562,6 @@ public final class Downcall {
 
             // check method parameter
             final Class<?>[] types = method.getParameterTypes();
-            final boolean isFirstAllocator = types.length > 0 && SegmentAllocator.class.isAssignableFrom(types[0]);
-            final boolean isFirstArena = types.length > 0 && Arena.class.isAssignableFrom(types[0]);
             for (Parameter parameter : method.getParameters()) {
                 final Class<?> type = parameter.getType();
                 if (!isValidParamType(type)) {
@@ -589,12 +587,12 @@ public final class Downcall {
                 case NONE, STACK -> {
                 }
                 case ALLOCATOR -> {
-                    if (!isFirstAllocator) {
+                    if (types.length == 0 || !SegmentAllocator.class.isAssignableFrom(types[0])) {
                         throw new IllegalStateException("A segment allocator is required by " + strictObject + ": " + signature);
                     }
                 }
                 case ARENA -> {
-                    if (!isFirstArena) {
+                    if (types.length == 0 || !Arena.class.isAssignableFrom(types[0])) {
                         throw new IllegalStateException("An arena is required by " + strictObject + ": " + signature);
                     }
                 }

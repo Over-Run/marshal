@@ -112,7 +112,6 @@ public final class ProcessorTypes {
                 return convert.value();
             }
         }
-        // TODO: ref processor
         return fromClass(type);
     }
 

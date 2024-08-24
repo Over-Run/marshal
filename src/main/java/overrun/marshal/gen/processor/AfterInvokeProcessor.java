@@ -23,8 +23,6 @@ import java.lang.reflect.Parameter;
 import java.util.List;
 import java.util.Map;
 
-import static overrun.marshal.internal.Constants.*;
-
 /**
  * insert code after invoke
  *
@@ -46,32 +44,11 @@ public final class AfterInvokeProcessor extends CodeInserter<AfterInvokeProcesso
             Parameter parameter = parameters.get(i);
             if (refSlotMap.containsKey(parameter)) {
                 ProcessorType type = ProcessorTypes.fromParameter(parameter);
-                // TODO: ref processor
-                if (type instanceof ProcessorType.Array array) {
-                    int parameterSlot = builder.parameterSlot(i);
-                    int refSlot = refSlotMap.get(parameter);
-                    builder
-                        .aload(refSlot)
-                        .aload(parameterSlot)
-                        .invokestatic(CD_Unmarshal, "copy", switch (array.componentType()) {
-                            case ProcessorType.Str _ ->
-                                StringCharset.getCharset(builder, StringCharset.getCharset(parameter)) ?
-                                    MTD_void_MemorySegment_StringArray_Charset :
-                                    MTD_void_MemorySegment_StringArray;
-                            case ProcessorType.Value value -> switch (value) {
-                                case BOOLEAN -> MTD_void_MemorySegment_booleanArray;
-                                case CHAR -> MTD_void_MemorySegment_charArray;
-                                case BYTE -> MTD_void_MemorySegment_byteArray;
-                                case SHORT -> MTD_void_MemorySegment_shortArray;
-                                case INT -> MTD_void_MemorySegment_intArray;
-                                case LONG -> MTD_void_MemorySegment_longArray;
-                                case FLOAT -> MTD_void_MemorySegment_floatArray;
-                                case DOUBLE -> MTD_void_MemorySegment_doubleArray;
-                                case ADDRESS -> MTD_void_MemorySegment_MemorySegmentArray;
-                            };
-                            default -> throw new IllegalStateException("Unexpected value: " + array.componentType());
-                        });
-                }
+                RefCopyProcessor.getInstance().process(builder,
+                    type,
+                    new RefCopyProcessor.Context(refSlotMap.get(parameter),
+                        builder.parameterSlot(i),
+                        StringCharset.getCharset(parameter)));
             }
         }
         super.process(builder, context);

@@ -39,6 +39,7 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
     ) {
     }
 
+    @SuppressWarnings("preview")
     @Override
     public void process(CodeBuilder builder, Context context) {
         List<Parameter> parameters = context.parameters();
@@ -46,14 +47,17 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
             Parameter parameter = parameters.get(i);
             if (parameter.getType().isArray() &&
                 parameter.getDeclaredAnnotation(Ref.class) != null) {
-                int local = builder.allocateLocal(TypeKind.ReferenceType);
-                context.refSlot().put(parameter, local);
-                MarshalProcessor.getInstance().process(builder, ProcessorTypes.fromParameter(parameter), new MarshalProcessor.Context(
+                ProcessorType type = ProcessorTypes.fromParameter(parameter);
+                ProcessorType refType = RefTypeTransformer.getInstance().process(type);
+                TypeKind refTypeKind = TypeKind.from(refType.downcallClassDesc());
+                int local = builder.allocateLocal(refTypeKind);
+                MarshalProcessor.getInstance().process(builder, type, new MarshalProcessor.Context(
                     StringCharset.getCharset(parameter),
                     builder.parameterSlot(i),
                     context.allocatorSlot()
                 ));
-                builder.astore(local);
+                builder.storeLocal(refTypeKind, local);
+                context.refSlot().put(parameter, local);
             }
         }
         super.process(builder, context);
