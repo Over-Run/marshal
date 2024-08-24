@@ -25,7 +25,6 @@ import java.util.List;
  * Holds downcall method name
  *
  * @param entrypoint           entrypoint
- * @param handleName           handleName
  * @param signatureString      signatureString
  * @param parameters           parameters
  * @param skipFirstParam       skipFirstParam
@@ -35,7 +34,6 @@ import java.util.List;
  */
 record DowncallMethodData(
     String entrypoint,
-    String handleName,
     String signatureString,
     List<Parameter> parameters,
     boolean skipFirstParam,

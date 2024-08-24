@@ -82,6 +82,7 @@ public final class DowncallTest {
     void testReturnUpcall() {
         final MemorySegment upcall = d.testReturnUpcall();
         assertEquals(84, SimpleUpcall.invoke(upcall, 42));
+        assertEquals(84, d.testReturnUpcallObject().invoke(42));
     }
 
     @Test
@@ -91,7 +92,7 @@ public final class DowncallTest {
             assertEquals(4, returnStruct.x());
             assertEquals(5, returnStruct.y());
             assertEquals(6, returnStruct.z());
-            final Vector3 returnStructByValue = d.testReturnStructByValue(arena);
+            final Vector3 returnStructByValue = d.testReturnStructByValue(arena, 0);
             assertEquals(7, returnStructByValue.x());
             assertEquals(8, returnStructByValue.y());
             assertEquals(9, returnStructByValue.z());

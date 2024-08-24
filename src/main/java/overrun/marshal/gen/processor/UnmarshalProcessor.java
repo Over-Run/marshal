@@ -21,8 +21,6 @@ import overrun.marshal.internal.StringCharset;
 import java.lang.classfile.CodeBuilder;
 import java.lang.constant.ClassDesc;
 
-import static java.lang.constant.ConstantDescs.CD_Map;
-import static java.lang.constant.ConstantDescs.MTD_void;
 import static overrun.marshal.internal.Constants.*;
 
 /**
@@ -32,7 +30,7 @@ import static overrun.marshal.internal.Constants.*;
  * @since 0.1.0
  */
 public final class UnmarshalProcessor extends BaseProcessor<UnmarshalProcessor.Context> {
-    public record Context(ProcessorType type, String charset, int variableSlot) {
+    public record Context(ProcessorType type, Class<?> originalType, String charset, int variableSlot) {
     }
 
     @SuppressWarnings("preview")
@@ -40,12 +38,16 @@ public final class UnmarshalProcessor extends BaseProcessor<UnmarshalProcessor.C
     public boolean process(CodeBuilder builder, Context context) {
         int variableSlot = context.variableSlot();
         switch (context.type()) {
-            case ProcessorType.Allocator _, ProcessorType.Custom _, ProcessorType.Void _ -> {
+            case ProcessorType.Allocator _, ProcessorType.Custom _ -> {
+                return super.process(builder, context);
+            }
+            case ProcessorType.Void _ -> {
             }
             case ProcessorType.Array array -> {
                 switch (array.componentType()) {
                     case ProcessorType.Allocator _, ProcessorType.Array _, ProcessorType.BoolConvert _,
-                         ProcessorType.Custom _, ProcessorType.Struct _, ProcessorType.Upcall _ -> {
+                         ProcessorType.Custom _, ProcessorType.Struct _, ProcessorType.Upcall<?> _ -> {
+                        return super.process(builder, context);
                     }
                     case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
                     case ProcessorType.Str _ -> builder
@@ -102,24 +104,23 @@ public final class UnmarshalProcessor extends BaseProcessor<UnmarshalProcessor.C
                     StringCharset.getCharset(builder, context.charset()) ?
                         MTD_String_MemorySegment_Charset :
                         MTD_String_MemorySegment);
-            case ProcessorType.Struct struct -> builder
-                .ldc(DCD_classData_DowncallData)
-                .invokevirtual(CD_DowncallData, "structTypeMap", MTD_Map)
-                .ldc(ClassDesc.ofDescriptor(struct.typeClass().descriptorString()))
-                .invokeinterface(CD_Map, "get", MTD_Object_Object)
+            case ProcessorType.Struct _ -> builder
+                .ldc(ClassDesc.ofDescriptor(context.originalType().descriptorString()))
+                .invokestatic(CD_ProcessorTypes, "fromClass", MTD_ProcessorType_Class)
                 .checkcast(CD_ProcessorType$Struct)
-                .dup()
-                .invokevirtual(CD_ProcessorType$Struct, "checkAllocator", MTD_void)
-                .invokevirtual(CD_ProcessorType$Struct, "allocatorSpec", MTD_StructAllocatorSpec)
+                .invokevirtual(CD_ProcessorType$Struct, "checkAllocator", MTD_StructAllocatorSpec)
                 .aload(variableSlot)
                 .invokeinterface(CD_StructAllocatorSpec, "of", MTD_Object_MemorySegment);
-            case ProcessorType.Upcall upcall -> {
-                // TODO: 2024/8/24 squid233: return upcall
-                builder.aconst_null();
-            }
+            case ProcessorType.Upcall<?> _ -> builder
+                .ldc(ClassDesc.ofDescriptor(context.originalType().descriptorString()))
+                .invokestatic(CD_ProcessorTypes, "fromClass", MTD_ProcessorType_Class)
+                .checkcast(CD_ProcessorType$Upcall)
+                .invokevirtual(CD_ProcessorType$Upcall, "checkFactory", MTD_ProcessorType$Upcall$Factory)
+                .aload(variableSlot)
+                .invokeinterface(CD_ProcessorType$Upcall$Factory, "create", MTD_Upcall_MemorySegment);
             case ProcessorType.Value value -> builder.loadLocal(value.typeKind(), variableSlot);
         }
-        return super.process(builder, context);
+        return true;
     }
 
     public static UnmarshalProcessor getInstance() {

@@ -45,12 +45,14 @@ public final class MarshalProcessor extends BaseProcessor<MarshalProcessor.Conte
         switch (context.type()) {
             case ProcessorType.Allocator _ -> builder.aload(variableSlot);
             case ProcessorType.Custom _ -> {
+                return super.process(builder, context);
             }
             case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
             case ProcessorType.Array array -> {
                 switch (array.componentType()) {
                     case ProcessorType.Allocator _, ProcessorType.Array _, ProcessorType.BoolConvert _,
                          ProcessorType.Custom _ -> {
+                        return super.process(builder, context);
                     }
                     case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
                     case ProcessorType.Str _ -> builder
@@ -67,7 +69,7 @@ public final class MarshalProcessor extends BaseProcessor<MarshalProcessor.Conte
                         .invokestatic(CD_Marshal,
                             "marshal",
                             MTD_MemorySegment_SegmentAllocator_StructArray);
-                    case ProcessorType.Upcall _ -> builder
+                    case ProcessorType.Upcall<?> _ -> builder
                         .aload(allocatorSlot)
                         .aload(variableSlot)
                         .invokestatic(CD_Marshal,
@@ -125,7 +127,7 @@ public final class MarshalProcessor extends BaseProcessor<MarshalProcessor.Conte
                 .invokestatic(CD_Marshal,
                     "marshal",
                     MTD_MemorySegment_Struct);
-            case ProcessorType.Upcall _ -> builder
+            case ProcessorType.Upcall<?> _ -> builder
                 .aload(allocatorSlot)
                 .aload(variableSlot)
                 .invokestatic(CD_Marshal,
@@ -133,7 +135,7 @@ public final class MarshalProcessor extends BaseProcessor<MarshalProcessor.Conte
                     MTD_MemorySegment_Arena_Upcall);
             case ProcessorType.Value value -> builder.loadLocal(value.typeKind(), variableSlot);
         }
-        return super.process(builder, context);
+        return true;
     }
 
     public static MarshalProcessor getInstance() {

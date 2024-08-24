@@ -16,6 +16,9 @@
 
 package overrun.marshal;
 
+import overrun.marshal.gen.processor.ProcessorType;
+import overrun.marshal.gen.processor.ProcessorTypes;
+
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -35,7 +38,11 @@ import java.lang.invoke.MethodHandles;
  * @FunctionalInterface
  * public interface MyCallback extends Upcall {
  *     // Create a type wrapper
- *     Type<MyCallback> TYPE = Upcall.type("invoke", FunctionDescriptor.of(JAVA_INT, JAVA_INT));
+ *     // (Optional) Register to ProcessorTypes to allow C functions to return the upcall instance
+ *     Type<MyCallback> TYPE = Upcall.register(
+ *         Upcall.type("invoke", FunctionDescriptor.of(JAVA_INT, JAVA_INT)),
+ *         stub -> i -> invoke(stub, i)
+ *     );
  *
  *     // The function to be invoked in C
  *     int invoke(int i);
@@ -76,6 +83,8 @@ public interface Upcall {
      */
     MemorySegment stub(Arena arena);
 
+    // caller-sensitive. DO NOT WRAP!
+
     /**
      * Creates {@link Type} with the caller class.
      *
@@ -112,6 +121,19 @@ public interface Upcall {
     }
 
     /**
+     * Registers the given type to {@link ProcessorTypes}.
+     *
+     * @param type    the {@link Type}
+     * @param factory the factory
+     * @param <T>     the type of the upcall
+     * @return {@code type}
+     */
+    static <T extends Upcall> Type<T> register(Type<T> type, ProcessorType.Upcall.Factory<T> factory) {
+        ProcessorTypes.registerUpcall(type.typeClass, factory);
+        return type;
+    }
+
+    /**
      * The type wrapper of an upcall interface.
      * The constructor uses heavy reflection, and you should always cache it as a static field.
      *
@@ -122,16 +144,18 @@ public interface Upcall {
      */
     final class Type<T extends Upcall> {
         private static final Linker LINKER = Linker.nativeLinker();
+        final Class<T> typeClass;
         private final MethodHandle target;
         private final FunctionDescriptor descriptor;
         private final MethodHandle downcallTarget;
 
         private Type(Class<T> tClass, String targetName, FunctionDescriptor descriptor) {
             try {
-                target = MethodHandles.publicLookup().findVirtual(tClass, targetName, descriptor.toMethodType());
+                this.target = MethodHandles.publicLookup().findVirtual(tClass, targetName, descriptor.toMethodType());
             } catch (IllegalAccessException | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
+            this.typeClass = tClass;
             this.descriptor = descriptor;
             this.downcallTarget = LINKER.downcallHandle(descriptor);
         }

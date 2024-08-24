@@ -31,7 +31,17 @@ public interface Processor<C> {
      *
      * @param builder the code builder
      * @param context the context
-     * @return {@code true} if should continue; {@code false} otherwise
+     * @return {@code true} if processed; {@code false} otherwise
      */
     boolean process(CodeBuilder builder, C context);
+
+    default void checkProcessed(boolean processed, C context) {
+        if (!processed) {
+            throw new IllegalStateException(this.getClass().getSimpleName() + " not processed: " + context);
+        }
+    }
+
+    default void processAndCheck(CodeBuilder builder, C context) {
+        checkProcessed(process(builder, context), context);
+    }
 }

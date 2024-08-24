@@ -17,21 +17,17 @@
 package overrun.marshal.test.downcall;
 
 import io.github.overrun.memstack.MemoryStack;
-import overrun.marshal.DowncallOption;
-import overrun.marshal.gen.processor.ProcessorType;
-import overrun.marshal.internal.Constants;
-import overrun.marshal.struct.ByValue;
 import overrun.marshal.Downcall;
+import overrun.marshal.DowncallOption;
 import overrun.marshal.gen.*;
+import overrun.marshal.gen.processor.ProcessorType;
+import overrun.marshal.struct.ByValue;
 import overrun.marshal.test.struct.Vector3;
 import overrun.marshal.test.upcall.SimpleUpcall;
 
-import java.io.IOException;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -44,15 +40,6 @@ public interface IDowncall {
     Map<String, FunctionDescriptor> MAP = Map.of("testDefault", FunctionDescriptor.of(ValueLayout.JAVA_INT));
 
     static IDowncall getInstance(boolean testDefaultNull) {
-        // TODO: 2024/8/23 squid233:
-        if (Constants.DEBUG) {
-            byte[] bytes = Downcall.buildBytecode(MethodHandles.lookup(), DowncallProvider.lookup(testDefaultNull), DowncallOption.descriptors(MAP)).getKey();
-            try {
-                Files.write(Path.of("run/IDowncall_" + testDefaultNull + ".class"), bytes);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
         return Downcall.load(MethodHandles.lookup(), DowncallProvider.lookup(testDefaultNull), DowncallOption.descriptors(MAP));
     }
 
@@ -99,10 +86,13 @@ public interface IDowncall {
 
     MemorySegment testReturnUpcall();
 
+    @Entrypoint("testReturnUpcall")
+    SimpleUpcall testReturnUpcallObject();
+
     Vector3 testReturnStruct();
 
     @ByValue
-    Vector3 testReturnStructByValue(SegmentAllocator allocator);
+    Vector3 testReturnStructByValue(SegmentAllocator allocator, int i);
 
     @SizedSeg(2L)
     Vector3 testReturnStructSizedSeg();

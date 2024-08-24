@@ -16,6 +16,7 @@
 
 package overrun.marshal.gen.processor;
 
+import org.jetbrains.annotations.Nullable;
 import overrun.marshal.struct.StructAllocatorSpec;
 
 import java.lang.classfile.TypeKind;
@@ -53,8 +54,20 @@ public sealed interface ProcessorType {
      * @param allocatorSpec the struct allocator
      * @return a new processor type
      */
-    static Struct struct(Class<?> typeClass, StructAllocatorSpec<?> allocatorSpec) {
+    static Struct struct(Class<?> typeClass, @Nullable StructAllocatorSpec<?> allocatorSpec) {
         return new Struct(typeClass, allocatorSpec);
+    }
+
+    /**
+     * Creates an upcall processor type with the given type class and factory.
+     *
+     * @param typeClass the type class
+     * @param factory   the factory
+     * @param <T>       the upcall type
+     * @return a new processor type
+     */
+    static <T extends overrun.marshal.Upcall> Upcall<T> upcall(Class<T> typeClass, @Nullable Upcall.Factory<T> factory) {
+        return new Upcall<>(typeClass, factory);
     }
 
     /**
@@ -275,9 +288,10 @@ public sealed interface ProcessorType {
      */
     final class Struct implements ProcessorType {
         private final Class<?> typeClass;
+        @Nullable
         private final StructAllocatorSpec<?> allocatorSpec;
 
-        private Struct(Class<?> typeClass, StructAllocatorSpec<?> allocatorSpec) {
+        private Struct(Class<?> typeClass, @Nullable StructAllocatorSpec<?> allocatorSpec) {
             this.typeClass = typeClass;
             this.allocatorSpec = allocatorSpec;
         }
@@ -286,12 +300,13 @@ public sealed interface ProcessorType {
             return typeClass;
         }
 
+        @Nullable
         public StructAllocatorSpec<?> allocatorSpec() {
             return allocatorSpec;
         }
 
-        public void checkAllocator() {
-            Objects.requireNonNull(allocatorSpec);
+        public StructAllocatorSpec<?> checkAllocator() {
+            return Objects.requireNonNull(allocatorSpec(), "No allocator for struct " + typeClass);
         }
 
         @Override
@@ -307,14 +322,35 @@ public sealed interface ProcessorType {
 
     /**
      * {@link overrun.marshal.Upcall Upcall}
+     *
+     * @param <T> upcall type
      */
-    final class Upcall implements ProcessorType {
-        /**
-         * The instance
-         */
-        public static final Upcall INSTANCE = new Upcall();
+    final class Upcall<T extends overrun.marshal.Upcall> implements ProcessorType {
+        private final Class<T> typeClass;
+        @Nullable
+        private final Factory<T> factory;
 
-        private Upcall() {
+        private Upcall(Class<T> typeClass, @Nullable Factory<T> factory) {
+            this.typeClass = typeClass;
+            this.factory = factory;
+        }
+
+        @FunctionalInterface
+        public interface Factory<T extends overrun.marshal.Upcall> {
+            T create(MemorySegment stub);
+        }
+
+        public Class<T> typeClass() {
+            return typeClass;
+        }
+
+        @Nullable
+        public Factory<T> factory() {
+            return factory;
+        }
+
+        public Factory<T> checkFactory() {
+            return Objects.requireNonNull(factory(), "No factory for upcall " + typeClass());
         }
 
         @Override

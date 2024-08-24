@@ -34,11 +34,11 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -175,23 +175,6 @@ public final class Downcall {
             entrypoint.value();
     }
 
-    private static String unmarshalMethod(Class<?> aClass) {
-        if (aClass.isArray()) {
-            final Class<?> componentType = aClass.getComponentType();
-            if (componentType == boolean.class) return "unmarshalAsBooleanArray";
-            if (componentType == char.class) return "unmarshalAsCharArray";
-            if (componentType == byte.class) return "unmarshalAsByteArray";
-            if (componentType == short.class) return "unmarshalAsShortArray";
-            if (componentType == int.class) return "unmarshalAsIntArray";
-            if (componentType == long.class) return "unmarshalAsLongArray";
-            if (componentType == float.class) return "unmarshalAsFloatArray";
-            if (componentType == double.class) return "unmarshalAsDoubleArray";
-            if (componentType == MemorySegment.class) return "unmarshalAsAddressArray";
-            if (componentType == String.class) return "unmarshalAsStringArray";
-        }
-        return "unmarshal";
-    }
-
     // type
 
     private static ValueLayout getValueLayout(Class<?> carrier) {
@@ -206,35 +189,7 @@ public final class Downcall {
         return ValueLayout.ADDRESS;
     }
 
-    private static boolean requireAllocator(Class<?> aClass) {
-        return !aClass.isPrimitive() &&
-            (aClass == String.class ||
-                aClass.isArray() ||
-                Upcall.class.isAssignableFrom(aClass));
-    }
-
-    // class desc
-
-    private static ClassDesc convertToDowncallCD(AnnotatedElement element, Class<?> aClass) {
-        final Convert convert = element.getDeclaredAnnotation(Convert.class);
-        if (convert != null && aClass == boolean.class) return convert.value().downcallClassDesc();
-        if (aClass.isPrimitive()) return aClass.describeConstable().orElseThrow();
-        if (SegmentAllocator.class.isAssignableFrom(aClass)) return CD_SegmentAllocator;
-        if (aClass == Object.class) return CD_Object;
-        return CD_MemorySegment;
-    }
-
-    private static ClassDesc convertToMarshalCD(Class<?> aClass) {
-        if (aClass.isPrimitive() ||
-            aClass == String.class) return aClass.describeConstable().orElseThrow();
-        if (Struct.class.isAssignableFrom(aClass)) return CD_Struct;
-        if (Upcall.class.isAssignableFrom(aClass)) return CD_Upcall;
-        return CD_MemorySegment;
-    }
-
-    // TODO
-    /*private*/
-    public static Map.Entry<byte[], DowncallData> buildBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
+    private static Map.Entry<byte[], DowncallData> buildBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
         Class<?> _targetClass = null, targetClass;
         Map<String, FunctionDescriptor> _descriptorMap = null, descriptorMap;
         UnaryOperator<MethodHandle> _transform = null, transform;
@@ -263,13 +218,12 @@ public final class Downcall {
 
         final ClassFile cf = of();
         final ClassDesc cd_thisClass = ClassDesc.of(lookupClass.getPackageName(), DEFAULT_NAME);
-        final Map<Method, DowncallMethodData> methodDataMap = LinkedHashMap.newLinkedHashMap(methodList.size());
+        final Map<Method, DowncallMethodData> methodDataMap = HashMap.newHashMap(methodList.size());
+        Set<String> methodEntrypointSet = new HashSet<>();
 
         //region method handles
-        final AtomicInteger handleCount = new AtomicInteger();
         for (Method method : methodList) {
             final String entrypoint = getMethodEntrypoint(method);
-            final String handleName = "$mh" + handleCount.getAndIncrement();
             final var parameters = List.of(method.getParameters());
 
             boolean byValue = method.getDeclaredAnnotation(ByValue.class) != null;
@@ -281,7 +235,6 @@ public final class Downcall {
                     ), AllocatorRequirement::stricter);
             final DowncallMethodData methodData = new DowncallMethodData(
                 entrypoint,
-                handleName,
                 signatureStringMap.get(method),
                 parameters,
                 !byValue &&
@@ -291,6 +244,7 @@ public final class Downcall {
                 allocatorRequirement
             );
             methodDataMap.put(method, methodData);
+            methodEntrypointSet.add(entrypoint);
         }
         //endregion
 
@@ -308,9 +262,9 @@ public final class Downcall {
             }
 
             //region method handles
-            for (DowncallMethodData data : methodDataMap.values()) {
-                if (downcallData.handleMap().get(data.entrypoint()) != null) {
-                    classBuilder.withField(data.handleName(),
+            for (String entrypoint : methodEntrypointSet) {
+                if (downcallData.handleMap().get(entrypoint) != null) {
+                    classBuilder.withField(entrypoint,
                         CD_MethodHandle,
                         ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
                 }
@@ -349,13 +303,13 @@ public final class Downcall {
                     mtd_method,
                     Modifier.isPublic(modifiers) ? ACC_PUBLIC : ACC_PROTECTED,
                     codeBuilder -> {
-                        final String handleName = methodData.handleName();
+                        final String entrypoint = methodData.entrypoint();
                         final TypeKind returnTypeKind = TypeKind.from(cd_returnType);
 
                         // returns MethodHandle
                         if (returnType == MethodHandle.class) {
                             if (method.isDefault() &&
-                                downcallData.handleMap().get(methodData.entrypoint()) == null) {
+                                downcallData.handleMap().get(entrypoint) == null) {
                                 // invoke super interface
                                 invokeSuperMethod(codeBuilder, parameters);
                                 codeBuilder.invokespecial(cd_targetClass,
@@ -364,14 +318,14 @@ public final class Downcall {
                                         targetClass.isInterface())
                                     .areturn();
                             } else {
-                                codeBuilder.getstatic(cd_thisClass, handleName, CD_MethodHandle)
+                                codeBuilder.getstatic(cd_thisClass, entrypoint, CD_MethodHandle)
                                     .areturn();
                             }
                             return;
                         }
 
                         if (method.isDefault() &&
-                            downcallData.handleMap().get(methodData.entrypoint()) == null) {
+                            downcallData.handleMap().get(entrypoint) == null) {
                             // invoke super interface
                             invokeSuperMethod(codeBuilder, parameters);
                             codeBuilder.invokespecial(cd_targetClass,
@@ -418,7 +372,7 @@ public final class Downcall {
                                     new BeforeInvokeProcessor.Context(parameters, refSlotMap, allocatorSlot));
 
                                 // invoke
-                                blockCodeBuilder.getstatic(cd_thisClass, handleName, CD_MethodHandle);
+                                blockCodeBuilder.getstatic(cd_thisClass, entrypoint, CD_MethodHandle);
                                 List<ClassDesc> downcallClassDescList = new ArrayList<>();
                                 for (int i = methodData.skipFirstParam() ? 1 : 0, size = parameters.size(); i < size; i++) {
                                     Parameter parameter = parameters.get(i);
@@ -426,7 +380,7 @@ public final class Downcall {
                                     if (refSlotMap.containsKey(parameter)) {
                                         blockCodeBuilder.aload(refSlotMap.get(parameter));
                                     } else {
-                                        MarshalProcessor.getInstance().process(blockCodeBuilder,
+                                        MarshalProcessor.getInstance().processAndCheck(blockCodeBuilder,
                                             new MarshalProcessor.Context(processorType,
                                                 StringCharset.getCharset(parameter),
                                                 blockCodeBuilder.parameterSlot(i),
@@ -453,8 +407,9 @@ public final class Downcall {
                                 BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
 
                                 // return
-                                UnmarshalProcessor.getInstance().process(blockCodeBuilder,
+                                UnmarshalProcessor.getInstance().processAndCheck(blockCodeBuilder,
                                     new UnmarshalProcessor.Context(returnProcessorType,
+                                        returnType,
                                         StringCharset.getCharset(method),
                                         resultSlot));
                                 blockCodeBuilder.return_(returnTypeKind);
@@ -513,17 +468,16 @@ public final class Downcall {
                         .astore(handleMapSlot);
 
                     // method handles
-                    methodDataMap.values().forEach(methodData -> {
-                        final String entrypoint = methodData.entrypoint();
+                    for (String entrypoint : methodEntrypointSet) {
                         if (downcallData.handleMap().get(entrypoint) != null) {
                             codeBuilder
                                 .aload(handleMapSlot)
                                 .ldc(entrypoint)
                                 .invokeinterface(CD_Map, "get", MTD_Object_Object)
                                 .checkcast(CD_MethodHandle)
-                                .putstatic(cd_thisClass, methodData.handleName(), CD_MethodHandle);
+                                .putstatic(cd_thisClass, entrypoint, CD_MethodHandle);
                         }
-                    });
+                    }
 
                     codeBuilder.return_();
                 });
@@ -536,14 +490,6 @@ public final class Downcall {
         var built = buildBytecode(caller, lookup, options);
 
         try {
-            //TODO
-            if (DEBUG) {
-                Path path = Path.of("run/" + caller.lookupClass().getSimpleName() + ".class");
-                if (Files.notExists(path.getParent())) {
-                    Files.createDirectories(path.getParent());
-                }
-                Files.write(path, built.getKey());
-            }
             final MethodHandles.Lookup hiddenClass = caller.defineHiddenClassWithClassData(
                 built.getKey(),
                 built.getValue(),
@@ -559,12 +505,10 @@ public final class Downcall {
 
     private static boolean shouldSkip(Method method) {
         final Class<?> returnType = method.getReturnType();
-        final boolean b =
-            method.getDeclaredAnnotation(Skip.class) != null ||
-                Modifier.isStatic(method.getModifiers()) ||
-                method.isSynthetic() ||
-                Modifier.isFinal(method.getModifiers());
-        if (b) {
+        if (method.getDeclaredAnnotation(Skip.class) != null ||
+            Modifier.isStatic(method.getModifiers()) ||
+            method.isSynthetic() ||
+            Modifier.isFinal(method.getModifiers())) {
             return true;
         }
 
@@ -572,37 +516,33 @@ public final class Downcall {
         final Class<?>[] types = method.getParameterTypes();
         final int length = types.length;
 
-        // check method declared by Object
-        if (length == 0) {
-            if (returnType == Class.class && "getClass".equals(methodName) ||
-                returnType == int.class && "hashCode".equals(methodName) ||
-                returnType == Object.class && "clone".equals(methodName) ||
-                returnType == String.class && "toString".equals(methodName) ||
-                returnType == void.class && "notify".equals(methodName) ||
-                returnType == void.class && "notifyAll".equals(methodName) ||
-                returnType == void.class && "wait".equals(methodName) ||
-                returnType == void.class && "finalize".equals(methodName)  // TODO: no finalize in the future
-            ) {
-                return true;
-            }
-        } else if (
-            returnType == boolean.class && length == 1 && types[0] == Object.class && "equals".equals(methodName) ||
-                returnType == void.class && length == 1 && types[0] == long.class && "wait".equals(methodName) ||
-                returnType == void.class && length == 2 && types[0] == long.class && types[1] == long.class && "wait".equals(methodName)
-        ) {
-            return true;
-        }
-
-        // check method declared by DirectAccess
-        if (length == 0) {
-            if (returnType == Map.class)
-                return "functionDescriptors".equals(methodName) || "methodHandles".equals(methodName);
-            if (returnType == SymbolLookup.class) return "symbolLookup".equals(methodName);
-        }
-        if (returnType == MethodHandle.class && length == 1 && types[0] == String.class) {
-            return "methodHandle".equals(methodName);
-        }
-        return false;
+        // check method declared by Object or DirectAccess
+        return switch (length) {
+            case 0 -> switch (methodName) {
+                // Object
+                case "getClass" -> returnType == Class.class;
+                case "hashCode" -> returnType == int.class;
+                case "clone" -> returnType == Object.class;
+                case "toString" -> returnType == String.class;
+                case "notify", "notifyAll", "wait" -> returnType == void.class;
+                case "finalize" -> returnType == void.class; // TODO: no finalize in the future
+                // DirectAccess
+                case "functionDescriptors", "methodHandles" -> returnType == Map.class;
+                case "symbolLookup" -> returnType == SymbolLookup.class;
+                default -> false;
+            };
+            case 1 -> switch (methodName) {
+                // Object
+                case "equals" -> returnType == boolean.class && types[0] == Object.class;
+                case "wait" -> returnType == void.class && types[0] == long.class;
+                // DirectAccess
+                case "methodHandle" -> returnType == MethodHandle.class && types[0] == String.class;
+                default -> false;
+            };
+            case 2 -> // Object
+                returnType == void.class && types[0] == long.class && types[1] == long.class && "wait".equals(methodName);
+            default -> false;
+        };
     }
 
     private static String createSignatureString(Method method) {
@@ -638,9 +578,7 @@ public final class Downcall {
             final boolean isFirstArena = types.length > 0 && Arena.class.isAssignableFrom(types[0]);
             for (Parameter parameter : method.getParameters()) {
                 final Class<?> type = parameter.getType();
-                if (Upcall.class.isAssignableFrom(type) && !isFirstArena) {
-                    throw new IllegalStateException("The first parameter of method " + method + " is not an arena; however, the parameter " + parameter + " is an upcall");
-                } else if (!isValidParamType(type)) {
+                if (!isValidParamType(type)) {
                     throw new IllegalStateException("Invalid parameter: " + parameter + " in " + method);
                 }
             }
@@ -780,8 +718,8 @@ public final class Downcall {
 
                 // argument layouts
                 final var parameters = methodData.parameters();
-                final boolean skipFirstParam = methodData.skipFirstParam();
-                final int size = skipFirstParam || methodByValue ?
+                final boolean skipFirstParam = methodData.skipFirstParam() || methodByValue;
+                final int size = skipFirstParam ?
                     parameters.size() - 1 :
                     parameters.size();
                 final MemoryLayout[] argLayouts = new MemoryLayout[size];
@@ -823,8 +761,7 @@ public final class Downcall {
         }
         return new DowncallData(Collections.unmodifiableMap(descriptorMap1),
             Collections.unmodifiableMap(map),
-            lookup,
-            ProcessorTypes.collect(ProcessorType.Struct.class));
+            lookup);
     }
 
     private static Field getStructAllocatorField(Class<?> aClass) {

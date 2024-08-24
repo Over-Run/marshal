@@ -25,10 +25,10 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 /**
  * Processor types
@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
  */
 public final class ProcessorTypes {
     private static final Map<Class<?>, ProcessorType> map = new LinkedHashMap<>();
+    private static final Map<Class<?>, ProcessorType> mapImmutable = Collections.unmodifiableMap(map);
 
     static {
         register(void.class, ProcessorType.Void.INSTANCE);
@@ -53,7 +54,7 @@ public final class ProcessorTypes {
         register(String.class, ProcessorType.Str.INSTANCE);
         register(SegmentAllocator.class, ProcessorType.Allocator.INSTANCE);
         registerStruct(Struct.class, null);
-        register(Upcall.class, ProcessorType.Upcall.INSTANCE);
+        registerUpcall(Upcall.class, null);
     }
 
     private ProcessorTypes() {
@@ -134,11 +135,22 @@ public final class ProcessorTypes {
     /**
      * Registers a processor type for the given struct class.
      *
-     * @param aClass the class
-     * @param type   the processor type
+     * @param aClass        the class
+     * @param allocatorSpec the allocator
      */
-    public static void registerStruct(Class<?> aClass, StructAllocatorSpec<?> type) {
-        register(aClass, ProcessorType.struct(aClass, type));
+    public static void registerStruct(Class<?> aClass, StructAllocatorSpec<?> allocatorSpec) {
+        register(aClass, ProcessorType.struct(aClass, allocatorSpec));
+    }
+
+    /**
+     * Registers a processor type for the given upcall class.
+     *
+     * @param aClass  the class
+     * @param factory the factory
+     * @param <T>     the upcall type
+     */
+    public static <T extends Upcall> void registerUpcall(Class<T> aClass, ProcessorType.Upcall.Factory<T> factory) {
+        register(aClass, ProcessorType.upcall(aClass, factory));
     }
 
     /**
@@ -155,16 +167,5 @@ public final class ProcessorTypes {
             }
         }
         return false;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> Map<Class<?>, T> collect(Class<T> instanceType) {
-        return map.entrySet()
-            .stream()
-            .filter(e -> instanceType.isInstance(e.getValue()))
-            .collect(Collectors.toUnmodifiableMap(
-                Map.Entry::getKey,
-                entry -> (T) entry.getValue()
-            ));
     }
 }

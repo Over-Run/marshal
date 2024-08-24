@@ -36,11 +36,11 @@ public abstract class BaseProcessor<C> implements Processor<C> {
     @Override
     public boolean process(CodeBuilder builder, C context) {
         for (var processor : processors) {
-            if (!processor.process(builder, context)) {
-                return false;
+            if (processor.process(builder, context)) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     public void addProcessor(Processor<C> processor) {

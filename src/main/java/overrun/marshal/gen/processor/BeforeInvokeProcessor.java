@@ -44,7 +44,7 @@ public final class BeforeInvokeProcessor extends BaseProcessor<BeforeInvokeProce
                 parameter.getDeclaredAnnotation(Ref.class) != null) {
                 int local = builder.allocateLocal(TypeKind.ReferenceType);
                 context.refSlot().put(parameter, local);
-                MarshalProcessor.getInstance().process(builder,
+                MarshalProcessor.getInstance().processAndCheck(builder,
                     new MarshalProcessor.Context(ProcessorTypes.fromParameter(parameter),
                         StringCharset.getCharset(parameter),
                         builder.parameterSlot(i),

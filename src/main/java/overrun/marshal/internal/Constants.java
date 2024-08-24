@@ -29,8 +29,6 @@ import static java.lang.constant.ConstantDescs.*;
  * @since 0.1.0
  */
 public final class Constants {
-    //TODO
-    public static final boolean DEBUG = true;
     /**
      * CD_Arena
      */
@@ -68,9 +66,25 @@ public final class Constants {
      */
     public static final ClassDesc CD_MemoryStack = ClassDesc.of("io.github.overrun.memstack.MemoryStack");
     /**
+     * CD_ProcessorType
+     */
+    public static final ClassDesc CD_ProcessorType = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType");
+    /**
      * CD_ProcessorType$Struct
      */
     public static final ClassDesc CD_ProcessorType$Struct = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType$Struct");
+    /**
+     * CD_ProcessorType$Upcall
+     */
+    public static final ClassDesc CD_ProcessorType$Upcall = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType$Upcall");
+    /**
+     * CD_ProcessorType$Upcall$Factory
+     */
+    public static final ClassDesc CD_ProcessorType$Upcall$Factory = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType$Upcall$Factory");
+    /**
+     * CD_ProcessorTypes
+     */
+    public static final ClassDesc CD_ProcessorTypes = ClassDesc.of("overrun.marshal.gen.processor.ProcessorTypes");
     /**
      * CD_SegmentAllocator
      */
@@ -321,6 +335,14 @@ public final class Constants {
      */
     public static final MethodTypeDesc MTD_Object_Object = MethodTypeDesc.of(CD_Object, CD_Object);
     /**
+     * MTD_ProcessorType$Upcall$Factory
+     */
+    public static final MethodTypeDesc MTD_ProcessorType$Upcall$Factory = MethodTypeDesc.of(CD_ProcessorType$Upcall$Factory);
+    /**
+     * MTD_ProcessorType_Class
+     */
+    public static final MethodTypeDesc MTD_ProcessorType_Class = MethodTypeDesc.of(CD_ProcessorType, CD_Class);
+    /**
      * MTD_String_MemorySegment
      */
     public static final MethodTypeDesc MTD_String_MemorySegment = MethodTypeDesc.of(CD_String, CD_MemorySegment);
@@ -348,6 +370,10 @@ public final class Constants {
      * MTD_SymbolLookup
      */
     public static final MethodTypeDesc MTD_SymbolLookup = MethodTypeDesc.of(CD_SymbolLookup);
+    /**
+     * MTD_Upcall_MemorySegment
+     */
+    public static final MethodTypeDesc MTD_Upcall_MemorySegment = MethodTypeDesc.of(CD_Upcall, CD_MemorySegment);
     /**
      * MTD_VarHandle_MemoryLayout$PathElementArray
      */
