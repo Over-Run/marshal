@@ -32,11 +32,17 @@ import java.util.Map;
  * @since 0.1.0
  */
 public final class BeforeInvokeProcessor extends BaseProcessor<BeforeInvokeProcessor.Context> {
-    public record Context(List<Parameter> parameters, Map<Parameter, Integer> refSlot, int allocatorSlot) {
+    public record Context(
+        CodeBuilder builder,
+        List<Parameter> parameters,
+        Map<Parameter, Integer> refSlot,
+        int allocatorSlot
+    ) {
     }
 
     @Override
-    public boolean process(CodeBuilder builder, Context context) {
+    public boolean process(Context context) {
+        CodeBuilder builder = context.builder();
         List<Parameter> parameters = context.parameters();
         for (int i = 0, size = parameters.size(); i < size; i++) {
             Parameter parameter = parameters.get(i);
@@ -44,15 +50,18 @@ public final class BeforeInvokeProcessor extends BaseProcessor<BeforeInvokeProce
                 parameter.getDeclaredAnnotation(Ref.class) != null) {
                 int local = builder.allocateLocal(TypeKind.ReferenceType);
                 context.refSlot().put(parameter, local);
-                MarshalProcessor.getInstance().processAndCheck(builder,
-                    new MarshalProcessor.Context(ProcessorTypes.fromParameter(parameter),
-                        StringCharset.getCharset(parameter),
-                        builder.parameterSlot(i),
-                        context.allocatorSlot()));
+                MarshalProcessor marshalProcessor = MarshalProcessor.getInstance();
+                MarshalProcessor.Context context1 = new MarshalProcessor.Context(builder,
+                    ProcessorTypes.fromParameter(parameter),
+                    StringCharset.getCharset(parameter),
+                    builder.parameterSlot(i),
+                    context.allocatorSlot()
+                );
+                marshalProcessor.checkProcessed(marshalProcessor.process(context1), context1);
                 builder.astore(local);
             }
         }
-        return super.process(builder, context);
+        return super.process(context);
     }
 
     public static BeforeInvokeProcessor getInstance() {

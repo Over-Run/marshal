@@ -32,11 +32,16 @@ import static overrun.marshal.internal.Constants.*;
  * @since 0.1.0
  */
 public final class AfterInvokeProcessor extends BaseProcessor<AfterInvokeProcessor.Context> {
-    public record Context(List<Parameter> parameters, Map<Parameter, Integer> refSlotMap) {
+    public record Context(
+        CodeBuilder builder,
+        List<Parameter> parameters,
+        Map<Parameter, Integer> refSlotMap
+    ) {
     }
 
     @Override
-    public boolean process(CodeBuilder builder, Context context) {
+    public boolean process(Context context) {
+        CodeBuilder builder = context.builder();
         List<Parameter> parameters = context.parameters();
         var refSlotMap = context.refSlotMap();
         for (int i = 0, size = parameters.size(); i < size; i++) {
@@ -73,7 +78,7 @@ public final class AfterInvokeProcessor extends BaseProcessor<AfterInvokeProcess
                 }
             }
         }
-        return super.process(builder, context);
+        return super.process(context);
     }
 
     public static AfterInvokeProcessor getInstance() {

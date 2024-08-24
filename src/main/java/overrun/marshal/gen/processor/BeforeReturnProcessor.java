@@ -28,18 +28,18 @@ import static overrun.marshal.internal.Constants.CD_MemoryStack;
  * @since 0.1.0
  */
 public final class BeforeReturnProcessor extends BaseProcessor<BeforeReturnProcessor.Context> {
-    public record Context(boolean hasMemoryStack) {
+    public record Context(CodeBuilder builder, boolean hasMemoryStack) {
     }
 
     @Override
-    public boolean process(CodeBuilder builder, Context context) {
+    public boolean process(Context context) {
         if (context.hasMemoryStack()) {
-            builder.invokestatic(CD_MemoryStack,
+            context.builder().invokestatic(CD_MemoryStack,
                 "popLocal",
                 MTD_void,
                 true);
         }
-        return super.process(builder, context);
+        return super.process(context);
     }
 
     public static BeforeReturnProcessor getInstance() {

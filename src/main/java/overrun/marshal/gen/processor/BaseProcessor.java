@@ -16,7 +16,6 @@
 
 package overrun.marshal.gen.processor;
 
-import java.lang.classfile.CodeBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,9 +33,9 @@ public abstract class BaseProcessor<C> implements Processor<C> {
     protected final List<Processor<C>> processors = new ArrayList<>();
 
     @Override
-    public boolean process(CodeBuilder builder, C context) {
+    public boolean process(C context) {
         for (var processor : processors) {
-            if (processor.process(builder, context)) {
+            if (processor.process(context)) {
                 return true;
             }
         }

@@ -16,8 +16,6 @@
 
 package overrun.marshal.gen.processor;
 
-import java.lang.classfile.CodeBuilder;
-
 /**
  * Processor
  *
@@ -29,11 +27,10 @@ public interface Processor<C> {
     /**
      * Processes with the context
      *
-     * @param builder the code builder
      * @param context the context
      * @return {@code true} if processed; {@code false} otherwise
      */
-    boolean process(CodeBuilder builder, C context);
+    boolean process(C context);
 
     default void checkProcessed(boolean processed, C context) {
         if (!processed) {
@@ -41,7 +38,7 @@ public interface Processor<C> {
         }
     }
 
-    default void processAndCheck(CodeBuilder builder, C context) {
-        checkProcessed(process(builder, context), context);
+    default void processAndCheck(C context) {
+        checkProcessed(process(context), context);
     }
 }

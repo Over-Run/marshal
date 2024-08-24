@@ -32,20 +32,20 @@ import static overrun.marshal.internal.Constants.MTD_void_int_int;
  * @since 0.1.0
  */
 public final class CheckProcessor extends BaseProcessor<CheckProcessor.Context> {
-    public record Context(List<Parameter> parameters) {
+    public record Context(CodeBuilder builder, List<Parameter> parameters) {
     }
 
     @Override
-    public boolean process(CodeBuilder builder, Context context) {
+    public boolean process(Context context) {
+        CodeBuilder builder = context.builder();
         List<Parameter> parameters = context.parameters();
         for (int i = 0, size = parameters.size(); i < size; i++) {
             Parameter parameter = parameters.get(i);
             if (parameter.getType().isArray()) {
                 Sized sized = parameter.getDeclaredAnnotation(Sized.class);
                 if (sized != null) {
-                    int slot = builder.parameterSlot(i);
                     builder.ldc(sized.value())
-                        .aload(slot)
+                        .aload(builder.parameterSlot(i))
                         .arraylength()
                         .invokestatic(CD_Checks,
                             "checkArraySize",
@@ -53,7 +53,7 @@ public final class CheckProcessor extends BaseProcessor<CheckProcessor.Context> 
                 }
             }
         }
-        return super.process(builder, context);
+        return super.process(context);
     }
 
     public static CheckProcessor getInstance() {

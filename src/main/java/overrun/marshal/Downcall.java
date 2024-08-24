@@ -23,7 +23,6 @@ import overrun.marshal.internal.StringCharset;
 import overrun.marshal.internal.data.DowncallData;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.struct.Struct;
-import overrun.marshal.struct.StructAllocator;
 
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
@@ -34,7 +33,6 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -353,9 +351,7 @@ public final class Downcall {
                             case STACK -> !isFirstAllocator;
                         };
 
-                        var beforeReturnContext = new BeforeReturnProcessor.Context(hasMemoryStack);
-
-                        CheckProcessor.getInstance().process(codeBuilder, new CheckProcessor.Context(parameters));
+                        CheckProcessor.getInstance().process(new CheckProcessor.Context(codeBuilder, parameters));
 
                         int allocatorSlot;
                         if (isFirstAllocator) {
@@ -375,8 +371,12 @@ public final class Downcall {
                             blockCodeBuilder -> {
                                 // before invoke
                                 Map<Parameter, Integer> refSlotMap = new HashMap<>();
-                                BeforeInvokeProcessor.getInstance().process(blockCodeBuilder,
-                                    new BeforeInvokeProcessor.Context(parameters, refSlotMap, allocatorSlot));
+                                BeforeInvokeProcessor.getInstance().process(
+                                    new BeforeInvokeProcessor.Context(blockCodeBuilder,
+                                        parameters,
+                                        refSlotMap,
+                                        allocatorSlot)
+                                );
 
                                 // invoke
                                 blockCodeBuilder.getstatic(cd_thisClass, entrypoint, CD_MethodHandle);
@@ -387,11 +387,13 @@ public final class Downcall {
                                     if (refSlotMap.containsKey(parameter)) {
                                         blockCodeBuilder.aload(refSlotMap.get(parameter));
                                     } else {
-                                        MarshalProcessor.getInstance().processAndCheck(blockCodeBuilder,
-                                            new MarshalProcessor.Context(processorType,
-                                                StringCharset.getCharset(parameter),
-                                                blockCodeBuilder.parameterSlot(i),
-                                                allocatorSlot));
+                                        MarshalProcessor marshalProcessor = MarshalProcessor.getInstance();
+                                        MarshalProcessor.Context context = new MarshalProcessor.Context(blockCodeBuilder,
+                                            processorType,
+                                            StringCharset.getCharset(parameter),
+                                            blockCodeBuilder.parameterSlot(i),
+                                            allocatorSlot);
+                                        marshalProcessor.checkProcessed(marshalProcessor.process(context), context);
                                     }
                                     downcallClassDescList.add(processorType.downcallClassDesc());
                                 }
@@ -408,21 +410,23 @@ public final class Downcall {
                                 }
 
                                 // after invoke
-                                AfterInvokeProcessor.getInstance().process(blockCodeBuilder, new AfterInvokeProcessor.Context(parameters, refSlotMap));
+                                AfterInvokeProcessor.getInstance().process(new AfterInvokeProcessor.Context(blockCodeBuilder, parameters, refSlotMap));
 
                                 // before return
-                                BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
+                                BeforeReturnProcessor.getInstance().process(new BeforeReturnProcessor.Context(blockCodeBuilder, hasMemoryStack));
 
                                 // return
-                                UnmarshalProcessor.getInstance().processAndCheck(blockCodeBuilder,
-                                    new UnmarshalProcessor.Context(returnProcessorType,
-                                        returnType,
-                                        StringCharset.getCharset(method),
-                                        resultSlot));
+                                UnmarshalProcessor unmarshalProcessor = UnmarshalProcessor.getInstance();
+                                UnmarshalProcessor.Context returnContext = new UnmarshalProcessor.Context(blockCodeBuilder,
+                                    returnProcessorType,
+                                    returnType,
+                                    StringCharset.getCharset(method),
+                                    resultSlot);
+                                unmarshalProcessor.checkProcessed(unmarshalProcessor.process(returnContext), returnContext);
                                 blockCodeBuilder.return_(returnTypeKind);
                             },
                             catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
-                                BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
+                                BeforeReturnProcessor.getInstance().process(new BeforeReturnProcessor.Context(blockCodeBuilder, hasMemoryStack));
                                 // rethrow the exception
                                 int slot = blockCodeBuilder.allocateLocal(TypeKind.ReferenceType);
                                 blockCodeBuilder.astore(slot)
@@ -674,13 +678,7 @@ public final class Downcall {
                         final boolean isSizedSeg = sizedSeg != null;
                         final boolean isSized = sized != null;
                         if (Struct.class.isAssignableFrom(returnType)) {
-                            final var structAllocatorField = Objects.requireNonNull(getStructAllocatorField(returnType));
-                            final StructLayout structLayout;
-                            try {
-                                structLayout = ((StructAllocator<?>) structAllocatorField.get(null)).layout();
-                            } catch (IllegalAccessException e) {
-                                throw new RuntimeException(e);
-                            }
+                            final StructLayout structLayout = ((ProcessorType.Struct) ProcessorTypes.fromClass(returnType)).checkAllocator().layout();
                             if (methodByValue) {
                                 retLayout = structLayout;
                             } else {
@@ -759,15 +757,5 @@ public final class Downcall {
         return new DowncallData(Collections.unmodifiableMap(descriptorMap1),
             Collections.unmodifiableMap(map),
             lookup);
-    }
-
-    @Deprecated
-    private static Field getStructAllocatorField(Class<?> aClass) {
-        for (Field field : aClass.getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers()) && field.getType() == StructAllocator.class) {
-                return field;
-            }
-        }
-        return null;
     }
 }

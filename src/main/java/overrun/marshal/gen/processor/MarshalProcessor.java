@@ -30,6 +30,7 @@ import static overrun.marshal.internal.Constants.*;
  */
 public final class MarshalProcessor extends BaseProcessor<MarshalProcessor.Context> {
     public record Context(
+        CodeBuilder builder,
         ProcessorType type,
         String charset,
         int variableSlot,
@@ -39,20 +40,21 @@ public final class MarshalProcessor extends BaseProcessor<MarshalProcessor.Conte
 
     @SuppressWarnings("preview")
     @Override
-    public boolean process(CodeBuilder builder, Context context) {
+    public boolean process(Context context) {
+        CodeBuilder builder = context.builder();
         final int allocatorSlot = context.allocatorSlot();
         final int variableSlot = context.variableSlot();
         switch (context.type()) {
             case ProcessorType.Allocator _ -> builder.aload(variableSlot);
             case ProcessorType.Custom _ -> {
-                return super.process(builder, context);
+                return super.process(context);
             }
             case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
             case ProcessorType.Array array -> {
                 switch (array.componentType()) {
                     case ProcessorType.Allocator _, ProcessorType.Array _, ProcessorType.BoolConvert _,
                          ProcessorType.Custom _ -> {
-                        return super.process(builder, context);
+                        return super.process(context);
                     }
                     case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
                     case ProcessorType.Str _ -> builder
