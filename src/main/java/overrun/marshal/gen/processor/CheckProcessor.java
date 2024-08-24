@@ -31,13 +31,12 @@ import static overrun.marshal.internal.Constants.MTD_void_int_int;
  * @author squid233
  * @since 0.1.0
  */
-public final class CheckProcessor extends BaseProcessor<CheckProcessor.Context> {
-    public record Context(CodeBuilder builder, List<Parameter> parameters) {
+public final class CheckProcessor extends CodeInserter<CheckProcessor.Context> {
+    public record Context(List<Parameter> parameters) {
     }
 
     @Override
-    public boolean process(Context context) {
-        CodeBuilder builder = context.builder();
+    public void process(CodeBuilder builder, Context context) {
         List<Parameter> parameters = context.parameters();
         for (int i = 0, size = parameters.size(); i < size; i++) {
             Parameter parameter = parameters.get(i);
@@ -53,7 +52,7 @@ public final class CheckProcessor extends BaseProcessor<CheckProcessor.Context> 
                 }
             }
         }
-        return super.process(context);
+        super.process(builder, context);
     }
 
     public static CheckProcessor getInstance() {

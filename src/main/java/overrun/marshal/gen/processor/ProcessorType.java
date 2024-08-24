@@ -24,6 +24,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
+import java.util.Locale;
 
 import static java.lang.constant.ConstantDescs.*;
 import static overrun.marshal.internal.Constants.CD_MemorySegment;
@@ -90,6 +91,11 @@ public sealed interface ProcessorType {
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.NONE;
         }
+
+        @Override
+        public String toString() {
+            return "void";
+        }
     }
 
     /**
@@ -99,48 +105,50 @@ public sealed interface ProcessorType {
         /**
          * {@code boolean} type
          */
-        BOOLEAN(CD_boolean, ValueLayout.JAVA_BOOLEAN),
+        BOOLEAN(CD_boolean, ValueLayout.JAVA_BOOLEAN, "boolean"),
         /**
          * {@code char} type
          */
-        CHAR(CD_char, ValueLayout.JAVA_CHAR),
+        CHAR(CD_char, ValueLayout.JAVA_CHAR, "char"),
         /**
          * {@code byte} type
          */
-        BYTE(CD_byte, ValueLayout.JAVA_BYTE),
+        BYTE(CD_byte, ValueLayout.JAVA_BYTE, "byte"),
         /**
          * {@code short} type
          */
-        SHORT(CD_short, ValueLayout.JAVA_SHORT),
+        SHORT(CD_short, ValueLayout.JAVA_SHORT, "short"),
         /**
          * {@code int} type
          */
-        INT(CD_int, ValueLayout.JAVA_INT),
+        INT(CD_int, ValueLayout.JAVA_INT, "int"),
         /**
          * {@code long} type
          */
-        LONG(CD_long, ValueLayout.JAVA_LONG),
+        LONG(CD_long, ValueLayout.JAVA_LONG, "long"),
         /**
          * {@code float} type
          */
-        FLOAT(CD_float, ValueLayout.JAVA_FLOAT),
+        FLOAT(CD_float, ValueLayout.JAVA_FLOAT, "float"),
         /**
          * {@code double} type
          */
-        DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE),
+        DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE, "double"),
         /**
          * {@link MemorySegment} type
          */
-        ADDRESS(CD_MemorySegment, ValueLayout.ADDRESS);
+        ADDRESS(CD_MemorySegment, ValueLayout.ADDRESS, MemorySegment.class.getSimpleName());
 
         private final ClassDesc classDesc;
         private final TypeKind typeKind;
         private final ValueLayout layout;
+        private final String toStringValue;
 
-        Value(ClassDesc classDesc, ValueLayout layout) {
+        Value(ClassDesc classDesc, ValueLayout layout, String toStringValue) {
             this.classDesc = classDesc;
             this.typeKind = TypeKind.from(classDesc);
             this.layout = layout;
+            this.toStringValue = toStringValue;
         }
 
         /**
@@ -165,6 +173,11 @@ public sealed interface ProcessorType {
         @Override
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.NONE;
+        }
+
+        @Override
+        public String toString() {
+            return toStringValue;
         }
     }
 
@@ -234,6 +247,11 @@ public sealed interface ProcessorType {
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.NONE;
         }
+
+        @Override
+        public String toString() {
+            return name().toLowerCase(Locale.ROOT);
+        }
     }
 
     /**
@@ -257,6 +275,11 @@ public sealed interface ProcessorType {
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.NONE; // this is invalid
         }
+
+        @Override
+        public String toString() {
+            return SegmentAllocator.class.getSimpleName();
+        }
     }
 
     /**
@@ -279,6 +302,11 @@ public sealed interface ProcessorType {
         @Override
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.STACK;
+        }
+
+        @Override
+        public String toString() {
+            return String.class.getSimpleName();
         }
     }
 
@@ -323,6 +351,11 @@ public sealed interface ProcessorType {
         @Override
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.NONE;
+        }
+
+        @Override
+        public String toString() {
+            return "Struct(" + typeClass + ")";
         }
     }
 
@@ -375,6 +408,11 @@ public sealed interface ProcessorType {
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.ARENA;
         }
+
+        @Override
+        public String toString() {
+            return "Upcall(" + typeClass + ")";
+        }
     }
 
     /**
@@ -391,6 +429,11 @@ public sealed interface ProcessorType {
         @Override
         public AllocatorRequirement allocationRequirement() {
             return AllocatorRequirement.stricter(AllocatorRequirement.STACK, componentType.allocationRequirement());
+        }
+
+        @Override
+        public String toString() {
+            return "Array(" + componentType + ")";
         }
     }
 

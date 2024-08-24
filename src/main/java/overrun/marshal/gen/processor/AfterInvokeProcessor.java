@@ -31,17 +31,15 @@ import static overrun.marshal.internal.Constants.*;
  * @author squid233
  * @since 0.1.0
  */
-public final class AfterInvokeProcessor extends BaseProcessor<AfterInvokeProcessor.Context> {
+public final class AfterInvokeProcessor extends CodeInserter<AfterInvokeProcessor.Context> {
     public record Context(
-        CodeBuilder builder,
         List<Parameter> parameters,
         Map<Parameter, Integer> refSlotMap
     ) {
     }
 
     @Override
-    public boolean process(Context context) {
-        CodeBuilder builder = context.builder();
+    public void process(CodeBuilder builder, Context context) {
         List<Parameter> parameters = context.parameters();
         var refSlotMap = context.refSlotMap();
         for (int i = 0, size = parameters.size(); i < size; i++) {
@@ -55,9 +53,7 @@ public final class AfterInvokeProcessor extends BaseProcessor<AfterInvokeProcess
                     builder
                         .aload(refSlot)
                         .aload(parameterSlot)
-                        .invokestatic(CD_Unmarshal,
-                        "copy",
-                        switch (array.componentType()) {
+                        .invokestatic(CD_Unmarshal, "copy", switch (array.componentType()) {
                             case ProcessorType.Str _ ->
                                 StringCharset.getCharset(builder, StringCharset.getCharset(parameter)) ?
                                     MTD_void_MemorySegment_StringArray_Charset :
@@ -78,7 +74,7 @@ public final class AfterInvokeProcessor extends BaseProcessor<AfterInvokeProcess
                 }
             }
         }
-        return super.process(context);
+        super.process(builder, context);
     }
 
     public static AfterInvokeProcessor getInstance() {

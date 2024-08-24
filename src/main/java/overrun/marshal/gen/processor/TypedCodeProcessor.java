@@ -16,29 +16,27 @@
 
 package overrun.marshal.gen.processor;
 
+import java.lang.classfile.CodeBuilder;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Processor
- *
- * @param <C> context type
  * @author squid233
  * @since 0.1.0
  */
-public interface Processor<C> {
-    /**
-     * Processes with the context
-     *
-     * @param context the context
-     * @return {@code true} if processed; {@code false} otherwise
-     */
-    boolean process(C context);
+public abstract class TypedCodeProcessor<T> {
+    private final List<TypedCodeProcessor<T>> list = new ArrayList<>();
 
-    default void checkProcessed(boolean processed, C context) {
-        if (!processed) {
-            throw new IllegalStateException(this.getClass().getSimpleName() + " not processed: " + context);
+    public boolean process(CodeBuilder builder, ProcessorType type, T context) {
+        for (var processor : list) {
+            if (processor.process(builder, type, context)) {
+                return true;
+            }
         }
+        throw new IllegalStateException(this.getClass().getSimpleName() + ": type '" + type + "' was not processed");
     }
 
-    default void processAndCheck(C context) {
-        checkProcessed(process(context), context);
+    public void addProcessor(TypedCodeProcessor<T> processor) {
+        list.add(processor);
     }
 }

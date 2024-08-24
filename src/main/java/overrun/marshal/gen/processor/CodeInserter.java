@@ -16,33 +16,24 @@
 
 package overrun.marshal.gen.processor;
 
+import java.lang.classfile.CodeBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A processor with a list of processors
- *
- * @param <C> context type
  * @author squid233
  * @since 0.1.0
  */
-public abstract class BaseProcessor<C> implements Processor<C> {
-    /**
-     * processors
-     */
-    protected final List<Processor<C>> processors = new ArrayList<>();
+public abstract class CodeInserter<T> {
+    private final List<CodeInserter<T>> list = new ArrayList<>();
 
-    @Override
-    public boolean process(C context) {
-        for (var processor : processors) {
-            if (processor.process(context)) {
-                return true;
-            }
+    public void process(CodeBuilder builder, T context) {
+        for (CodeInserter<T> processor : list) {
+            processor.process(builder, context);
         }
-        return false;
     }
 
-    public void addProcessor(Processor<C> processor) {
-        processors.add(processor);
+    public void addProcessor(CodeInserter<T> processor) {
+        list.add(processor);
     }
 }

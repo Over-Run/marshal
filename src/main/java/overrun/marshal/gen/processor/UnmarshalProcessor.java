@@ -29,10 +29,8 @@ import static overrun.marshal.internal.Constants.*;
  * @author squid233
  * @since 0.1.0
  */
-public final class UnmarshalProcessor extends BaseProcessor<UnmarshalProcessor.Context> {
+public final class UnmarshalProcessor extends TypedCodeProcessor<UnmarshalProcessor.Context> {
     public record Context(
-        CodeBuilder builder,
-        ProcessorType type,
         Class<?> originalType,
         String charset,
         int variableSlot
@@ -41,12 +39,11 @@ public final class UnmarshalProcessor extends BaseProcessor<UnmarshalProcessor.C
 
     @SuppressWarnings("preview")
     @Override
-    public boolean process(Context context) {
-        CodeBuilder builder = context.builder();
+    public boolean process(CodeBuilder builder, ProcessorType type, Context context) {
         int variableSlot = context.variableSlot();
-        switch (context.type()) {
+        switch (type) {
             case ProcessorType.Allocator _, ProcessorType.Custom _ -> {
-                return super.process(context);
+                return super.process(builder, type, context);
             }
             case ProcessorType.Void _ -> {
             }
@@ -54,7 +51,7 @@ public final class UnmarshalProcessor extends BaseProcessor<UnmarshalProcessor.C
                 switch (array.componentType()) {
                     case ProcessorType.Allocator _, ProcessorType.Array _, ProcessorType.BoolConvert _,
                          ProcessorType.Custom _, ProcessorType.Struct _, ProcessorType.Upcall<?> _ -> {
-                        return super.process(context);
+                        return super.process(builder, type, context);
                     }
                     case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
                     case ProcessorType.Str _ -> builder

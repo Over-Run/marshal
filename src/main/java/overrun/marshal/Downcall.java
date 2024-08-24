@@ -97,10 +97,10 @@ import static overrun.marshal.internal.Constants.*;
  * }</pre>
  * <h2>Processor Types</h2>
  * Processor types are used to process builtin and custom types.
- * You can {@linkplain ProcessorTypes#register(Class, ProcessorType) register} a type
- * and {@linkplain BaseProcessor#addProcessor(Processor) add} your own processor.
+ * You can {@linkplain ProcessorTypes#register(Class, ProcessorType) register} a type and your own processor
+ * as builtin processors may require an additional processor.
  * <p>
- * For custom types, you must add processors to {@link MarshalProcessor} and {@link UnmarshalProcessor}.
+ * For custom types, you should add processors to subclasses of {@link TypedCodeProcessor}.
  * <h2>Example</h2>
  * <pre>{@code
  * public interface GL {
@@ -350,8 +350,9 @@ public final class Downcall {
                             case NONE, ALLOCATOR, ARENA -> false;
                             case STACK -> !isFirstAllocator;
                         };
+                        var beforeReturnContext = new BeforeReturnProcessor.Context(hasMemoryStack);
 
-                        CheckProcessor.getInstance().process(new CheckProcessor.Context(codeBuilder, parameters));
+                        CheckProcessor.getInstance().process(codeBuilder, new CheckProcessor.Context(parameters));
 
                         int allocatorSlot;
                         if (isFirstAllocator) {
@@ -367,76 +368,71 @@ public final class Downcall {
                             allocatorSlot = -1;
                         }
 
-                        codeBuilder.trying(
-                            blockCodeBuilder -> {
-                                // before invoke
-                                Map<Parameter, Integer> refSlotMap = new HashMap<>();
-                                BeforeInvokeProcessor.getInstance().process(
-                                    new BeforeInvokeProcessor.Context(blockCodeBuilder,
-                                        parameters,
-                                        refSlotMap,
-                                        allocatorSlot)
-                                );
+                        codeBuilder.trying(blockCodeBuilder -> {
+                            // before invoke
+                            Map<Parameter, Integer> refSlotMap = new HashMap<>();
+                            BeforeInvokeProcessor.getInstance().process(blockCodeBuilder,
+                                new BeforeInvokeProcessor.Context(
+                                    parameters,
+                                    refSlotMap,
+                                    allocatorSlot)
+                            );
 
-                                // invoke
-                                blockCodeBuilder.getstatic(cd_thisClass, entrypoint, CD_MethodHandle);
-                                List<ClassDesc> downcallClassDescList = new ArrayList<>();
-                                for (int i = methodData.skipFirstParam() ? 1 : 0, size = parameters.size(); i < size; i++) {
-                                    Parameter parameter = parameters.get(i);
-                                    ProcessorType processorType = ProcessorTypes.fromParameter(parameter);
-                                    if (refSlotMap.containsKey(parameter)) {
-                                        blockCodeBuilder.aload(refSlotMap.get(parameter));
-                                    } else {
-                                        MarshalProcessor marshalProcessor = MarshalProcessor.getInstance();
-                                        MarshalProcessor.Context context = new MarshalProcessor.Context(blockCodeBuilder,
-                                            processorType,
-                                            StringCharset.getCharset(parameter),
-                                            blockCodeBuilder.parameterSlot(i),
-                                            allocatorSlot);
-                                        marshalProcessor.checkProcessed(marshalProcessor.process(context), context);
-                                    }
-                                    downcallClassDescList.add(processorType.downcallClassDesc());
+                            // invoke
+                            blockCodeBuilder.getstatic(cd_thisClass, entrypoint, CD_MethodHandle);
+                            List<ClassDesc> downcallClassDescList = new ArrayList<>();
+                            for (int i = methodData.skipFirstParam() ? 1 : 0, size = parameters.size(); i < size; i++) {
+                                Parameter parameter = parameters.get(i);
+                                ProcessorType processorType = ProcessorTypes.fromParameter(parameter);
+                                if (refSlotMap.containsKey(parameter)) {
+                                    blockCodeBuilder.aload(refSlotMap.get(parameter));
+                                } else {
+                                    MarshalProcessor.getInstance().process(blockCodeBuilder, processorType, new MarshalProcessor.Context(
+                                        StringCharset.getCharset(parameter),
+                                        blockCodeBuilder.parameterSlot(i),
+                                        allocatorSlot
+                                    ));
                                 }
-                                ProcessorType returnProcessorType = ProcessorTypes.fromMethod(method);
-                                ClassDesc cd_returnDowncall = returnProcessorType.downcallClassDesc();
-                                TypeKind returnDowncallTypeKind = TypeKind.from(cd_returnDowncall);
-                                blockCodeBuilder.invokevirtual(CD_MethodHandle,
-                                    "invokeExact",
-                                    MethodTypeDesc.of(cd_returnDowncall, downcallClassDescList));
-                                boolean returnVoid = returnType == void.class;
-                                int resultSlot = returnVoid ? -1 : blockCodeBuilder.allocateLocal(returnDowncallTypeKind);
-                                if (!returnVoid) {
-                                    blockCodeBuilder.storeLocal(returnDowncallTypeKind, resultSlot);
-                                }
+                                downcallClassDescList.add(processorType.downcallClassDesc());
+                            }
+                            ProcessorType returnProcessorType = ProcessorTypes.fromMethod(method);
+                            ClassDesc cd_returnDowncall = returnProcessorType.downcallClassDesc();
+                            TypeKind returnDowncallTypeKind = TypeKind.from(cd_returnDowncall);
+                            blockCodeBuilder.invokevirtual(CD_MethodHandle,
+                                "invokeExact",
+                                MethodTypeDesc.of(cd_returnDowncall, downcallClassDescList));
+                            boolean returnVoid = returnType == void.class;
+                            int resultSlot = returnVoid ? -1 : blockCodeBuilder.allocateLocal(returnDowncallTypeKind);
+                            if (!returnVoid) {
+                                blockCodeBuilder.storeLocal(returnDowncallTypeKind, resultSlot);
+                            }
 
-                                // after invoke
-                                AfterInvokeProcessor.getInstance().process(new AfterInvokeProcessor.Context(blockCodeBuilder, parameters, refSlotMap));
+                            // after invoke
+                            AfterInvokeProcessor.getInstance().process(blockCodeBuilder,
+                                new AfterInvokeProcessor.Context(parameters, refSlotMap));
 
-                                // before return
-                                BeforeReturnProcessor.getInstance().process(new BeforeReturnProcessor.Context(blockCodeBuilder, hasMemoryStack));
+                            // before return
+                            BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
 
-                                // return
-                                UnmarshalProcessor unmarshalProcessor = UnmarshalProcessor.getInstance();
-                                UnmarshalProcessor.Context returnContext = new UnmarshalProcessor.Context(blockCodeBuilder,
-                                    returnProcessorType,
-                                    returnType,
-                                    StringCharset.getCharset(method),
-                                    resultSlot);
-                                unmarshalProcessor.checkProcessed(unmarshalProcessor.process(returnContext), returnContext);
-                                blockCodeBuilder.return_(returnTypeKind);
-                            },
-                            catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
-                                BeforeReturnProcessor.getInstance().process(new BeforeReturnProcessor.Context(blockCodeBuilder, hasMemoryStack));
-                                // rethrow the exception
-                                int slot = blockCodeBuilder.allocateLocal(TypeKind.ReferenceType);
-                                blockCodeBuilder.astore(slot)
-                                    .new_(CD_IllegalStateException)
-                                    .dup()
-                                    .ldc(methodData.signatureString())
-                                    .aload(slot)
-                                    .invokespecial(CD_IllegalStateException, INIT_NAME, MTD_void_String_Throwable)
-                                    .athrow();
-                            }));
+                            // return
+                            UnmarshalProcessor.getInstance().process(blockCodeBuilder, returnProcessorType, new UnmarshalProcessor.Context(
+                                returnType,
+                                StringCharset.getCharset(method),
+                                resultSlot
+                            ));
+                            blockCodeBuilder.return_(returnTypeKind);
+                        }, catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
+                            BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
+                            // rethrow the exception
+                            int slot = blockCodeBuilder.allocateLocal(TypeKind.ReferenceType);
+                            blockCodeBuilder.astore(slot)
+                                .new_(CD_IllegalStateException)
+                                .dup()
+                                .ldc(methodData.signatureString())
+                                .aload(slot)
+                                .invokespecial(CD_IllegalStateException, INIT_NAME, MTD_void_String_Throwable)
+                                .athrow();
+                        }));
 
                         //endregion
                     });
