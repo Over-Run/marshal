@@ -32,6 +32,9 @@ import java.util.List;
  * @since 0.1.0
  */
 public final class DescriptorTransformer extends TypeTransformer<FunctionDescriptor, DescriptorTransformer.Context> {
+    private DescriptorTransformer() {
+    }
+
     public record Context(
         Method method,
         boolean descriptorSkipFirstParameter,
@@ -87,6 +90,9 @@ public final class DescriptorTransformer extends TypeTransformer<FunctionDescrip
             FunctionDescriptor.of(returnLayout, argLayouts.toArray(new MemoryLayout[0]));
     }
 
+    /**
+     * {@return the instance}
+     */
     public static DescriptorTransformer getInstance() {
         class Holder {
             static final DescriptorTransformer INSTANCE = new DescriptorTransformer();

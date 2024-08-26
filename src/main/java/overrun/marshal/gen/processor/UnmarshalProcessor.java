@@ -30,6 +30,9 @@ import static overrun.marshal.internal.Constants.*;
  * @since 0.1.0
  */
 public final class UnmarshalProcessor extends TypedCodeProcessor<UnmarshalProcessor.Context> {
+    private UnmarshalProcessor() {
+    }
+
     public record Context(
         Class<?> originalType,
         String charset,
@@ -127,6 +130,9 @@ public final class UnmarshalProcessor extends TypedCodeProcessor<UnmarshalProces
         return true;
     }
 
+    /**
+     * {@return the instance}
+     */
     public static UnmarshalProcessor getInstance() {
         class Holder {
             static final UnmarshalProcessor INSTANCE = new UnmarshalProcessor();

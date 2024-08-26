@@ -35,18 +35,20 @@ public final class StringCharset {
     }
 
     /**
-     * {@return hasCharset}
+     * Checks the given annotation
      *
      * @param strCharset strCharset
+     * @return {@code true} if {@code strCharset} is not null and has value
      */
     public static boolean hasCharset(StrCharset strCharset) {
         return strCharset != null && !strCharset.value().isBlank();
     }
 
     /**
-     * {@return getCharset}
+     * Gets the charset from the given element
      *
      * @param element element
+     * @return the charset
      */
     public static String getCharset(AnnotatedElement element) {
         final StrCharset strCharset = element.getDeclaredAnnotation(StrCharset.class);
@@ -54,10 +56,11 @@ public final class StringCharset {
     }
 
     /**
-     * getCharset
+     * Converts the given charset name to bytecode representing a {@code Charset} instance
      *
      * @param codeBuilder codeBuilder
      * @param charset     charset
+     * @return {@code true} if {@code charset} is not null
      */
     public static boolean getCharset(CodeBuilder codeBuilder, String charset) {
         if (charset == null) {

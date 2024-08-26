@@ -21,7 +21,10 @@ import overrun.marshal.struct.StructAllocatorSpec;
 
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
-import java.lang.foreign.*;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.ValueLayout;
 import java.util.Locale;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -29,7 +32,20 @@ import static overrun.marshal.internal.Constants.CD_MemorySegment;
 import static overrun.marshal.internal.Constants.CD_SegmentAllocator;
 
 /**
- * Types to be processed
+ * Processor types are used to indicate how to process a type in {@link overrun.marshal.Downcall Downcall}.
+ * <h2>Builtin type</h2>
+ * Builtin types include 8 primitive types, {@link MemorySegment}, {@link String},
+ * {@link overrun.marshal.struct.Struct Struct} without allocator and {@link overrun.marshal.Upcall Upcall}
+ * without factory.
+ * <h2>Custom type</h2>
+ * For a custom type, you should implement the general superinterface {@link Custom} and register it via
+ * {@link ProcessorTypes#register(Class, ProcessorType) ProcessorTypes::register}.
+ * Common custom types include subclasses of {@link overrun.marshal.struct.Struct Struct}
+ * and {@link overrun.marshal.Upcall Upcall}.
+ * <p>
+ * For {@code Struct} and {@code Upcall}, {@code ProcessorTypes} also provides
+ * {@link ProcessorTypes#registerStruct(Class, StructAllocatorSpec) registerStruct} and
+ * {@link ProcessorTypes#registerUpcall(Class, Upcall.Factory) registerUpcall} to conveniently register them.
  *
  * @author squid233
  * @since 0.1.0
@@ -337,19 +353,34 @@ public sealed interface ProcessorType {
             this.allocatorSpec = allocatorSpec;
         }
 
+        /**
+         * {@return an exception with "No allocator" message}
+         *
+         * @param typeClass the type of the struct
+         */
         public static IllegalStateException noAllocatorException(Class<?> typeClass) {
             return new IllegalStateException("No allocator registered for struct " + typeClass);
         }
 
+        /**
+         * {@return the type of the struct}
+         */
         public Class<?> typeClass() {
             return typeClass;
         }
 
+        /**
+         * {@return the allocator}
+         */
         @Nullable
         public StructAllocatorSpec<?> allocatorSpec() {
             return allocatorSpec;
         }
 
+        /**
+         * {@return the allocator}
+         * Also checks whether the allocator is null or not.
+         */
         public StructAllocatorSpec<?> checkAllocator() {
             if (allocatorSpec() != null) {
                 return allocatorSpec();
@@ -393,24 +424,50 @@ public sealed interface ProcessorType {
             this.factory = factory;
         }
 
+        /**
+         * {@return an exception with "No factory" message}
+         *
+         * @param typeClass the type of the upcall
+         */
         public static IllegalStateException noFactoryException(Class<?> typeClass) {
             return new IllegalStateException("No factory registered for upcall " + typeClass);
         }
 
+        /**
+         * A factory that creates the upcall instance with a given upcall stub.
+         *
+         * @param <T> the type of the upcall
+         */
         @FunctionalInterface
         public interface Factory<T extends overrun.marshal.Upcall> {
+            /**
+             * Creates an upcall instance with the given stub.
+             *
+             * @param stub the memory segment
+             * @return the upcall instance
+             */
             T create(MemorySegment stub);
         }
 
+        /**
+         * {@return the type of the upcall}
+         */
         public Class<T> typeClass() {
             return typeClass;
         }
 
+        /**
+         * {@return the factory}
+         */
         @Nullable
         public Factory<T> factory() {
             return factory;
         }
 
+        /**
+         * {@return the factory}
+         * Also checks whether the factory is null or not.
+         */
         public Factory<T> checkFactory() {
             if (factory() != null) {
                 return factory();
@@ -467,7 +524,7 @@ public sealed interface ProcessorType {
     }
 
     /**
-     * Custom type
+     * General superinterface of custom processor types
      */
     non-sealed interface Custom extends ProcessorType {
     }

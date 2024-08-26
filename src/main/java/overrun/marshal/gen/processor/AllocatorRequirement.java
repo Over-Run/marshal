@@ -17,7 +17,7 @@
 package overrun.marshal.gen.processor;
 
 /**
- * allocator requirement
+ * Allocator requirement. This tells {@link overrun.marshal.Downcall Downcall} whether a segment allocator is required.
  *
  * @author squid233
  * @since 0.1.0
@@ -46,10 +46,21 @@ public enum AllocatorRequirement {
         this.level = level;
     }
 
+    /**
+     * {@return the stricter allocator requirement between {@code first} and {@code second}}
+     *
+     * @param first  the first requirement
+     * @param second the second requirement
+     */
     public static AllocatorRequirement stricter(AllocatorRequirement first, AllocatorRequirement second) {
         return first.isStricter(second) ? first : second;
     }
 
+    /**
+     * {@return {@code true} if this requirement is stricter than {@code other}}
+     *
+     * @param other the other requirement
+     */
     public boolean isStricter(AllocatorRequirement other) {
         return this.level > other.level;
     }

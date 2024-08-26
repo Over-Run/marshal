@@ -27,6 +27,9 @@ import static overrun.marshal.internal.Constants.*;
  * @since 0.1.0
  */
 public final class RefCopyProcessor extends TypedCodeProcessor<RefCopyProcessor.Context> {
+    private RefCopyProcessor() {
+    }
+
     public record Context(
         int srcSegmentSlot,
         int dstArraySlot,
@@ -73,6 +76,9 @@ public final class RefCopyProcessor extends TypedCodeProcessor<RefCopyProcessor.
         };
     }
 
+    /**
+     * {@return the instance}
+     */
     public static RefCopyProcessor getInstance() {
         class Holder {
             static final RefCopyProcessor INSTANCE = new RefCopyProcessor();

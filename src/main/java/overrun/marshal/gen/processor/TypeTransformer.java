@@ -20,11 +20,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * @param <R> the type of the return value
+ * @param <C> the type of the context
  * @author squid233
  * @since 0.1.0
  */
 public abstract class TypeTransformer<R, C> implements Processor<TypeTransformer<R, C>> {
     private final List<TypeTransformer<R, C>> list = new ArrayList<>();
+
+    /**
+     * constructor
+     */
+    protected TypeTransformer() {
+    }
 
     public R process(C context) {
         for (var transformer : list) {

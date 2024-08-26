@@ -102,8 +102,7 @@ import static overrun.marshal.internal.Constants.*;
  * For custom types, you should {@linkplain Processor#addProcessor(Processor) add} processors to subclasses of
  * {@link TypedCodeProcessor} and {@link TypeTransformer}.
  * <p>
- * Builtin types include 8 primitive types, {@link MemorySegment}, {@link String},
- * {@link overrun.marshal.struct.Struct Struct} without allocator and {@link Upcall} without factory.
+ * Builtin types are described in {@link ProcessorType}.
  * <h2>Example</h2>
  * <pre>{@code
  * public interface GL {

@@ -21,11 +21,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * @param <T> the type of the context
  * @author squid233
  * @since 0.1.0
  */
 public abstract class CodeInserter<T> implements Processor<CodeInserter<T>> {
     private final List<CodeInserter<T>> list = new ArrayList<>();
+
+    /**
+     * constructor
+     */
+    protected CodeInserter() {
+    }
 
     public void process(CodeBuilder builder, T context) {
         for (CodeInserter<T> processor : list) {

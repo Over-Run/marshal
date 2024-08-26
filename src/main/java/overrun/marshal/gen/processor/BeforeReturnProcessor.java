@@ -28,6 +28,9 @@ import static overrun.marshal.internal.Constants.CD_MemoryStack;
  * @since 0.1.0
  */
 public final class BeforeReturnProcessor extends CodeInserter<BeforeReturnProcessor.Context> {
+    private BeforeReturnProcessor() {
+    }
+
     public record Context(boolean hasMemoryStack) {
     }
 
@@ -42,6 +45,9 @@ public final class BeforeReturnProcessor extends CodeInserter<BeforeReturnProces
         super.process(builder, context);
     }
 
+    /**
+     * {@return the instance}
+     */
     public static BeforeReturnProcessor getInstance() {
         class Holder {
             static final BeforeReturnProcessor INSTANCE = new BeforeReturnProcessor();

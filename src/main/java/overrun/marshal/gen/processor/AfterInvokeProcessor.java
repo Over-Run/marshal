@@ -30,6 +30,9 @@ import java.util.Map;
  * @since 0.1.0
  */
 public final class AfterInvokeProcessor extends CodeInserter<AfterInvokeProcessor.Context> {
+    private AfterInvokeProcessor() {
+    }
+
     public record Context(
         List<Parameter> parameters,
         Map<Parameter, Integer> refSlotMap
@@ -54,6 +57,9 @@ public final class AfterInvokeProcessor extends CodeInserter<AfterInvokeProcesso
         super.process(builder, context);
     }
 
+    /**
+     * {@return the instance}
+     */
     public static AfterInvokeProcessor getInstance() {
         class Holder {
             static final AfterInvokeProcessor INSTANCE = new AfterInvokeProcessor();

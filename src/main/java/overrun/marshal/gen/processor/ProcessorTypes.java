@@ -25,18 +25,34 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
- * Processor types
+ * This class stores a map of processor types.
+ * <p>
+ * You cannot register or unregister a builtin type. Builtin types are described in {@link ProcessorType}.
  *
  * @author squid233
  * @since 0.1.0
  */
 public final class ProcessorTypes {
     private static final Map<Class<?>, ProcessorType> map = new LinkedHashMap<>();
+    private static final Set<Class<?>> builtinTypes = Set.of(
+        void.class,
+        boolean.class,
+        char.class,
+        byte.class,
+        short.class,
+        int.class,
+        long.class,
+        float.class,
+        double.class,
+        MemorySegment.class,
+        String.class,
+        SegmentAllocator.class,
+        Struct.class,
+        Upcall.class
+    );
 
     static {
         register(void.class, ProcessorType.Void.INSTANCE);
@@ -122,11 +138,9 @@ public final class ProcessorTypes {
      * @param type   the processor type
      */
     public static void register(Class<?> aClass, ProcessorType type) {
-        if (type != null) {
-            map.put(aClass, type);
-        } else {
-            map.remove(aClass);
-        }
+        Objects.requireNonNull(aClass);
+        Objects.requireNonNull(type);
+        map.putIfAbsent(aClass, type);
     }
 
     /**
@@ -148,6 +162,20 @@ public final class ProcessorTypes {
      */
     public static <T extends Upcall> void registerUpcall(Class<T> aClass, ProcessorType.Upcall.Factory<T> factory) {
         register(aClass, ProcessorType.upcall(aClass, factory));
+    }
+
+    /**
+     * Unregisters the given class.
+     *
+     * @param aClass the class
+     * @return the previous registered type
+     */
+    public static ProcessorType unregister(Class<?> aClass) {
+        Objects.requireNonNull(aClass);
+        if (isBuiltinType(aClass)) {
+            throw new IllegalArgumentException("Cannot unregister builtin type " + aClass);
+        }
+        return map.remove(aClass);
     }
 
     /**
@@ -177,5 +205,9 @@ public final class ProcessorTypes {
     public static boolean isRegisteredExactly(Class<?> aClass) {
         if (aClass.isArray()) return isRegisteredExactly(aClass.componentType());
         return map.containsKey(aClass);
+    }
+
+    private static boolean isBuiltinType(Class<?> aClass) {
+        return builtinTypes.contains(aClass);
     }
 }

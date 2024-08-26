@@ -31,6 +31,9 @@ import static overrun.marshal.internal.Constants.*;
  * @since 0.1.0
  */
 public final class CheckProcessor extends CodeInserter<CheckProcessor.Context> {
+    private CheckProcessor() {
+    }
+
     public record Context(List<Parameter> parameters) {
     }
 
@@ -54,6 +57,9 @@ public final class CheckProcessor extends CodeInserter<CheckProcessor.Context> {
         super.process(builder, context);
     }
 
+    /**
+     * {@return the instance}
+     */
     public static CheckProcessor getInstance() {
         class Holder {
             static final CheckProcessor INSTANCE = new CheckProcessor();

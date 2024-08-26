@@ -17,9 +17,19 @@
 package overrun.marshal.gen.processor;
 
 /**
+ * The superinterface of processors.
+ *
+ * @param <T> the type of this
  * @author squid233
  * @since 0.1.0
  */
 public interface Processor<T extends Processor<T>> {
+    /**
+     * Adds an alternative processor to this.
+     * <p>
+     * Check {@code process} method of subclasses to see how alternative processors are used.
+     *
+     * @param processor the processor
+     */
     void addProcessor(T processor);
 }

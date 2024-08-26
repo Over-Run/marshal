@@ -32,6 +32,9 @@ import java.util.Map;
  * @since 0.1.0
  */
 public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProcessor.Context> {
+    private BeforeInvokeProcessor() {
+    }
+
     public record Context(
         List<Parameter> parameters,
         Map<Parameter, Integer> refSlot,
@@ -63,6 +66,9 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
         super.process(builder, context);
     }
 
+    /**
+     * {@return the instance}
+     */
     public static BeforeInvokeProcessor getInstance() {
         class Holder {
             static final BeforeInvokeProcessor INSTANCE = new BeforeInvokeProcessor();

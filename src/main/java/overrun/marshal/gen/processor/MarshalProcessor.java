@@ -29,6 +29,9 @@ import static overrun.marshal.internal.Constants.*;
  * @since 0.1.0
  */
 public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.Context> {
+    private MarshalProcessor() {
+    }
+
     public record Context(
         String charset,
         int variableSlot,
@@ -137,6 +140,9 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
         return true;
     }
 
+    /**
+     * {@return the instance}
+     */
     public static MarshalProcessor getInstance() {
         class Holder {
             static final MarshalProcessor INSTANCE = new MarshalProcessor();

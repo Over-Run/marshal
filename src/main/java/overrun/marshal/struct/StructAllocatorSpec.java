@@ -22,6 +22,7 @@ import java.lang.foreign.StructLayout;
 /**
  * Specification of {@link StructAllocator}.
  *
+ * @param <T> the type of the struct
  * @author squid233
  * @since 0.1.0
  */

@@ -21,6 +21,9 @@ package overrun.marshal.gen.processor;
  * @since 0.1.0
  */
 public final class RefTypeTransformer extends TypeTransformer<ProcessorType, ProcessorType> {
+    private RefTypeTransformer() {
+    }
+
     @Override
     public ProcessorType process(ProcessorType context) {
         return context instanceof ProcessorType.Array array ? switch (array.componentType()) {
@@ -29,6 +32,9 @@ public final class RefTypeTransformer extends TypeTransformer<ProcessorType, Pro
         } : context;
     }
 
+    /**
+     * {@return the instance}
+     */
     public static RefTypeTransformer getInstance() {
         class Holder {
             static final RefTypeTransformer INSTANCE = new RefTypeTransformer();

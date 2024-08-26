@@ -21,11 +21,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * @param <T> the type of the context
  * @author squid233
  * @since 0.1.0
  */
 public abstract class TypedCodeProcessor<T> implements Processor<TypedCodeProcessor<T>> {
     private final List<TypedCodeProcessor<T>> list = new ArrayList<>();
+
+    /**
+     * constructor
+     */
+    protected TypedCodeProcessor() {
+    }
 
     public boolean process(CodeBuilder builder, ProcessorType type, T context) {
         for (var processor : list) {
