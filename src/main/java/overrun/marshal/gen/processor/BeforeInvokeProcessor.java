@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * Insert codes before invoking the downcall handle.
  * <p>
- * The default operation transforms {@link Ref @Ref} annotated arrays with {@link RefTypeTransformer}.
+ * The default operation transforms {@link Ref @Ref} annotated arrays with {@link MarshalProcessor}.
  *
  * @author squid233
  * @since 0.1.0
@@ -60,15 +60,13 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
             if (parameter.getType().isArray() &&
                 parameter.getDeclaredAnnotation(Ref.class) != null) {
                 ProcessorType type = ProcessorTypes.fromParameter(parameter);
-                ProcessorType refType = RefTypeTransformer.getInstance().process(type);
-                TypeKind refTypeKind = TypeKind.from(refType.downcallClassDesc());
-                int local = builder.allocateLocal(refTypeKind);
+                int local = builder.allocateLocal(TypeKind.ReferenceType);
                 MarshalProcessor.getInstance().process(builder, type, new MarshalProcessor.Context(
                     context.allocatorSlot(),
                     builder.parameterSlot(i),
                     StringCharset.getCharset(parameter)
                 ));
-                builder.storeLocal(refTypeKind, local);
+                builder.astore(local);
                 context.refSlotMap().put(parameter, local);
             }
         }

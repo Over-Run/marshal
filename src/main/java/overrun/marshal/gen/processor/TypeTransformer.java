@@ -22,13 +22,13 @@ import java.util.List;
 /**
  * Type transformers transforms the given context to a specific type.
  *
+ * @param <T> the type of the context
  * @param <R> the type of the return value
- * @param <C> the type of the context
  * @author squid233
  * @since 0.1.0
  */
-public abstract class TypeTransformer<R, C> implements Processor<TypeTransformer<R, C>> {
-    private final List<TypeTransformer<R, C>> list = new ArrayList<>();
+public abstract class TypeTransformer<T, R> implements Processor<TypeTransformer<T, R>> {
+    private final List<TypeTransformer<T, R>> list = new ArrayList<>();
 
     /**
      * constructor
@@ -43,7 +43,7 @@ public abstract class TypeTransformer<R, C> implements Processor<TypeTransformer
      * @param context the context
      * @return a value
      */
-    public R process(C context) {
+    public R process(T context) {
         for (var transformer : list) {
             R r = transformer.process(context);
             if (r != null) {
@@ -54,7 +54,7 @@ public abstract class TypeTransformer<R, C> implements Processor<TypeTransformer
     }
 
     @Override
-    public void addProcessor(TypeTransformer<R, C> transformer) {
+    public void addProcessor(TypeTransformer<T, R> transformer) {
         list.add(transformer);
     }
 }

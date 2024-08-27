@@ -519,7 +519,7 @@ public sealed interface ProcessorType {
 
         @Override
         public String toString() {
-            return "Array(" + componentType + ")";
+            return componentType + "[]";
         }
     }
 

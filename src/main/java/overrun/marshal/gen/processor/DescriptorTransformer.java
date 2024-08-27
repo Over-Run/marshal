@@ -33,7 +33,7 @@ import java.util.List;
  * @author squid233
  * @since 0.1.0
  */
-public final class DescriptorTransformer extends TypeTransformer<FunctionDescriptor, DescriptorTransformer.Context> {
+public final class DescriptorTransformer extends TypeTransformer<DescriptorTransformer.Context, FunctionDescriptor> {
     private DescriptorTransformer() {
     }
 

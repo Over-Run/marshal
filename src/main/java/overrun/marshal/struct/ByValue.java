@@ -24,7 +24,7 @@ import java.lang.annotation.*;
  * <p>
  * The annotated method must contain a segment allocator as the first parameter.
  * <h2>Passing-by-value structure</h2>
- * Marks a parameter that passes to C function by value.
+ * Marks a parameter that passes struct to C function by value.
  * <h2>Example</h2>
  * <pre>{@code
  * @ByValue

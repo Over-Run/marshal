@@ -99,8 +99,11 @@ import static overrun.marshal.internal.Constants.*;
  * You can {@linkplain ProcessorTypes#register(Class, ProcessorType) register} a type and your own processor
  * as builtin processors may require an additional processor.
  * <p>
- * For custom types, you should {@linkplain Processor#addProcessor(Processor) add} processors to subclasses of
- * {@link TypedCodeProcessor} and {@link TypeTransformer}.
+ * For custom types, you must register them before
+ * {@linkplain #load(MethodHandles.Lookup, SymbolLookup, DowncallOption...) loading},
+ * and you should {@linkplain Processor#addProcessor(Processor) add} processors to subclasses of
+ * {@link TypedCodeProcessor} and {@link TypeTransformer} (especially {@link MarshalProcessor} and
+ * {@link UnmarshalProcessor}).
  * <p>
  * Builtin types are described in {@link ProcessorType}.
  * <h2>Example</h2>
@@ -149,7 +152,8 @@ public final class Downcall {
     }
 
     /**
-     * Loads a class with the given library name and options.
+     * Loads a class with the given library name and options using
+     * {@link SymbolLookup#libraryLookup(String, Arena) SymbolLookup::libraryLookup}.
      *
      * @param caller  the lookup object for the caller
      * @param libPath the path of the library
@@ -643,6 +647,7 @@ public final class Downcall {
             descriptorMap1.put(entrypoint, descriptor);
 
             final Optional<MemorySegment> optional = lookup.find(entrypoint);
+            MethodHandle handle;
             if (optional.isPresent()) {
                 // linker options
                 final Linker.Option[] options;
@@ -653,14 +658,16 @@ public final class Downcall {
                     options = NO_OPTION;
                 }
 
-                if (!map.containsKey(entrypoint)) {
-                    map.put(entrypoint, transform.apply(LINKER.downcallHandle(optional.get(), descriptor, options)));
-                }
-            } else if (method.isDefault()) {
-                map.putIfAbsent(entrypoint, null);
+                handle = transform.apply(LINKER.downcallHandle(optional.get(), descriptor, options));
             } else {
-                throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + methodData.signatureString());
+                MethodHandle apply = transform.apply(null);
+                if (apply != null || method.isDefault()) {
+                    handle = apply;
+                } else {
+                    throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + methodData.signatureString());
+                }
             }
+            map.putIfAbsent(entrypoint, handle);
         }
         return new DowncallData(Collections.unmodifiableMap(descriptorMap1),
             Collections.unmodifiableMap(map),

@@ -23,7 +23,8 @@ import static overrun.marshal.internal.Constants.*;
 /**
  * Insert marshal (Java-to-C) method.
  * <p>
- * The inserted bytecode must represent a {@link java.lang.foreign.MemorySegment MemorySegment}.
+ * The inserted bytecode must represent a type specified by the given processor type with
+ * {@link ProcessorType#downcallClassDesc() downcallClassDesc}.
  *
  * @author squid233
  * @since 0.1.0

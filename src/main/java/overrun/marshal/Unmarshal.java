@@ -373,7 +373,7 @@ public final class Unmarshal {
      * @param elementLayout the source element layout
      * @param segment       the segment
      * @param generator     a function which produces a new array of the desired type and the provided length
-     * @param function      a function to apply to each element
+     * @param function      a function to apply to each element. the argument of the function is a slice of {@code segment}
      * @param <T>           the type of the element
      * @return the array
      */
