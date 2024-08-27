@@ -37,7 +37,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -60,8 +59,6 @@ import static overrun.marshal.internal.Constants.*;
  * <h2>Methods</h2>
  * The loader finds method from the target class and its superclasses.
  * <p>
- * The loader skips static methods and methods annotated with {@link Skip @Skip} while generating.
- * <p>
  * {@link Entrypoint @Entrypoint} specifies the entrypoint of the annotated method.
  * An entrypoint is a symbol name
  * that locates to the function when {@linkplain SymbolLookup#find(String) finding} the address.
@@ -72,6 +69,14 @@ import static overrun.marshal.internal.Constants.*;
  * instead, it will return {@code null} and automatically invokes the original method declared in the target class.
  * <p>
  * {@link Critical @Critical} indicates that the annotated method is {@linkplain Linker.Option#critical(boolean) critical}.
+ * <h3>Skipping</h3>
+ * The loader skips the following type of method:
+ * <ul>
+ *     <li>{@link Skip @Skip} annotated method</li>
+ *     <li>static, final, {@linkplain Method#isSynthetic() synthetic} or {@linkplain Method#isBridge() bridge} method</li>
+ *     <li>methods in {@link Object} and {@link DirectAccess}</li>
+ *     <li>methods in classes specified by {@link DowncallOption#skipClass(Class) DowncallOption::skipClass}</li>
+ * </ul>
  * <h3>Annotations</h3>
  * See {@link Convert @Convert}, {@link Ref @Ref}, {@link Sized @Sized} and {@link StrCharset @StrCharset}.
  * <h2>Direct Access</h2>
@@ -180,6 +185,20 @@ public final class Downcall {
 
     // method
 
+    private record SkipMethodSignature(String methodName, Class<?>[] parameterTypes) {
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof SkipMethodSignature that)) return false;
+            return Objects.equals(methodName, that.methodName) && Objects.deepEquals(parameterTypes, that.parameterTypes);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(methodName, Arrays.hashCode(parameterTypes));
+        }
+    }
+
     private static String getMethodEntrypoint(Method method) {
         final Entrypoint entrypoint = method.getDeclaredAnnotation(Entrypoint.class);
         return (entrypoint == null || entrypoint.value().isBlank()) ?
@@ -191,14 +210,17 @@ public final class Downcall {
         Class<?> _targetClass = null, targetClass;
         Map<String, FunctionDescriptor> _descriptorMap = null, descriptorMap;
         UnaryOperator<MethodHandle> _transform = null, transform;
+        Set<Class<?>> skipClasses = new HashSet<>();
+        skipClasses.add(Object.class);
+        skipClasses.add(DirectAccess.class);
 
         for (DowncallOption option : options) {
             switch (option) {
                 case DowncallOptions.TargetClass(var aClass) -> _targetClass = aClass;
                 case DowncallOptions.Descriptors(var map) -> _descriptorMap = map;
                 case DowncallOptions.Transform(var operator) -> _transform = operator;
-                case null, default -> {
-                }
+                case DowncallOptions.SkipClass(var clazz) -> skipClasses.add(clazz);
+                case null -> throw new IllegalArgumentException("No null option in Downcall::load");
             }
         }
 
@@ -207,8 +229,16 @@ public final class Downcall {
         descriptorMap = _descriptorMap != null ? _descriptorMap : Map.of();
         transform = _transform != null ? _transform : UnaryOperator.identity();
 
+        var skipSignatures = skipClasses.stream()
+            .<SkipMethodSignature>mapMulti((aClass, consumer) -> {
+                for (Method method : aClass.getDeclaredMethods()) {
+                    consumer.accept(new SkipMethodSignature(method.getName(), method.getParameterTypes()));
+                }
+            })
+            .toList();
+
         final List<Method> methodList = Arrays.stream(targetClass.getMethods())
-            .filter(Predicate.not(Downcall::shouldSkip))
+            .filter(method -> !shouldSkip(skipSignatures, method))
             .toList();
         final Map<Method, String> signatureStringMap = methodList.stream()
             .collect(Collectors.toUnmodifiableMap(Function.identity(), Downcall::createSignatureString));
@@ -506,46 +536,13 @@ public final class Downcall {
         }
     }
 
-    private static boolean shouldSkip(Method method) {
-        final Class<?> returnType = method.getReturnType();
-        if (method.getDeclaredAnnotation(Skip.class) != null ||
+    private static boolean shouldSkip(List<SkipMethodSignature> skipMethodSignatures, Method method) {
+        return method.getDeclaredAnnotation(Skip.class) != null ||
             Modifier.isStatic(method.getModifiers()) ||
+            Modifier.isFinal(method.getModifiers()) ||
             method.isSynthetic() ||
-            Modifier.isFinal(method.getModifiers())) {
-            return true;
-        }
-
-        final String methodName = method.getName();
-        final Class<?>[] types = method.getParameterTypes();
-        final int length = types.length;
-
-        // check method declared by Object or DirectAccess
-        return switch (length) {
-            case 0 -> switch (methodName) {
-                // Object
-                case "getClass" -> returnType == Class.class;
-                case "hashCode" -> returnType == int.class;
-                case "clone" -> returnType == Object.class;
-                case "toString" -> returnType == String.class;
-                case "notify", "notifyAll", "wait" -> returnType == void.class;
-                case "finalize" -> returnType == void.class; // TODO: no finalize in the future
-                // DirectAccess
-                case "functionDescriptors", "methodHandles" -> returnType == Map.class;
-                case "symbolLookup" -> returnType == SymbolLookup.class;
-                default -> false;
-            };
-            case 1 -> switch (methodName) {
-                // Object
-                case "equals" -> returnType == boolean.class && types[0] == Object.class;
-                case "wait" -> returnType == void.class && types[0] == long.class;
-                // DirectAccess
-                case "methodHandle" -> returnType == MethodHandle.class && types[0] == String.class;
-                default -> false;
-            };
-            case 2 -> // Object
-                returnType == void.class && types[0] == long.class && types[1] == long.class && "wait".equals(methodName);
-            default -> false;
-        };
+            method.isBridge() ||
+            skipMethodSignatures.contains(new SkipMethodSignature(method.getName(), method.getParameterTypes()));
     }
 
     private static String createSignatureString(Method method) {

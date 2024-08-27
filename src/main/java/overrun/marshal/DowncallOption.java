@@ -32,7 +32,7 @@ import java.util.function.UnaryOperator;
  * @since 0.1.0
  */
 public sealed interface DowncallOption
-    permits DowncallOptions.Descriptors, DowncallOptions.TargetClass, DowncallOptions.Transform {
+    permits DowncallOptions.Descriptors, DowncallOptions.SkipClass, DowncallOptions.TargetClass, DowncallOptions.Transform {
     /**
      * Specifies the target class.
      *
@@ -65,5 +65,19 @@ public sealed interface DowncallOption
     static DowncallOption transform(UnaryOperator<@Nullable MethodHandle> transform) {
         Objects.requireNonNull(transform);
         return new DowncallOptions.Transform(transform);
+    }
+
+    /**
+     * Adds a class to skip.
+     * Methods {@linkplain Class#getDeclaredMethods() declared} in the added class will be skipped.
+     * <p>
+     * There might be more than one this option added.
+     *
+     * @param clazz the class
+     * @return the option instance
+     */
+    static DowncallOption skipClass(Class<?> clazz) {
+        Objects.requireNonNull(clazz);
+        return new DowncallOptions.SkipClass(clazz);
     }
 }
