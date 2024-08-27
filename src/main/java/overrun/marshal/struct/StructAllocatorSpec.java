@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Overrun Organization
+ * Copyright (c) 2024 Overrun Organization
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,30 +14,29 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.gen;
+package overrun.marshal.struct;
 
-import overrun.marshal.Configurations;
-
-import java.lang.annotation.*;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.StructLayout;
 
 /**
- * Marks a memory segment as fix-sized.
- * <h2>Example</h2>
- * <pre>{@code
- * @SizedSeg(0x7FFFFFFFFFFFFFFFL)
- * MemorySegment segment;
- * }</pre>
+ * Specification of {@link StructAllocator}.
  *
+ * @param <T> the type of the struct
  * @author squid233
- * @see Configurations#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
-@Documented
-@Target({ElementType.METHOD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface SizedSeg {
+public interface StructAllocatorSpec<T> {
     /**
-     * {@return the size of the memory segment}
+     * Creates a struct with the given segment.
+     *
+     * @param segment the segment
+     * @return the instance of the struct
      */
-    long value();
+    T of(MemorySegment segment);
+
+    /**
+     * {@return the layout of this struct}
+     */
+    StructLayout layout();
 }

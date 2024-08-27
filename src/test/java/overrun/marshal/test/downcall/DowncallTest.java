@@ -16,10 +16,8 @@
 
 package overrun.marshal.test.downcall;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import overrun.marshal.test.MyEnum;
 import overrun.marshal.test.TestUtil;
 import overrun.marshal.test.struct.Vector3;
 import overrun.marshal.test.upcall.SimpleUpcall;
@@ -69,27 +67,36 @@ public final class DowncallTest {
     }
 
     @Test
+    void testStructByValue() {
+        try (Arena arena = Arena.ofConfined()) {
+            final Vector3 vector3 = Vector3.OF.of(arena);
+            MemorySegment segment = vector3.segment();
+            segment.set(ValueLayout.JAVA_INT, 0, 42);
+            segment.set(ValueLayout.JAVA_INT, 4, 43);
+            segment.set(ValueLayout.JAVA_INT, 8, 44);
+            d.testStructByValue(vector3);
+            assertEquals(42, vector3.x());
+            assertEquals(43, vector3.y());
+            assertEquals(44, vector3.z());
+        }
+    }
+
+    @Test
     void testReturnInt() {
         assertEquals(42, d.testReturnInt());
     }
 
     @Test
     void testReturnString() {
-        Assertions.assertEquals(TestUtil.TEST_STRING, d.testReturnString());
+        assertEquals(TestUtil.TEST_STRING, d.testReturnString());
         assertEquals(TestUtil.TEST_UTF16_STRING, d.testReturnUTF16String());
     }
 
     @Test
-    void testReturnCEnum() {
-        Assertions.assertEquals(MyEnum.B, d.testReturnCEnum());
-    }
-
-    @Test
     void testReturnUpcall() {
-        try (Arena arena = Arena.ofConfined()) {
-            final MemorySegment upcall = d.testReturnUpcall(arena);
-            assertEquals(84, SimpleUpcall.invoke(upcall, 42));
-        }
+        final MemorySegment upcall = d.testReturnUpcall();
+        assertEquals(84, SimpleUpcall.invoke(upcall, 42));
+        assertEquals(84, d.testReturnUpcallObject().invoke(42));
     }
 
     @Test
@@ -99,7 +106,7 @@ public final class DowncallTest {
             assertEquals(4, returnStruct.x());
             assertEquals(5, returnStruct.y());
             assertEquals(6, returnStruct.z());
-            final Vector3 returnStructByValue = d.testReturnStructByValue(arena);
+            final Vector3 returnStructByValue = d.testReturnStructByValue(arena, 0);
             assertEquals(7, returnStructByValue.x());
             assertEquals(8, returnStructByValue.y());
             assertEquals(9, returnStructByValue.z());
@@ -109,7 +116,6 @@ public final class DowncallTest {
     @Test
     void testReturnStructSized() {
         assertStructSized(d.testReturnStructSizedSeg());
-        assertStructSized(d.testReturnStructSized());
     }
 
     private void assertStructSized(Vector3 vector3) {

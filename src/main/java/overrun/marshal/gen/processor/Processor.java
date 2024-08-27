@@ -16,24 +16,22 @@
 
 package overrun.marshal.gen.processor;
 
-import java.lang.classfile.CodeBuilder;
-
 /**
- * Processor
+ * Processors are used to indicate how to process a value in {@link overrun.marshal.Downcall Downcall}.
+ * <p>
+ * See subclasses for more information.
  *
- * @param <T> target type
- * @param <C> context type
+ * @param <T> the type of this
  * @author squid233
  * @since 0.1.0
  */
-public interface Processor<T, C> {
+public interface Processor<T extends Processor<T>> {
     /**
-     * Processes with the context
+     * Adds an alternative processor to this.
+     * <p>
+     * Check {@code process} method of subclasses to see how alternative processors are used.
      *
-     * @param builder the code builder
-     * @param type    the type
-     * @param context the context
-     * @return {@code true} if should continue; {@code false} otherwise
+     * @param processor the processor
      */
-    boolean process(CodeBuilder builder, T type, C context);
+    void addProcessor(T processor);
 }

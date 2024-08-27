@@ -16,8 +16,10 @@
 
 package overrun.marshal.struct;
 
-import overrun.marshal.Addressable;
 import overrun.marshal.Unmarshal;
+import overrun.marshal.gen.processor.DescriptorTransformer;
+import overrun.marshal.gen.processor.ProcessorTypes;
+import overrun.marshal.gen.processor.UnmarshalProcessor;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -27,6 +29,11 @@ import java.util.Objects;
 
 /**
  * The representation of a C structure.
+ * <p>
+ * Returning a {@code Struct} from a downcall method or pass a {@code Struct} by value requires a
+ * {@linkplain ProcessorTypes#registerStruct(Class, StructAllocatorSpec) registration} to tell
+ * {@link UnmarshalProcessor} how to create an instance of the {@code Struct} and {@link DescriptorTransformer}
+ * the layout of the structure.
  *
  * @param <T> the type of the actual structure interface
  * @author squid233
@@ -34,7 +41,7 @@ import java.util.Objects;
  * @see overrun.marshal.LayoutBuilder LayoutBuilder
  * @since 0.1.0
  */
-public interface Struct<T extends Struct<T>> extends Addressable {
+public interface Struct<T extends Struct<T>> {
     /**
      * Estimates the struct count of the given segment.
      *
@@ -67,7 +74,6 @@ public interface Struct<T extends Struct<T>> extends Addressable {
     /**
      * {@return the segment of this struct}
      */
-    @Override
     MemorySegment segment();
 
     /**

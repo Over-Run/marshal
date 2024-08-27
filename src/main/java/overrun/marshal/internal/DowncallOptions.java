@@ -57,4 +57,12 @@ public final class DowncallOptions {
      */
     public record Transform(UnaryOperator<MethodHandle> operator) implements DowncallOption {
     }
+
+    /**
+     * specify a class to skip
+     *
+     * @param clazz the class
+     */
+    public record SkipClass(Class<?> clazz) implements DowncallOption {
+    }
 }

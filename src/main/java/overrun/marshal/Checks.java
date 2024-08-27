@@ -32,8 +32,8 @@ public final class Checks {
      * @param expected the expected size
      * @param actual   the actual size
      */
-    public static void checkArraySize(int expected, int actual) {
-        if (Configurations.CHECK_ARRAY_SIZE.get() && expected != actual) {
+    public static void checkArraySize(long expected, int actual) {
+        if (MarshalConfigs.CHECK_ARRAY_SIZE.get() && expected != actual) {
             throw new IllegalArgumentException("Expected array of size " + expected + ", got " + actual);
         }
     }

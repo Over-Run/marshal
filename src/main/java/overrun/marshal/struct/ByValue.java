@@ -19,20 +19,25 @@ package overrun.marshal.struct;
 import java.lang.annotation.*;
 
 /**
+ * <h2>Returning-by-value structure</h2>
  * Marks a method that returns a struct by value.
  * <p>
  * The annotated method must contain a segment allocator as the first parameter.
+ * <h2>Passing-by-value structure</h2>
+ * Marks a parameter that passes struct to C function by value.
  * <h2>Example</h2>
  * <pre>{@code
  * @ByValue
  * MyStruct returnStruct(SegmentAllocator allocator);
+ *
+ * void passByValue(@ByValue MyStruct struct);
  * }</pre>
  *
  * @author squid233
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ByValue {
 }

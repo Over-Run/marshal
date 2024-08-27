@@ -17,6 +17,7 @@
 package overrun.marshal;
 
 import org.jetbrains.annotations.Nullable;
+import overrun.marshal.struct.Struct;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -36,9 +37,8 @@ import static java.lang.foreign.ValueLayout.*;
  * @since 0.1.0
  */
 public final class Marshal {
-    private static final VarHandle vh_addressArray = arrayVarHandle(ADDRESS);
+    static final VarHandle vh_addressArray = arrayVarHandle(ADDRESS);
     static final VarHandle vh_booleanArray = arrayVarHandle(JAVA_BOOLEAN);
-    private static final VarHandle vh_intArray = arrayVarHandle(JAVA_INT);
 
     private Marshal() {
     }
@@ -143,24 +143,14 @@ public final class Marshal {
     }
 
     /**
-     * Converts the given CEnum to an integer.
+     * Converts the given struct to a segment.
      *
-     * @param cEnum the CEnum
-     * @return the integer
-     */
-    public static int marshal(@Nullable CEnum cEnum) {
-        return cEnum != null ? cEnum.value() : 0;
-    }
-
-    /**
-     * Converts the given addressable to a segment.
-     *
-     * @param addressable the addressable
+     * @param struct the struct
      * @return the segment
      */
-    public static MemorySegment marshal(@Nullable Addressable addressable) {
-        if (addressable == null) return MemorySegment.NULL;
-        return addressable.segment();
+    public static MemorySegment marshal(@Nullable Struct<?> struct) {
+        if (struct == null) return MemorySegment.NULL;
+        return struct.segment();
     }
 
     /**
@@ -335,25 +325,8 @@ public final class Marshal {
      * @param arr       the array
      * @return the segment
      */
-    public static MemorySegment marshal(SegmentAllocator allocator, CEnum @Nullable [] arr) {
-        if (arr == null) return MemorySegment.NULL;
-        final MemorySegment segment = allocator.allocate(JAVA_INT, arr.length);
-        for (int i = 0; i < arr.length; i++) {
-            final CEnum cEnum = arr[i];
-            vh_intArray.set(segment, (long) i, cEnum != null ? cEnum.value() : 0);
-        }
-        return segment;
-    }
-
-    /**
-     * Converts the given array to a segment.
-     *
-     * @param allocator the allocator
-     * @param arr       the array
-     * @return the segment
-     */
-    public static MemorySegment marshal(SegmentAllocator allocator, @Nullable Addressable @Nullable [] arr) {
-        return marshal(allocator, arr, (_, addressable) -> Marshal.marshal(addressable));
+    public static MemorySegment marshal(SegmentAllocator allocator, @Nullable Struct<?> @Nullable [] arr) {
+        return marshal(allocator, arr, (_, struct) -> Marshal.marshal(struct));
     }
 
     /**

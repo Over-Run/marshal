@@ -16,11 +16,13 @@
 
 package overrun.marshal;
 
+import org.jetbrains.annotations.Nullable;
 import overrun.marshal.internal.DowncallOptions;
 
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
@@ -30,14 +32,14 @@ import java.util.function.UnaryOperator;
  * @since 0.1.0
  */
 public sealed interface DowncallOption
-    permits DowncallOptions.Descriptors, DowncallOptions.TargetClass, DowncallOptions.Transform {
+    permits DowncallOptions.Descriptors, DowncallOptions.SkipClass, DowncallOptions.TargetClass, DowncallOptions.Transform {
     /**
      * Specifies the target class.
      *
      * @param aClass the target class. use {@code null} for caller class
      * @return the option instance
      */
-    static DowncallOption targetClass(Class<?> aClass) {
+    static DowncallOption targetClass(@Nullable Class<?> aClass) {
         return new DowncallOptions.TargetClass(aClass);
     }
 
@@ -48,16 +50,34 @@ public sealed interface DowncallOption
      * @return the option instance
      */
     static DowncallOption descriptors(Map<String, FunctionDescriptor> descriptorMap) {
+        Objects.requireNonNull(descriptorMap);
         return new DowncallOptions.Descriptors(descriptorMap);
     }
 
     /**
      * Specifies the method handle transformer.
+     * <p>
+     * The transformer will be used when each downcall handle is generated in {@link Downcall}.
      *
-     * @param transform the transforming function
+     * @param transform the transforming function. the argument of the function might be null
      * @return the option instance
      */
-    static DowncallOption transform(UnaryOperator<MethodHandle> transform) {
+    static DowncallOption transform(UnaryOperator<@Nullable MethodHandle> transform) {
+        Objects.requireNonNull(transform);
         return new DowncallOptions.Transform(transform);
+    }
+
+    /**
+     * Adds a class to skip.
+     * Methods {@linkplain Class#getDeclaredMethods() declared} in the added class will be skipped.
+     * <p>
+     * There might be more than one this option added.
+     *
+     * @param clazz the class
+     * @return the option instance
+     */
+    static DowncallOption skipClass(Class<?> clazz) {
+        Objects.requireNonNull(clazz);
+        return new DowncallOptions.SkipClass(clazz);
     }
 }

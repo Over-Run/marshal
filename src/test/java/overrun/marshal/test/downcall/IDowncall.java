@@ -16,12 +16,13 @@
 
 package overrun.marshal.test.downcall;
 
-import overrun.marshal.DowncallOption;
-import overrun.marshal.struct.ByValue;
+import io.github.overrun.memstack.MemoryStack;
 import overrun.marshal.Downcall;
-import overrun.marshal.MemoryStack;
+import overrun.marshal.DowncallOption;
 import overrun.marshal.gen.*;
-import overrun.marshal.test.MyEnum;
+import overrun.marshal.gen.processor.ProcessorType;
+import overrun.marshal.gen.processor.ProcessorTypes;
+import overrun.marshal.struct.ByValue;
 import overrun.marshal.test.struct.Vector3;
 import overrun.marshal.test.upcall.SimpleUpcall;
 
@@ -40,6 +41,8 @@ public interface IDowncall {
     Map<String, FunctionDescriptor> MAP = Map.of("testDefault", FunctionDescriptor.of(ValueLayout.JAVA_INT));
 
     static IDowncall getInstance(boolean testDefaultNull) {
+        ProcessorTypes.registerStruct(Vector3.class, Vector3.OF);
+        ProcessorTypes.registerUpcall(SimpleUpcall.class, stub -> i -> SimpleUpcall.invoke(stub, i));
         return Downcall.load(MethodHandles.lookup(), DowncallProvider.lookup(testDefaultNull), DowncallOption.descriptors(MAP));
     }
 
@@ -63,8 +66,6 @@ public interface IDowncall {
 
     void testUTF16String(@StrCharset("UTF-16") String s);
 
-    void testCEnum(MyEnum myEnum);
-
     int testUpcall(Arena arena, SimpleUpcall upcall);
 
     void testIntArray(int[] arr);
@@ -79,6 +80,8 @@ public interface IDowncall {
 
     void testStruct(Vector3 vector3);
 
+    void testStructByValue(@ByValue Vector3 vector3);
+
     int testReturnInt();
 
     String testReturnString();
@@ -86,27 +89,25 @@ public interface IDowncall {
     @StrCharset("UTF-16")
     String testReturnUTF16String();
 
-    MyEnum testReturnCEnum();
+    MemorySegment testReturnUpcall();
 
-    MemorySegment testReturnUpcall(Arena arena);
+    @Entrypoint("testReturnUpcall")
+    SimpleUpcall testReturnUpcallObject();
 
     Vector3 testReturnStruct();
 
     @ByValue
-    Vector3 testReturnStructByValue(SegmentAllocator allocator);
+    Vector3 testReturnStructByValue(SegmentAllocator allocator, int i);
 
-    @SizedSeg(2L)
+    @Sized(2L)
     Vector3 testReturnStructSizedSeg();
-
-    @Sized(2)
-    Vector3 testReturnStructSized();
 
     @Sized(2)
     int[] testReturnIntArray();
 
     void testSizedIntArray(@Sized(2) int[] arr);
 
-    @SizedSeg(4L)
+    @Sized(4L)
     MemorySegment testReturnSizedSeg();
 
     void testRefIntArray(@Ref int[] arr);
@@ -115,8 +116,8 @@ public interface IDowncall {
 
     void testCriticalTrue(@Ref int[] arr);
 
-    @Convert(Type.INT)
-    boolean testConvertBoolean(@Convert(Type.INT) boolean b);
+    @Convert(ProcessorType.BoolConvert.INT)
+    boolean testConvertBoolean(@Convert(ProcessorType.BoolConvert.INT) boolean b);
 
     @Entrypoint("testDefault")
     default MethodHandle mh_testDefaultMethodHandle() {

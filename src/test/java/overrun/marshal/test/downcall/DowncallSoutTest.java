@@ -16,9 +16,8 @@
 
 package overrun.marshal.test.downcall;
 
+import io.github.overrun.memstack.MemoryStack;
 import org.junit.jupiter.api.*;
-import overrun.marshal.MemoryStack;
-import overrun.marshal.test.MyEnum;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -102,21 +101,13 @@ public final class DowncallSoutTest {
     }
 
     @Test
-    void testCEnum() {
-        d.testCEnum(MyEnum.A);
-        d.testCEnum(MyEnum.B);
-        d.testCEnum(MyEnum.C);
-        assertEquals("024", outputStream.toString());
-    }
-
-    @Test
     void testIntArray() {
         d.testIntArray(new int[]{4, 2});
         try (Arena arena = Arena.ofConfined()) {
             d.testIntArray((SegmentAllocator) arena, new int[]{4, 2});
             d.testIntArray(arena, new int[]{4, 2});
         }
-        try (MemoryStack stack = MemoryStack.stackPush()) {
+        try (MemoryStack stack = MemoryStack.pushLocal()) {
             d.testIntArray(stack, new int[]{4, 2});
         }
         d.testVarArgsJava(2, 4, 2);

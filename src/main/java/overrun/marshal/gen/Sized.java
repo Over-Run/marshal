@@ -16,21 +16,30 @@
 
 package overrun.marshal.gen;
 
-import overrun.marshal.Configurations;
+import overrun.marshal.MarshalConfigs;
 
 import java.lang.annotation.*;
 
 /**
+ * <h2>Array</h2>
  * Marks an array parameter as a fixed size array.
  * <p>
  * The generated code will try to check the size of a passing array.
+ * <h2>Memory segment</h2>
+ * Marks a memory segment to reinterpret its size.
  * <h2>Example</h2>
  * <pre>{@code
  * void set(@Sized(3) int[] vec);
+ *
+ * @Sized(3)
+ * int[] get();
+ *
+ * @Sized(3)
+ * MemorySegment getSegment();
  * }</pre>
  *
  * @author squid233
- * @see Configurations#CHECK_ARRAY_SIZE
+ * @see MarshalConfigs#CHECK_ARRAY_SIZE
  * @since 0.1.0
  */
 @Documented
@@ -40,5 +49,5 @@ public @interface Sized {
     /**
      * {@return the size of the array}
      */
-    int value();
+    long value();
 }

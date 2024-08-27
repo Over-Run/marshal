@@ -29,4 +29,5 @@ module io.github.overrun.marshal {
     opens overrun.marshal.internal.data;
 
     requires static org.jetbrains.annotations;
+    requires io.github.overrun.memstack;
 }

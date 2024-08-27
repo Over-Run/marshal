@@ -16,6 +16,10 @@
 
 package overrun.marshal;
 
+import overrun.marshal.gen.processor.ProcessorType;
+import overrun.marshal.gen.processor.ProcessorTypes;
+import overrun.marshal.gen.processor.UnmarshalProcessor;
+
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -28,6 +32,10 @@ import java.lang.invoke.MethodHandles;
  * <p>
  * The target method must <strong>NOT</strong> throw any exception.
  * Otherwise, the JVM might crash.
+ * <p>
+ * Returning an {@code Upcall} from a downcall method requires a
+ * {@linkplain ProcessorTypes#registerUpcall(Class, ProcessorType.Upcall.Factory) registration} to tell
+ * {@link UnmarshalProcessor} how to create an instance of the {@code Upcall}.
  * <h2>Example</h2>
  * <pre>{@code
  * // The implementation must be public if you use Type
@@ -76,6 +84,8 @@ public interface Upcall {
      */
     MemorySegment stub(Arena arena);
 
+    // caller-sensitive. DO NOT WRAP!
+
     /**
      * Creates {@link Type} with the caller class.
      *
@@ -122,16 +132,18 @@ public interface Upcall {
      */
     final class Type<T extends Upcall> {
         private static final Linker LINKER = Linker.nativeLinker();
+        final Class<T> typeClass;
         private final MethodHandle target;
         private final FunctionDescriptor descriptor;
         private final MethodHandle downcallTarget;
 
         private Type(Class<T> tClass, String targetName, FunctionDescriptor descriptor) {
             try {
-                target = MethodHandles.publicLookup().findVirtual(tClass, targetName, descriptor.toMethodType());
+                this.target = MethodHandles.publicLookup().findVirtual(tClass, targetName, descriptor.toMethodType());
             } catch (IllegalAccessException | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
+            this.typeClass = tClass;
             this.descriptor = descriptor;
             this.downcallTarget = LINKER.downcallHandle(descriptor);
         }

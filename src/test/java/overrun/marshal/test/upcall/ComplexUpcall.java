@@ -16,8 +16,8 @@
 
 package overrun.marshal.test.upcall;
 
+import io.github.overrun.memstack.MemoryStack;
 import overrun.marshal.Marshal;
-import overrun.marshal.MemoryStack;
 import overrun.marshal.Unmarshal;
 import overrun.marshal.Upcall;
 import overrun.marshal.gen.Sized;
@@ -39,13 +39,13 @@ public interface ComplexUpcall extends Upcall {
     int[] invoke(@Sized(2) int[] arr);
 
     default MemorySegment invoke(MemorySegment arr) {
-        try (MemoryStack stack = MemoryStack.stackPush()) {
+        try (MemoryStack stack = MemoryStack.pushLocal()) {
             return Marshal.marshal(stack, invoke(Unmarshal.unmarshalAsIntArray(arr)));
         }
     }
 
     static int[] invoke(MemorySegment stub, int[] arr) {
-        try (MemoryStack stack = MemoryStack.stackPush()) {
+        try (MemoryStack stack = MemoryStack.pushLocal()) {
             return Unmarshal.unmarshalAsIntArray((MemorySegment) TYPE.downcallTarget().invokeExact(stub, Marshal.marshal(stack, arr)));
         } catch (Throwable e) {
             throw new RuntimeException(e);

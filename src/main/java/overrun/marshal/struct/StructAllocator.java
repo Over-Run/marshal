@@ -134,7 +134,7 @@ import static overrun.marshal.internal.Constants.*;
  * @since 0.1.0
  */
 @SuppressWarnings("preview")
-public final class StructAllocator<T> {
+public final class StructAllocator<T> implements StructAllocatorSpec<T> {
     private final MethodHandle constructor;
     private final StructLayout layout;
 
@@ -360,11 +360,11 @@ public final class StructAllocator<T> {
                                 // var handle
                                 codeBuilder.ldc(DCD_classData_StructLayout)
                                     .ldc(result.elems().size() + 1)
-                                    .anewarray(CD_MemoryLayout_PathElement)
+                                    .anewarray(CD_MemoryLayout$PathElement)
                                     .dup()
                                     .iconst_0()
                                     .ldc(name)
-                                    .invokestatic(CD_MemoryLayout_PathElement, "groupElement", MTD_MemoryLayout_PathElement_String, true)
+                                    .invokestatic(CD_MemoryLayout$PathElement, "groupElement", MTD_MemoryLayout$PathElement_String, true)
                                     .aastore();
                                 int i = 0;
                                 for (Elem elem : result.elems()) {
@@ -373,14 +373,14 @@ public final class StructAllocator<T> {
                                     switch (elem) {
                                         case GroupElem groupElem -> codeBuilder
                                             .ldc(groupElem.name)
-                                            .invokestatic(CD_MemoryLayout_PathElement, "groupElement", MTD_MemoryLayout_PathElement_String, true);
+                                            .invokestatic(CD_MemoryLayout$PathElement, "groupElement", MTD_MemoryLayout$PathElement_String, true);
                                         case SeqElem _ -> codeBuilder
-                                            .invokestatic(CD_MemoryLayout_PathElement, "sequenceElement", MTD_MemoryLayout_PathElement, true);
+                                            .invokestatic(CD_MemoryLayout$PathElement, "sequenceElement", MTD_MemoryLayout$PathElement, true);
                                     }
                                     codeBuilder.aastore();
                                     i++;
                                 }
-                                codeBuilder.invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout_PathElementArray)
+                                codeBuilder.invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout$PathElementArray)
                                     .putstatic(cd_thisClass, "_VH_" + name + result.appendName(), CD_VarHandle);
                             }
                         }
@@ -390,13 +390,13 @@ public final class StructAllocator<T> {
                             // var handle
                             codeBuilder.ldc(DCD_classData_StructLayout)
                                 .iconst_1()
-                                .anewarray(CD_MemoryLayout_PathElement)
+                                .anewarray(CD_MemoryLayout$PathElement)
                                 .dup()
                                 .iconst_0()
                                 .ldc(name)
-                                .invokestatic(CD_MemoryLayout_PathElement, "groupElement", MTD_MemoryLayout_PathElement_String, true)
+                                .invokestatic(CD_MemoryLayout$PathElement, "groupElement", MTD_MemoryLayout$PathElement_String, true)
                                 .aastore()
-                                .invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout_PathElementArray)
+                                .invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout$PathElementArray)
                                 .putstatic(cd_thisClass, "_VH_" + name, CD_VarHandle);
                         }
                         case PaddingLayout _ -> {
@@ -485,12 +485,7 @@ public final class StructAllocator<T> {
         }
     }
 
-    /**
-     * Creates a struct with the given segment.
-     *
-     * @param segment the segment
-     * @return the instance of the struct
-     */
+    @Override
     public T of(MemorySegment segment) {
         return of(segment, Struct.estimateCount(segment, layout));
     }
@@ -523,9 +518,7 @@ public final class StructAllocator<T> {
         return of(MemorySegment.NULL, 0L);
     }
 
-    /**
-     * {@return the layout of this struct}
-     */
+    @Override
     public StructLayout layout() {
         return layout;
     }
