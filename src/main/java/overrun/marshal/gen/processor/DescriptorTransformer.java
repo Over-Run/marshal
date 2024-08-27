@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Transforms the method and parameters into a function descriptor.
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -35,6 +37,13 @@ public final class DescriptorTransformer extends TypeTransformer<FunctionDescrip
     private DescriptorTransformer() {
     }
 
+    /**
+     * The context.
+     *
+     * @param method                       the method
+     * @param descriptorSkipFirstParameter {@code true} if the function descriptor should skip the first parameter
+     * @param parameters                   the parameters
+     */
     public record Context(
         Method method,
         boolean descriptorSkipFirstParameter,

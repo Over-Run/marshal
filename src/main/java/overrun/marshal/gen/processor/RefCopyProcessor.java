@@ -16,13 +16,15 @@
 
 package overrun.marshal.gen.processor;
 
-import overrun.marshal.internal.StringCharset;
-
 import java.lang.classfile.CodeBuilder;
 
 import static overrun.marshal.internal.Constants.*;
 
 /**
+ * Insert code to copy from a segment to an array.
+ * <p>
+ * The inserted code represents void type.
+ *
  * @author squid233
  * @since 0.1.0
  */
@@ -30,6 +32,13 @@ public final class RefCopyProcessor extends TypedCodeProcessor<RefCopyProcessor.
     private RefCopyProcessor() {
     }
 
+    /**
+     * The context.
+     *
+     * @param srcSegmentSlot the slot of the source memory segment
+     * @param dstArraySlot   the slot of the destination array
+     * @param charset        the charset annotation value
+     */
     public record Context(
         int srcSegmentSlot,
         int dstArraySlot,
@@ -49,7 +58,7 @@ public final class RefCopyProcessor extends TypedCodeProcessor<RefCopyProcessor.
                     .aload(context.dstArraySlot())
                     .invokestatic(CD_Unmarshal,
                         "copy",
-                        StringCharset.getCharset(builder, context.charset()) ?
+                        CharsetProcessor.process(builder, context.charset()) ?
                             MTD_void_MemorySegment_StringArray_Charset :
                             MTD_void_MemorySegment_StringArray);
                 yield true;

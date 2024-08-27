@@ -17,6 +17,8 @@
 package overrun.marshal.gen.processor;
 
 /**
+ * Transforms array type to ref storage type ({@link java.lang.foreign.MemorySegment MemorySegment}).
+ *
  * @author squid233
  * @since 0.1.0
  */

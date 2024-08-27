@@ -22,7 +22,9 @@ import static java.lang.constant.ConstantDescs.MTD_void;
 import static overrun.marshal.internal.Constants.CD_MemoryStack;
 
 /**
- * insert code before return
+ * Insert codes before returning the value.
+ * <p>
+ * The default operation pops the memory stack.
  *
  * @author squid233
  * @since 0.1.0
@@ -31,6 +33,11 @@ public final class BeforeReturnProcessor extends CodeInserter<BeforeReturnProces
     private BeforeReturnProcessor() {
     }
 
+    /**
+     * The context.
+     *
+     * @param hasMemoryStack {@code true} if the memory stack is used
+     */
     public record Context(boolean hasMemoryStack) {
     }
 

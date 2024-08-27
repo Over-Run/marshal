@@ -16,14 +16,14 @@
 
 package overrun.marshal.gen.processor;
 
-import overrun.marshal.internal.StringCharset;
-
 import java.lang.classfile.CodeBuilder;
 
 import static overrun.marshal.internal.Constants.*;
 
 /**
- * insert marshal (Java-to-C) method
+ * Insert marshal (Java-to-C) method.
+ * <p>
+ * The inserted bytecode must represent a {@link java.lang.foreign.MemorySegment MemorySegment}.
  *
  * @author squid233
  * @since 0.1.0
@@ -32,10 +32,17 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
     private MarshalProcessor() {
     }
 
+    /**
+     * The context.
+     *
+     * @param allocatorSlot the slot of the allocator
+     * @param variableSlot  the slot of the value
+     * @param charset       the charset annotation value
+     */
     public record Context(
-        String charset,
+        int allocatorSlot,
         int variableSlot,
-        int allocatorSlot
+        String charset
     ) {
     }
 
@@ -62,7 +69,7 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
                         .aload(variableSlot)
                         .invokestatic(CD_Marshal,
                             "marshal",
-                            StringCharset.getCharset(builder, context.charset()) ?
+                            CharsetProcessor.process(builder, context.charset()) ?
                                 MTD_MemorySegment_SegmentAllocator_StringArray_Charset :
                                 MTD_MemorySegment_SegmentAllocator_StringArray);
                     case ProcessorType.Struct _ -> builder
@@ -121,7 +128,7 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
                 .aload(variableSlot)
                 .invokestatic(CD_Marshal,
                     "marshal",
-                    StringCharset.getCharset(builder, context.charset()) ?
+                    CharsetProcessor.process(builder, context.charset()) ?
                         MTD_MemorySegment_SegmentAllocator_String_Charset :
                         MTD_MemorySegment_SegmentAllocator_String);
             case ProcessorType.Struct _ -> builder

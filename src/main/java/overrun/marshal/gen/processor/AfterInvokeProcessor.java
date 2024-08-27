@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * insert code after invoke
+ * Insert code after invoking the downcall handle.
+ * <p>
+ * The default operation runs {@link RefCopyProcessor}.
  *
  * @author squid233
  * @since 0.1.0
@@ -33,6 +35,12 @@ public final class AfterInvokeProcessor extends CodeInserter<AfterInvokeProcesso
     private AfterInvokeProcessor() {
     }
 
+    /**
+     * The context.
+     *
+     * @param parameters the parameter
+     * @param refSlotMap the map
+     */
     public record Context(
         List<Parameter> parameters,
         Map<Parameter, Integer> refSlotMap

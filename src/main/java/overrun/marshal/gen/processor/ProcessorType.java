@@ -32,7 +32,7 @@ import static overrun.marshal.internal.Constants.CD_MemorySegment;
 import static overrun.marshal.internal.Constants.CD_SegmentAllocator;
 
 /**
- * Processor types are used to indicate how to process a type in {@link overrun.marshal.Downcall Downcall}.
+ * Processor types are used to remember the type of value to be processed in {@link Processor}.
  * <h2>Builtin type</h2>
  * Builtin types include 8 primitive types, {@link MemorySegment}, {@link String},
  * {@link overrun.marshal.struct.Struct Struct} without allocator and {@link overrun.marshal.Upcall Upcall}

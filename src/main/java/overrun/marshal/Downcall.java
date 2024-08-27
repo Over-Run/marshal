@@ -117,6 +117,8 @@ import static overrun.marshal.internal.Constants.*;
  * @see Critical
  * @see DirectAccess
  * @see Entrypoint
+ * @see Processor
+ * @see ProcessorType
  * @see Ref
  * @see Sized
  * @see Skip
@@ -378,9 +380,9 @@ public final class Downcall {
                                     blockCodeBuilder.aload(refSlotMap.get(parameter));
                                 } else {
                                     MarshalProcessor.getInstance().process(blockCodeBuilder, processorType, new MarshalProcessor.Context(
-                                        StringCharset.getCharset(parameter),
+                                        allocatorSlot,
                                         blockCodeBuilder.parameterSlot(i),
-                                        allocatorSlot
+                                        StringCharset.getCharset(parameter)
                                     ));
                                 }
                                 downcallClassDescList.add(processorType.downcallClassDesc());
@@ -407,8 +409,8 @@ public final class Downcall {
                             // return
                             UnmarshalProcessor.getInstance().process(blockCodeBuilder, returnProcessorType, new UnmarshalProcessor.Context(
                                 returnType,
-                                StringCharset.getCharset(method),
-                                resultSlot
+                                resultSlot,
+                                StringCharset.getCharset(method)
                             ));
                             blockCodeBuilder.return_(returnTypeKind);
                         }, catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
@@ -553,6 +555,12 @@ public final class Downcall {
         for (Method method : list) {
             String signature = signatureStringMap.get(method);
 
+            // check method annotation
+            Sized sized = method.getDeclaredAnnotation(Sized.class);
+            if (sized != null && sized.value() < 0) {
+                throw new IllegalStateException("Invalid value of @Sized annotation: " + sized.value() + " in method " + signature);
+            }
+
             // check method return type
             final Class<?> returnType = method.getReturnType();
             if (!isValidReturnType(returnType)) {
@@ -562,8 +570,7 @@ public final class Downcall {
             // check method parameter
             final Class<?>[] types = method.getParameterTypes();
             for (Parameter parameter : method.getParameters()) {
-                final Class<?> type = parameter.getType();
-                if (!isValidParamType(type)) {
+                if (!isValidParameter(parameter)) {
                     throw new IllegalStateException("Invalid parameter: " + parameter + " in " + method);
                 }
             }
@@ -600,8 +607,12 @@ public final class Downcall {
         }
     }
 
-    private static boolean isValidParamType(Class<?> aClass) {
-        return ProcessorTypes.isRegistered(aClass);
+    private static boolean isValidParameter(Parameter parameter) {
+        if (ProcessorTypes.isRegistered(parameter.getType())) {
+            Sized sized = parameter.getDeclaredAnnotation(Sized.class);
+            return sized == null || sized.value() >= 0;
+        }
+        return false;
     }
 
     private static boolean isValidReturnType(Class<?> aClass) {

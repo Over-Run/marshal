@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Type transformers transforms the given context to a specific type.
+ *
  * @param <R> the type of the return value
  * @param <C> the type of the context
  * @author squid233
@@ -34,6 +36,13 @@ public abstract class TypeTransformer<R, C> implements Processor<TypeTransformer
     protected TypeTransformer() {
     }
 
+    /**
+     * Runs alternative processors. If an alternative processor has returned a non-null value,
+     * then it returns the value; otherwise, it continues running until there is no alternative processor.
+     *
+     * @param context the context
+     * @return a value
+     */
     public R process(C context) {
         for (var transformer : list) {
             R r = transformer.process(context);

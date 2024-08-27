@@ -18,11 +18,7 @@ package overrun.marshal.internal;
 
 import overrun.marshal.gen.StrCharset;
 
-import java.lang.classfile.CodeBuilder;
 import java.lang.reflect.AnnotatedElement;
-import java.util.Locale;
-
-import static overrun.marshal.internal.Constants.*;
 
 /**
  * String charsets
@@ -53,31 +49,5 @@ public final class StringCharset {
     public static String getCharset(AnnotatedElement element) {
         final StrCharset strCharset = element.getDeclaredAnnotation(StrCharset.class);
         return hasCharset(strCharset) ? strCharset.value() : null;
-    }
-
-    /**
-     * Converts the given charset name to bytecode representing a {@code Charset} instance
-     *
-     * @param codeBuilder codeBuilder
-     * @param charset     charset
-     * @return {@code true} if {@code charset} is not null
-     */
-    public static boolean getCharset(CodeBuilder codeBuilder, String charset) {
-        if (charset == null) {
-            return false;
-        }
-        final String upperCase = charset.toUpperCase(Locale.ROOT);
-        switch (upperCase) {
-            case "UTF-8", "ISO-8859-1", "US-ASCII",
-                 "UTF-16", "UTF-16BE", "UTF-16LE",
-                 "UTF-32", "UTF-32BE", "UTF-32LE" ->
-                codeBuilder.getstatic(CD_StandardCharsets, upperCase.replace('-', '_'), CD_Charset);
-            case "UTF_8", "ISO_8859_1", "US_ASCII",
-                 "UTF_16", "UTF_16BE", "UTF_16LE",
-                 "UTF_32", "UTF_32BE", "UTF_32LE" -> codeBuilder.getstatic(CD_StandardCharsets, upperCase, CD_Charset);
-            default -> codeBuilder.ldc(charset)
-                .invokestatic(CD_Charset, "forName", MTD_Charset_String);
-        }
-        return true;
     }
 }

@@ -21,6 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Typed code processors process a given type and consumes a value to insert code.
+ * <p>
+ * The inserted bytecode represents a specific type.
+ * See subclasses for more information.
+ *
  * @param <T> the type of the context
  * @author squid233
  * @since 0.1.0
@@ -34,6 +39,18 @@ public abstract class TypedCodeProcessor<T> implements Processor<TypedCodeProces
     protected TypedCodeProcessor() {
     }
 
+    /**
+     * Runs alternative processors. If an alternative processor has run successfully, then it stops running others.
+     * <p>
+     * Except for Marshal's classes, subclasses should not directly call this method
+     * if they failed to or did not process; instead, they should return {@code false}.
+     *
+     * @param builder the code builder
+     * @param type    the type of the value to be processed
+     * @param context the context
+     * @return {@code true} if successfully processed the value; otherwise {@code false}
+     * @throws IllegalStateException if the value of {@code type} was not processed
+     */
     public boolean process(CodeBuilder builder, ProcessorType type, T context) {
         for (var processor : list) {
             if (processor.process(builder, type, context)) {

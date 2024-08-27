@@ -16,15 +16,15 @@
 
 package overrun.marshal.gen.processor;
 
-import overrun.marshal.internal.StringCharset;
-
 import java.lang.classfile.CodeBuilder;
 import java.lang.constant.ClassDesc;
 
 import static overrun.marshal.internal.Constants.*;
 
 /**
- * insert unmarshal (C-to-Java) method
+ * Insert unmarshal (C-to-Java) method.
+ * <p>
+ * The inserted code must represent the original type in the context.
  *
  * @author squid233
  * @since 0.1.0
@@ -33,10 +33,18 @@ public final class UnmarshalProcessor extends TypedCodeProcessor<UnmarshalProces
     private UnmarshalProcessor() {
     }
 
+    /**
+     * The context.
+     *
+     * @param originalType the original type of the value. this is useful for invoking
+     *                     {@link ProcessorTypes#fromClass(Class) ProcessorTypes::fromClass} in bytecode.
+     * @param variableSlot the slot of the value
+     * @param charset      the charset annotation value
+     */
     public record Context(
         Class<?> originalType,
-        String charset,
-        int variableSlot
+        int variableSlot,
+        String charset
     ) {
     }
 
@@ -61,7 +69,7 @@ public final class UnmarshalProcessor extends TypedCodeProcessor<UnmarshalProces
                         .aload(variableSlot)
                         .invokestatic(CD_Unmarshal,
                             "unmarshalAsStringArray",
-                            StringCharset.getCharset(builder, context.charset()) ?
+                            CharsetProcessor.process(builder, context.charset()) ?
                                 MTD_StringArray_MemorySegment_Charset :
                                 MTD_StringArray_MemorySegment);
                     case ProcessorType.Value value -> builder
@@ -108,7 +116,7 @@ public final class UnmarshalProcessor extends TypedCodeProcessor<UnmarshalProces
                 .aload(variableSlot)
                 .invokestatic(CD_Unmarshal,
                     "unboundString",
-                    StringCharset.getCharset(builder, context.charset()) ?
+                    CharsetProcessor.process(builder, context.charset()) ?
                         MTD_String_MemorySegment_Charset :
                         MTD_String_MemorySegment);
             case ProcessorType.Struct _ -> builder

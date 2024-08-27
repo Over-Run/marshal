@@ -26,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * insert codes before invoke
+ * Insert codes before invoking the downcall handle.
+ * <p>
+ * The default operation transforms {@link Ref @Ref} annotated arrays with {@link RefTypeTransformer}.
  *
  * @author squid233
  * @since 0.1.0
@@ -35,9 +37,16 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
     private BeforeInvokeProcessor() {
     }
 
+    /**
+     * The context.
+     *
+     * @param parameters    the parameters
+     * @param refSlotMap    the map
+     * @param allocatorSlot the slot of the allocator
+     */
     public record Context(
         List<Parameter> parameters,
-        Map<Parameter, Integer> refSlot,
+        Map<Parameter, Integer> refSlotMap,
         int allocatorSlot
     ) {
     }
@@ -55,12 +64,12 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
                 TypeKind refTypeKind = TypeKind.from(refType.downcallClassDesc());
                 int local = builder.allocateLocal(refTypeKind);
                 MarshalProcessor.getInstance().process(builder, type, new MarshalProcessor.Context(
-                    StringCharset.getCharset(parameter),
+                    context.allocatorSlot(),
                     builder.parameterSlot(i),
-                    context.allocatorSlot()
+                    StringCharset.getCharset(parameter)
                 ));
                 builder.storeLocal(refTypeKind, local);
-                context.refSlot().put(parameter, local);
+                context.refSlotMap().put(parameter, local);
             }
         }
         super.process(builder, context);

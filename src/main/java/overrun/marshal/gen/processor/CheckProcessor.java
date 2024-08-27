@@ -25,7 +25,10 @@ import java.util.List;
 import static overrun.marshal.internal.Constants.*;
 
 /**
- * insert check codes
+ * Insert check methods at the beginning of the method body.
+ * <p>
+ * The default operation inserts {@link overrun.marshal.Checks#checkArraySize(long, int) Checks::checkArraySize}
+ * for arrays annotated with {@link Sized @Sized}.
  *
  * @author squid233
  * @since 0.1.0
@@ -34,6 +37,11 @@ public final class CheckProcessor extends CodeInserter<CheckProcessor.Context> {
     private CheckProcessor() {
     }
 
+    /**
+     * The context.
+     *
+     * @param parameters the parameters
+     */
     public record Context(List<Parameter> parameters) {
     }
 

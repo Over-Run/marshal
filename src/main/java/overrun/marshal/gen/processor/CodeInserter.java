@@ -21,6 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Code inserters insert codes at a given position.
+ * <p>
+ * The inserted bytecode must not return a non-void value. For example, subclasses can invoke a void method.
+ *
  * @param <T> the type of the context
  * @author squid233
  * @since 0.1.0
@@ -34,6 +38,12 @@ public abstract class CodeInserter<T> implements Processor<CodeInserter<T>> {
     protected CodeInserter() {
     }
 
+    /**
+     * Sequentially runs all alternative processors.
+     *
+     * @param builder the code builder
+     * @param context the context
+     */
     public void process(CodeBuilder builder, T context) {
         for (CodeInserter<T> processor : list) {
             processor.process(builder, context);

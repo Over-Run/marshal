@@ -17,7 +17,9 @@
 package overrun.marshal.gen.processor;
 
 /**
- * The superinterface of processors.
+ * Processors are used to indicate how to process a value in {@link overrun.marshal.Downcall Downcall}.
+ * <p>
+ * See subclasses for more information.
  *
  * @param <T> the type of this
  * @author squid233
