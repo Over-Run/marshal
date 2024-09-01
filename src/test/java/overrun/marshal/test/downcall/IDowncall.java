@@ -38,13 +38,19 @@ import java.util.Map;
  * @since 0.1.0
  */
 public interface IDowncall {
-    Map<String, FunctionDescriptor> MAP = Map.of("testDefault", FunctionDescriptor.of(ValueLayout.JAVA_INT));
+    Map<String, FunctionDescriptor> MAP = Map.of(
+        "testDefault", FunctionDescriptor.of(ValueLayout.JAVA_INT),
+        "testReturnInt", FunctionDescriptor.of(ValueLayout.JAVA_INT)
+    );
 
     static IDowncall getInstance(boolean testDefaultNull) {
         ProcessorTypes.registerStruct(Vector3.class, Vector3.OF);
         ProcessorTypes.registerUpcall(SimpleUpcall.class, stub -> i -> SimpleUpcall.invoke(stub, i));
         return Downcall.load(MethodHandles.lookup(), DowncallProvider.lookup(testDefaultNull), DowncallOption.descriptors(MAP));
     }
+
+    @Entrypoint("testReturnInt")
+    MethodHandle mh_testReturnInt();
 
     void test();
 
