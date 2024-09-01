@@ -647,29 +647,31 @@ public final class Downcall {
             }
             descriptorMap1.put(entrypoint, descriptor);
 
-            final Optional<MemorySegment> optional = lookup.find(entrypoint);
-            MethodHandle handle;
-            if (optional.isPresent()) {
-                // linker options
-                final Linker.Option[] options;
-                final Critical critical = method.getDeclaredAnnotation(Critical.class);
-                if (critical != null) {
-                    options = critical.allowHeapAccess() ? OPTION_CRITICAL_TRUE : OPTION_CRITICAL_FALSE;
-                } else {
-                    options = NO_OPTION;
-                }
+            if (descriptor != null) {
+                final Optional<MemorySegment> optional = lookup.find(entrypoint);
+                MethodHandle handle;
+                if (optional.isPresent()) {
+                    // linker options
+                    final Linker.Option[] options;
+                    final Critical critical = method.getDeclaredAnnotation(Critical.class);
+                    if (critical != null) {
+                        options = critical.allowHeapAccess() ? OPTION_CRITICAL_TRUE : OPTION_CRITICAL_FALSE;
+                    } else {
+                        options = NO_OPTION;
+                    }
 
-                handle = transform.apply(LINKER.downcallHandle(optional.get(), descriptor, options));
-            } else {
-                MethodHandle apply = transform.apply(null);
-                if (apply != null || method.isDefault()) {
-                    handle = apply;
+                    handle = transform.apply(LINKER.downcallHandle(optional.get(), descriptor, options));
                 } else {
-                    throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + methodData.signatureString());
+                    MethodHandle apply = transform.apply(null);
+                    if (apply != null || method.isDefault()) {
+                        handle = apply;
+                    } else {
+                        throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + methodData.signatureString());
+                    }
                 }
-            }
-            if (!map.containsKey(entrypoint) || map.get(entrypoint) == null) {
-                map.put(entrypoint, handle);
+                if (!map.containsKey(entrypoint) || map.get(entrypoint) == null) {
+                    map.putIfAbsent(entrypoint, handle);
+                }
             }
         }
         return new DowncallData(Collections.unmodifiableMap(descriptorMap1),
