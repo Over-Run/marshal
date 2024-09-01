@@ -635,12 +635,16 @@ public final class Downcall {
 
             // function descriptor
             final FunctionDescriptor get = descriptorMap.get(entrypoint);
-            final FunctionDescriptor descriptor = get != null ?
-                get :
-                DescriptorTransformer.getInstance().process(new DescriptorTransformer.Context(method,
-                    methodData.descriptorSkipFirstParameter(),
-                    methodData.parameters()));
-
+            final FunctionDescriptor descriptor;
+            if (method.getReturnType() == MethodHandle.class) {
+                descriptor = get;
+            } else {
+                descriptor = get != null ?
+                    get :
+                    DescriptorTransformer.getInstance().process(new DescriptorTransformer.Context(method,
+                        methodData.descriptorSkipFirstParameter(),
+                        methodData.parameters()));
+            }
             descriptorMap1.put(entrypoint, descriptor);
 
             final Optional<MemorySegment> optional = lookup.find(entrypoint);
@@ -664,7 +668,9 @@ public final class Downcall {
                     throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + methodData.signatureString());
                 }
             }
-            map.putIfAbsent(entrypoint, handle);
+            if (!map.containsKey(entrypoint) || map.get(entrypoint) == null) {
+                map.put(entrypoint, handle);
+            }
         }
         return new DowncallData(Collections.unmodifiableMap(descriptorMap1),
             Collections.unmodifiableMap(map),
