@@ -33,7 +33,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
       - name: Execute Gradle build
-        run: ./gradlew aggregateJavadoc
+        run: ./gradlew javadoc
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
