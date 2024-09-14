@@ -36,6 +36,7 @@ val projDevelopers = arrayOf(
 
 val junitVersion: String by rootProject
 val memstackVersion: String by rootProject
+val platformVersion: String by rootProject
 
 data class Organization(
     val name: String,
@@ -92,6 +93,7 @@ allprojects {
         // add your dependencies
         compileOnly("org.jetbrains:annotations:24.1.0")
         testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+        testImplementation("io.github.over-run:platform:$platformVersion")
         api("io.github.over-run:memstack:$memstackVersion")
     }
 

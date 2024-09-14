@@ -55,7 +55,9 @@ import static overrun.marshal.internal.Constants.*;
  * which allows {@code Downcall} to define the hidden class.
  * You can obtain that lookup object with {@link MethodHandles#lookup()}.
  * <p>
- * The generated class implements the target class.
+ * The generated class implements the target class, which is specified with
+ * {@link DowncallOption#targetClass(Class) DowncallOption::targetClass}. If no target class is specified, the caller
+ * class will be used.
  * <h2>Methods</h2>
  * The loader finds method from the target class and its superclasses.
  * <p>
