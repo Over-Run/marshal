@@ -28,7 +28,7 @@ import java.lang.foreign.Linker;
  * the {@linkplain Linker#canonicalLayouts() canonical layout} mapped from the linker of the current operating system.
  * <h2>Example</h2>
  * <pre>{@code
- * @CType("size_t", canonical=true)
+ * @CType(value = "size_t", canonical = true)
  * long strlen(@CType("const char*") String s);
  * }</pre>
  *
