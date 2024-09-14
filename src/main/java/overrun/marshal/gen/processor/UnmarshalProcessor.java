@@ -26,9 +26,11 @@ import static overrun.marshal.internal.Constants.*;
  * <p>
  * The inserted code must represent the original type in the context.
  *
+ * @deprecated to be replaced with filter method handle
  * @author squid233
  * @since 0.1.0
  */
+@Deprecated(since = "0.1.0-alpha.33")
 public final class UnmarshalProcessor extends TypedCodeProcessor<UnmarshalProcessor.Context> {
     private UnmarshalProcessor() {
     }
