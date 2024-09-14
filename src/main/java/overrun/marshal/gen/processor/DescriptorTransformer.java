@@ -16,16 +16,19 @@
 
 package overrun.marshal.gen.processor;
 
+import overrun.marshal.gen.CType;
 import overrun.marshal.gen.Sized;
 import overrun.marshal.struct.ByValue;
 
 import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Transforms the method and parameters into a function descriptor.
@@ -34,7 +37,17 @@ import java.util.List;
  * @since 0.1.0
  */
 public final class DescriptorTransformer extends TypeTransformer<DescriptorTransformer.Context, FunctionDescriptor> {
+    private final Map<String, MemoryLayout> canonicalLayouts = Linker.nativeLinker().canonicalLayouts();
+
     private DescriptorTransformer() {
+    }
+
+    private MemoryLayout findCanonicalLayout(String typename) {
+        MemoryLayout layout = canonicalLayouts.get(typename);
+        if (layout == null) {
+            throw new IllegalArgumentException("Canonical layout not found for type: " + typename);
+        }
+        return layout;
     }
 
     /**
@@ -54,44 +67,57 @@ public final class DescriptorTransformer extends TypeTransformer<DescriptorTrans
     @Override
     public FunctionDescriptor process(Context context) {
         Method method = context.method();
-        ProcessorType returnType = ProcessorTypes.fromMethod(method);
+        CType cType = method.getDeclaredAnnotation(CType.class);
         List<MemoryLayout> argLayouts = new ArrayList<>();
-        Sized sized = method.getDeclaredAnnotation(Sized.class);
 
-        MemoryLayout returnLayout = switch (returnType) {
-            case ProcessorType.Allocator allocator -> allocator.downcallLayout();
-            case ProcessorType.Array array -> sized != null ?
-                ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), array.componentType().downcallLayout())) :
-                array.downcallLayout();
-            case ProcessorType.BoolConvert boolConvert -> boolConvert.downcallLayout();
-            case ProcessorType.Custom custom -> custom.downcallLayout();
-            case ProcessorType.Str str -> str.downcallLayout();
-            case ProcessorType.Struct struct -> {
-                if (method.getDeclaredAnnotation(ByValue.class) != null) {
-                    yield struct.downcallLayout();
+        MemoryLayout returnLayout;
+        if (cType != null && cType.canonical()) {
+            returnLayout = findCanonicalLayout(cType.value());
+        } else {
+            ProcessorType returnType = ProcessorTypes.fromMethod(method);
+            Sized sized = method.getDeclaredAnnotation(Sized.class);
+            returnLayout = switch (returnType) {
+                case ProcessorType.Allocator allocator -> allocator.downcallLayout();
+                case ProcessorType.Array array -> sized != null ?
+                    ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), array.componentType().downcallLayout())) :
+                    array.downcallLayout();
+                case ProcessorType.BoolConvert boolConvert -> boolConvert.downcallLayout();
+                case ProcessorType.Custom custom -> custom.downcallLayout();
+                case ProcessorType.Str str -> str.downcallLayout();
+                case ProcessorType.Struct struct -> {
+                    if (method.getDeclaredAnnotation(ByValue.class) != null) {
+                        yield struct.downcallLayout();
+                    }
+                    if (sized != null) {
+                        yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), struct.downcallLayout()));
+                    }
+                    yield ValueLayout.ADDRESS.withTargetLayout(struct.downcallLayout());
                 }
-                if (sized != null) {
-                    yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), struct.downcallLayout()));
-                }
-                yield ValueLayout.ADDRESS.withTargetLayout(struct.downcallLayout());
-            }
-            case ProcessorType.Upcall<?> upcall -> upcall.downcallLayout();
-            case ProcessorType.Value value -> value == ProcessorType.Value.ADDRESS && sized != null ?
-                ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), ValueLayout.JAVA_BYTE)) :
-                value.downcallLayout();
-            case ProcessorType.Void _ -> null;
-        };
+                case ProcessorType.Upcall<?> upcall -> upcall.downcallLayout();
+                case ProcessorType.Value value -> value == ProcessorType.Value.ADDRESS && sized != null ?
+                    ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), ValueLayout.JAVA_BYTE)) :
+                    value.downcallLayout();
+                case ProcessorType.Void _ -> null;
+            };
+        }
 
         var parameters = context.parameters();
         for (int i = context.descriptorSkipFirstParameter() ? 1 : 0, size = parameters.size(); i < size; i++) {
             Parameter parameter = parameters.get(i);
-            ProcessorType type = ProcessorTypes.fromParameter(parameter);
-            argLayouts.add(switch (type) {
-                case ProcessorType.Struct struct -> parameter.getDeclaredAnnotation(ByValue.class) != null ?
-                    struct.downcallLayout() :
-                    ValueLayout.ADDRESS;
-                default -> type.downcallLayout();
-            });
+            CType parameterCType = parameter.getDeclaredAnnotation(CType.class);
+            MemoryLayout layout;
+            if (parameterCType != null && parameterCType.canonical()) {
+                layout = findCanonicalLayout(parameterCType.value());
+            } else {
+                ProcessorType type = ProcessorTypes.fromParameter(parameter);
+                layout = switch (type) {
+                    case ProcessorType.Struct struct -> parameter.getDeclaredAnnotation(ByValue.class) != null ?
+                        struct.downcallLayout() :
+                        ValueLayout.ADDRESS;
+                    default -> type.downcallLayout();
+                };
+            }
+            argLayouts.add(layout);
         }
 
         return returnLayout == null ?

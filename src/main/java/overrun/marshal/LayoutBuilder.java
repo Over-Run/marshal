@@ -224,7 +224,7 @@ public abstract class LayoutBuilder<L extends MemoryLayout, T extends LayoutBuil
         @Override
         public StructLayout build() {
             long size = 0;
-            long align = 1;
+            long align = 0;
             final List<MemoryLayout> finalLayouts = new ArrayList<>(layouts.size());
             for (MemoryLayout layout : layouts) {
                 final long alignment = layout.byteAlignment();
