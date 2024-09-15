@@ -21,7 +21,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import overrun.marshal.Downcall;
 import overrun.marshal.DowncallOption;
-import overrun.marshal.gen.CType;
+import overrun.marshal.gen.CanonicalType;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
@@ -38,10 +38,10 @@ public class CTypeTest {
     private static Functions instance;
 
     interface Functions {
-        @CType(value = "long", canonical = true)
+        @CanonicalType("long")
         long returnLong();
 
-        long acceptLong(@CType(value = "long", canonical = true) long value);
+        long acceptLong(@CanonicalType("long") long value);
     }
 
     static long returnLong() {

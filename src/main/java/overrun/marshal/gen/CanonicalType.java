@@ -16,25 +16,30 @@
 
 package overrun.marshal.gen;
 
+import overrun.marshal.gen.processor.DescriptorTransformer;
+
 import java.lang.annotation.*;
+import java.lang.foreign.Linker;
 
 /**
- * This marker annotation is for methods and parameters to mark the native type of them.
+ * Marks a method or a parameter, as {@link DescriptorTransformer} will use
+ * the {@linkplain Linker#canonicalLayouts() canonical layout} mapped from the linker of the current operating system.
+ * <p>
+ * This annotation is not {@link Documented}. To display the native type, use {@link CType}.
  * <h2>Example</h2>
  * <pre>{@code
- * @CType("size_t")
- * long strlen(@CType("const char*") String s);
+ * @CanonicalType("size_t")
+ * long strlen(String s);
  * }</pre>
  *
  * @author squid233
  * @since 0.1.0
  */
-@Documented
 @Target(ElementType.TYPE_USE)
-@Retention(RetentionPolicy.SOURCE)
-public @interface CType {
+@Retention(RetentionPolicy.RUNTIME)
+public @interface CanonicalType {
     /**
-     * {@return the native (C) type of the marked type}
+     * {@return the canonical type of the marked type}
      */
     String value();
 }
