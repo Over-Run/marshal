@@ -16,7 +16,7 @@
 
 package overrun.marshal.gen.processor;
 
-import overrun.marshal.gen.CType;
+import overrun.marshal.gen.CanonicalType;
 import overrun.marshal.gen.Sized;
 import overrun.marshal.struct.ByValue;
 
@@ -67,12 +67,12 @@ public final class DescriptorTransformer extends TypeTransformer<DescriptorTrans
     @Override
     public FunctionDescriptor process(Context context) {
         Method method = context.method();
-        CType cType = method.getDeclaredAnnotation(CType.class);
+        CanonicalType canonicalType = method.getDeclaredAnnotation(CanonicalType.class);
         List<MemoryLayout> argLayouts = new ArrayList<>();
 
         MemoryLayout returnLayout;
-        if (cType != null && cType.canonical()) {
-            returnLayout = findCanonicalLayout(cType.value());
+        if (canonicalType != null) {
+            returnLayout = findCanonicalLayout(canonicalType.value());
         } else {
             ProcessorType returnType = ProcessorTypes.fromMethod(method);
             Sized sized = method.getDeclaredAnnotation(Sized.class);
@@ -104,9 +104,9 @@ public final class DescriptorTransformer extends TypeTransformer<DescriptorTrans
         var parameters = context.parameters();
         for (int i = context.descriptorSkipFirstParameter() ? 1 : 0, size = parameters.size(); i < size; i++) {
             Parameter parameter = parameters.get(i);
-            CType parameterCType = parameter.getDeclaredAnnotation(CType.class);
+            CanonicalType parameterCType = parameter.getDeclaredAnnotation(CanonicalType.class);
             MemoryLayout layout;
-            if (parameterCType != null && parameterCType.canonical()) {
+            if (parameterCType != null) {
                 layout = findCanonicalLayout(parameterCType.value());
             } else {
                 ProcessorType type = ProcessorTypes.fromParameter(parameter);
