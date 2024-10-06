@@ -88,7 +88,7 @@ Import as a Gradle dependency:
 
 ```groovy
 dependencies {
-    implementation("io.github.over-run:marshal:0.1.0-alpha.34-jdk23")
+    implementation("io.github.over-run:marshal:0.1.0-alpha.35-jdk23")
 }
 ```
 

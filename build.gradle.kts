@@ -91,7 +91,7 @@ allprojects {
 
     dependencies {
         // add your dependencies
-        compileOnly("org.jetbrains:annotations:24.1.0")
+        compileOnly("org.jetbrains:annotations:25.0.0")
         testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
         testImplementation("io.github.over-run:platform:$platformVersion")
         api("io.github.over-run:memstack:$memstackVersion")
@@ -172,6 +172,7 @@ tasks.withType<Javadoc> {
             } else {
                 links("https://download.java.net/java/early_access/$jdkEarlyAccessDoc/docs/api/")
             }
+            links("https://over-run.github.io/memstack/")
             if (jdkEnablePreview.toBoolean()) {
                 addBooleanOption("-enable-preview", true)
                 addStringOption("source", jdkVersion)

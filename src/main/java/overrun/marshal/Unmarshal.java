@@ -57,7 +57,7 @@ public final class Unmarshal {
      * @param segment the native segment
      */
     public static boolean isNullPointer(@Nullable MemorySegment segment) {
-        return segment == null || segment == MemorySegment.NULL || segment.address() == 0L;
+        return segment == null || segment.equals(MemorySegment.NULL);
     }
 
     /**
