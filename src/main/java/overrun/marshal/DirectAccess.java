@@ -16,14 +16,6 @@
 
 package overrun.marshal;
 
-import org.jetbrains.annotations.Unmodifiable;
-import overrun.marshal.gen.Skip;
-
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.SymbolLookup;
-import java.lang.invoke.MethodHandle;
-import java.util.Map;
-
 /**
  * This interface provides access to function descriptors and method handles
  * for each function that is loaded by {@link Downcall}.
@@ -34,33 +26,7 @@ import java.util.Map;
  */
 public interface DirectAccess {
     /**
-     * {@return an unmodifiable map of the function descriptors for each method}
+     * {@return the data of this access}
      */
-    @Skip
-    @Unmodifiable
-    Map<String, FunctionDescriptor> functionDescriptors();
-
-    /**
-     * {@return an unmodifiable map of the method handles for each method}
-     */
-    @Skip
-    @Unmodifiable
-    Map<String, MethodHandle> methodHandles();
-
-    /**
-     * Gets the method handle with the given entrypoint name.
-     *
-     * @param entrypoint the entrypoint name
-     * @return the method handle
-     */
-    @Skip
-    default MethodHandle methodHandle(String entrypoint) {
-        return methodHandles().get(entrypoint);
-    }
-
-    /**
-     * {@return the symbol lookup of this library}
-     */
-    @Skip
-    SymbolLookup symbolLookup();
+    DirectAccessData directAccessData();
 }

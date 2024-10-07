@@ -44,7 +44,7 @@ public final class GlobalVarTest {
 
     interface I extends DirectAccess {
         I INSTANCE = Downcall.load(MethodHandles.lookup(), LOOKUP);
-        MemorySegment myGlobalVar = INSTANCE.symbolLookup().findOrThrow("globalVar");
+        MemorySegment myGlobalVar = INSTANCE.directAccessData().symbolLookup().findOrThrow("globalVar");
     }
 
     @Test
