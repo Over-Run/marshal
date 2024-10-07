@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-package overrun.marshal.internal.data;
+package overrun.marshal;
 
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.SymbolLookup;
@@ -22,17 +22,17 @@ import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
 /**
- * Downcall class data
+ * The data for {@link DirectAccess}.
  *
- * @param descriptorMap descriptorMap
- * @param handleMap     handleMap
- * @param symbolLookup  symbolLookup
+ * @param functionDescriptors an unmodifiable map of the function descriptors for each method
+ * @param methodHandles       an unmodifiable map of the method handles for each method
+ * @param symbolLookup        the symbol lookup of this library
  * @author squid233
  * @since 0.1.0
  */
-public record DowncallData(
-    Map<String, FunctionDescriptor> descriptorMap,
-    Map<String, MethodHandle> handleMap,
+public record DirectAccessData(
+    Map<String, FunctionDescriptor> functionDescriptors,
+    Map<String, MethodHandle> methodHandles,
     SymbolLookup symbolLookup
 ) {
 }

@@ -20,7 +20,6 @@ import overrun.marshal.gen.*;
 import overrun.marshal.gen.processor.*;
 import overrun.marshal.internal.DowncallOptions;
 import overrun.marshal.internal.StringCharset;
-import overrun.marshal.internal.data.DowncallData;
 import overrun.marshal.struct.ByValue;
 
 import java.lang.classfile.ClassFile;
@@ -208,7 +207,7 @@ public final class Downcall {
             entrypoint.value();
     }
 
-    private static Map.Entry<byte[], DowncallData> buildBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
+    private static Map.Entry<byte[], DirectAccessData> buildBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
         Class<?> _targetClass = null, targetClass;
         Map<String, FunctionDescriptor> _descriptorMap = null, descriptorMap;
         UnaryOperator<MethodHandle> _transform = null, transform;
@@ -281,7 +280,7 @@ public final class Downcall {
         }
         //endregion
 
-        final DowncallData downcallData = generateData(methodDataMap, lookup, descriptorMap, transform);
+        final var downcallData = generateData(methodDataMap, lookup, descriptorMap, transform);
 
         return Map.entry(cf.build(cd_thisClass, classBuilder -> {
             classBuilder.withFlags(ACC_FINAL | ACC_SUPER);
@@ -296,7 +295,7 @@ public final class Downcall {
 
             //region method handles
             for (String entrypoint : methodEntrypointSet) {
-                if (downcallData.handleMap().get(entrypoint) != null) {
+                if (downcallData.methodHandles().get(entrypoint) != null) {
                     classBuilder.withField(entrypoint,
                         CD_MethodHandle,
                         ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
@@ -342,7 +341,7 @@ public final class Downcall {
                         // returns MethodHandle
                         if (returnType == MethodHandle.class) {
                             if (method.isDefault() &&
-                                downcallData.handleMap().get(entrypoint) == null) {
+                                downcallData.methodHandles().get(entrypoint) == null) {
                                 // invoke super interface
                                 invokeSuperMethod(codeBuilder, parameters);
                                 codeBuilder.invokespecial(cd_targetClass,
@@ -358,7 +357,7 @@ public final class Downcall {
                         }
 
                         if (method.isDefault() &&
-                            downcallData.handleMap().get(entrypoint) == null) {
+                            downcallData.methodHandles().get(entrypoint) == null) {
                             // invoke super interface
                             invokeSuperMethod(codeBuilder, parameters);
                             codeBuilder.invokespecial(cd_targetClass,
@@ -470,26 +469,11 @@ public final class Downcall {
             //region DirectAccess
             final boolean hasDirectAccess = DirectAccess.class.isAssignableFrom(targetClass);
             if (hasDirectAccess) {
-                classBuilder.withMethodBody("functionDescriptors",
-                    MTD_Map,
+                classBuilder.withMethodBody("directAccessData",
+                    MTD_DirectAccessData,
                     ACC_PUBLIC,
                     codeBuilder -> codeBuilder
-                        .ldc(DCD_classData_DowncallData)
-                        .invokevirtual(CD_DowncallData, "descriptorMap", MTD_Map)
-                        .areturn());
-                classBuilder.withMethodBody("methodHandles",
-                    MTD_Map,
-                    ACC_PUBLIC,
-                    codeBuilder -> codeBuilder
-                        .ldc(DCD_classData_DowncallData)
-                        .invokevirtual(CD_DowncallData, "handleMap", MTD_Map)
-                        .areturn());
-                classBuilder.withMethodBody("symbolLookup",
-                    MTD_SymbolLookup,
-                    ACC_PUBLIC,
-                    codeBuilder -> codeBuilder
-                        .ldc(DCD_classData_DowncallData)
-                        .invokevirtual(CD_DowncallData, "symbolLookup", MTD_SymbolLookup)
+                        .ldc(DCD_classData_DirectAccessData)
                         .areturn());
             }
             //endregion
@@ -498,13 +482,13 @@ public final class Downcall {
             classBuilder.withMethodBody(CLASS_INIT_NAME, MTD_void, ACC_STATIC,
                 codeBuilder -> {
                     final int handleMapSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
-                    codeBuilder.ldc(DCD_classData_DowncallData)
-                        .invokevirtual(CD_DowncallData, "handleMap", MTD_Map)
+                    codeBuilder.ldc(DCD_classData_DirectAccessData)
+                        .invokevirtual(CD_DirectAccessData, "methodHandles", MTD_Map)
                         .astore(handleMapSlot);
 
                     // method handles
                     for (String entrypoint : methodEntrypointSet) {
-                        if (downcallData.handleMap().get(entrypoint) != null) {
+                        if (downcallData.methodHandles().get(entrypoint) != null) {
                             codeBuilder
                                 .aload(handleMapSlot)
                                 .ldc(entrypoint)
@@ -622,7 +606,7 @@ public final class Downcall {
         return aClass == MethodHandle.class || ProcessorTypes.isRegisteredExactly(aClass);
     }
 
-    private static DowncallData generateData(
+    private static DirectAccessData generateData(
         Map<Method, DowncallMethodData> methodDataMap,
         SymbolLookup lookup,
         Map<String, FunctionDescriptor> descriptorMap,
@@ -676,7 +660,7 @@ public final class Downcall {
                 }
             }
         }
-        return new DowncallData(Collections.unmodifiableMap(descriptorMap1),
+        return new DirectAccessData(Collections.unmodifiableMap(descriptorMap1),
             Collections.unmodifiableMap(map),
             lookup);
     }

@@ -42,9 +42,9 @@ public final class Constants {
      */
     public static final ClassDesc CD_Checks = ClassDesc.of("overrun.marshal.Checks");
     /**
-     * CD_DowncallData
+     * CD_DirectAccessData
      */
-    public static final ClassDesc CD_DowncallData = ClassDesc.of("overrun.marshal.internal.data.DowncallData");
+    public static final ClassDesc CD_DirectAccessData = ClassDesc.of("overrun.marshal.DirectAccessData");
     /**
      * CD_IllegalStateException
      */
@@ -105,10 +105,6 @@ public final class Constants {
      * CD_StructLayout
      */
     public static final ClassDesc CD_StructLayout = ClassDesc.of("java.lang.foreign.StructLayout");
-    /**
-     * CD_SymbolLookup
-     */
-    public static final ClassDesc CD_SymbolLookup = ClassDesc.of("java.lang.foreign.SymbolLookup");
     /**
      * CD_Unmarshal
      */
@@ -214,6 +210,10 @@ public final class Constants {
      * MTD_Charset_String
      */
     public static final MethodTypeDesc MTD_Charset_String = MethodTypeDesc.of(CD_Charset, CD_String);
+    /**
+     * MTD_DirectAccessData
+     */
+    public static final MethodTypeDesc MTD_DirectAccessData = MethodTypeDesc.of(CD_DirectAccessData);
     /**
      * MTD_long
      */
@@ -367,10 +367,6 @@ public final class Constants {
      */
     public static final MethodTypeDesc MTD_StructLayout = MethodTypeDesc.of(CD_StructLayout);
     /**
-     * MTD_SymbolLookup
-     */
-    public static final MethodTypeDesc MTD_SymbolLookup = MethodTypeDesc.of(CD_SymbolLookup);
-    /**
      * MTD_Upcall_MemorySegment
      */
     public static final MethodTypeDesc MTD_Upcall_MemorySegment = MethodTypeDesc.of(CD_Upcall, CD_MemorySegment);
@@ -438,7 +434,7 @@ public final class Constants {
     /**
      * DCD_classData_DowncallData
      */
-    public static final DynamicConstantDesc<?> DCD_classData_DowncallData = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_DowncallData);
+    public static final DynamicConstantDesc<?> DCD_classData_DirectAccessData = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_DirectAccessData);
     /**
      * DCD_classData_StructLayout
      */
