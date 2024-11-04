@@ -39,6 +39,6 @@ public final class DowncallInheritTest {
         assertEquals(1, d.get2());
         assertEquals(3, d.get3());
 
-        assertEquals(3, assertDoesNotThrow(() -> (int) d.directAccessData().methodHandles().get("get3").invokeExact()));
+        assertEquals(3, assertDoesNotThrow(() -> (int) d.directAccessData().methodHandle("get3").invokeExact()));
     }
 }

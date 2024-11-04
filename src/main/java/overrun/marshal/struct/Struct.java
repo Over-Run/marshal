@@ -19,7 +19,7 @@ package overrun.marshal.struct;
 import overrun.marshal.Unmarshal;
 import overrun.marshal.gen.processor.DescriptorTransformer;
 import overrun.marshal.gen.processor.ProcessorTypes;
-import overrun.marshal.gen.processor.UnmarshalProcessor;
+import overrun.marshal.gen.processor.ReturnValueTransformer;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -32,7 +32,7 @@ import java.util.Objects;
  * <p>
  * Returning a {@code Struct} from a downcall method or pass a {@code Struct} by value requires a
  * {@linkplain ProcessorTypes#registerStruct(Class, StructAllocatorSpec) registration} to tell
- * {@link UnmarshalProcessor} how to create an instance of the {@code Struct} and {@link DescriptorTransformer}
+ * {@link ReturnValueTransformer} how to create an instance of the {@code Struct} and {@link DescriptorTransformer}
  * the layout of the structure.
  *
  * @param <T> the type of the actual structure interface

@@ -97,6 +97,11 @@ public final class ProcessorTypes {
         throw new NoSuchElementException("Cannot find processor type of " + aClass);
     }
 
+    public static ProcessorType fromClass(Class<?> aClass, ProcessorType.BoolConvert boolConvert) {
+        if (aClass == boolean.class && boolConvert != null) return boolConvert;
+        return fromClass(aClass);
+    }
+
     /**
      * Gets the processor type from the given method.
      *

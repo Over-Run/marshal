@@ -18,7 +18,7 @@ package overrun.marshal;
 
 import overrun.marshal.gen.processor.ProcessorType;
 import overrun.marshal.gen.processor.ProcessorTypes;
-import overrun.marshal.gen.processor.UnmarshalProcessor;
+import overrun.marshal.gen.processor.ReturnValueTransformer;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
@@ -35,7 +35,7 @@ import java.lang.invoke.MethodHandles;
  * <p>
  * Returning an {@code Upcall} from a downcall method requires a
  * {@linkplain ProcessorTypes#registerUpcall(Class, ProcessorType.Upcall.Factory) registration} to tell
- * {@link UnmarshalProcessor} how to create an instance of the {@code Upcall}.
+ * {@link ReturnValueTransformer} how to create an instance of the {@code Upcall}.
  * <h2>Example</h2>
  * <pre>{@code
  * // The implementation must be public if you use Type

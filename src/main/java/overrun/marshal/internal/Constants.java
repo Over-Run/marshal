@@ -16,9 +16,10 @@
 
 package overrun.marshal.internal;
 
-import java.lang.constant.ClassDesc;
-import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodTypeDesc;
+import overrun.marshal.DirectAccessData;
+
+import java.lang.constant.*;
+import java.lang.foreign.StructLayout;
 
 import static java.lang.constant.ConstantDescs.*;
 
@@ -45,6 +46,8 @@ public final class Constants {
      * CD_DirectAccessData
      */
     public static final ClassDesc CD_DirectAccessData = ClassDesc.of("overrun.marshal.DirectAccessData");
+    /// CD_DowncallFactory
+    public static final ClassDesc CD_DowncallFactory = ClassDesc.of("overrun.marshal.DowncallFactory");
     /**
      * CD_IllegalStateException
      */
@@ -69,6 +72,8 @@ public final class Constants {
      * CD_ProcessorType
      */
     public static final ClassDesc CD_ProcessorType = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType");
+    /// CD_ProcessorType$BoolConvert
+    public static final ClassDesc CD_ProcessorType$BoolConvert = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType$BoolConvert");
     /**
      * CD_ProcessorType$Struct
      */
@@ -223,10 +228,6 @@ public final class Constants {
      */
     public static final MethodTypeDesc MTD_long_long_long = MethodTypeDesc.of(CD_long, CD_long, CD_long);
     /**
-     * MTD_Map
-     */
-    public static final MethodTypeDesc MTD_Map = MethodTypeDesc.of(CD_Map);
-    /**
      * MTD_MemoryLayout$PathElement
      */
     public static final MethodTypeDesc MTD_MemoryLayout$PathElement = MethodTypeDesc.of(CD_MemoryLayout$PathElement);
@@ -331,10 +332,6 @@ public final class Constants {
      */
     public static final MethodTypeDesc MTD_Object_MemorySegment = MethodTypeDesc.of(CD_Object, CD_MemorySegment);
     /**
-     * MTD_Object_Object
-     */
-    public static final MethodTypeDesc MTD_Object_Object = MethodTypeDesc.of(CD_Object, CD_Object);
-    /**
      * MTD_ProcessorType$Upcall$Factory
      */
     public static final MethodTypeDesc MTD_ProcessorType$Upcall$Factory = MethodTypeDesc.of(CD_ProcessorType$Upcall$Factory);
@@ -431,14 +428,31 @@ public final class Constants {
      */
     public static final MethodTypeDesc MTD_void_String_Throwable = MethodTypeDesc.of(CD_void, CD_String, CD_Throwable);
 
+    /// BSM_DowncallFactory_downcallCallSite
+    public static final DirectMethodHandleDesc BSM_DowncallFactory_downcallCallSite = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+        CD_DowncallFactory,
+        "downcallCallSite",
+        MethodTypeDesc.of(CD_CallSite,
+            CD_MethodHandles_Lookup,
+            CD_String,
+            CD_MethodType,
+            CD_DirectAccessData,
+            CD_ProcessorType$BoolConvert,
+            CD_String));
+    /// BSM_DowncallFactory_downcallHandle
+    public static final DirectMethodHandleDesc BSM_DowncallFactory_downcallHandle = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+        CD_DowncallFactory,
+        "downcallHandle",
+        MethodTypeDesc.of(CD_MethodHandle, CD_MethodHandles_Lookup, CD_String, CD_Class, CD_DirectAccessData));
+
     /**
      * DCD_classData_DowncallData
      */
-    public static final DynamicConstantDesc<?> DCD_classData_DirectAccessData = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_DirectAccessData);
+    public static final DynamicConstantDesc<DirectAccessData> DCD_classData_DirectAccessData = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_DirectAccessData);
     /**
      * DCD_classData_StructLayout
      */
-    public static final DynamicConstantDesc<?> DCD_classData_StructLayout = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_StructLayout);
+    public static final DynamicConstantDesc<StructLayout> DCD_classData_StructLayout = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_StructLayout);
 
     private Constants() {
     }

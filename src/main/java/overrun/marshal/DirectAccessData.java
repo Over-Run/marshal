@@ -19,20 +19,47 @@ package overrun.marshal;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * The data for {@link DirectAccess}.
  *
- * @param functionDescriptors an unmodifiable map of the function descriptors for each method
- * @param methodHandles       an unmodifiable map of the method handles for each method
- * @param symbolLookup        the symbol lookup of this library
  * @author squid233
  * @since 0.1.0
  */
-public record DirectAccessData(
-    Map<String, FunctionDescriptor> functionDescriptors,
-    Map<String, MethodHandle> methodHandles,
-    SymbolLookup symbolLookup
-) {
+public final class DirectAccessData {
+    private final Map<String, FunctionDescriptor> functionDescriptors;
+    private final Function<String, MethodHandle> methodHandleGetter;
+    private final Map<String, MethodHandle> methodHandles = new HashMap<>();
+    private final SymbolLookup symbolLookup;
+
+    DirectAccessData(
+        Map<String, FunctionDescriptor> functionDescriptors,
+        Function<String, MethodHandle> methodHandleGetter,
+        SymbolLookup symbolLookup
+    ) {
+        this.functionDescriptors = functionDescriptors;
+        this.methodHandleGetter = methodHandleGetter;
+        this.symbolLookup = symbolLookup;
+    }
+
+    /// {@return an unmodifiable map of the function descriptors for each method}
+    public Map<String, FunctionDescriptor> functionDescriptors() {
+        return functionDescriptors;
+    }
+
+    /// Gets or loads a method handle with the given entrypoint.
+    ///
+    /// @param entrypoint the entrypoint
+    /// @return the loaded method handle
+    public MethodHandle methodHandle(String entrypoint) {
+        return methodHandles.computeIfAbsent(entrypoint, methodHandleGetter);
+    }
+
+    /// {@return the symbol lookup of this library}
+    public SymbolLookup symbolLookup() {
+        return symbolLookup;
+    }
 }

@@ -26,6 +26,8 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.DynamicCallSiteDesc;
+import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
@@ -36,6 +38,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -108,8 +111,8 @@ import static overrun.marshal.internal.Constants.*;
  * For custom types, you must register them before
  * {@linkplain #load(MethodHandles.Lookup, SymbolLookup, DowncallOption...) loading},
  * and you should {@linkplain Processor#addProcessor(Processor) add} processors to subclasses of
- * {@link TypedCodeProcessor} and {@link TypeTransformer} (especially {@link MarshalProcessor} and
- * {@link UnmarshalProcessor}).
+ * {@link TypedCodeProcessor}, {@link TypeTransformer} and {@link HandleTransformer} (especially
+ * {@link MarshalProcessor} and {@link ReturnValueTransformer}).
  * <p>
  * Builtin types are described in {@link ProcessorType}.
  * <h2>Example</h2>
@@ -248,7 +251,6 @@ public final class Downcall {
         final ClassFile cf = of();
         final ClassDesc cd_thisClass = ClassDesc.of(lookupClass.getPackageName(), DEFAULT_NAME);
         final Map<Method, DowncallMethodData> methodDataMap = HashMap.newHashMap(methodList.size());
-        Set<String> methodEntrypointSet = new HashSet<>();
 
         //region method handles
         for (Method method : methodList) {
@@ -267,16 +269,18 @@ public final class Downcall {
                     allocatorRequirement != AllocatorRequirement.NONE &&
                     SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
             boolean invokeSkipFirstParameter = !byValue && descriptorSkipFirstParameter;
+            Class<?> returnType = method.getReturnType();
             final DowncallMethodData methodData = new DowncallMethodData(
                 entrypoint,
                 signatureStringMap.get(method),
                 parameters,
                 invokeSkipFirstParameter,
                 descriptorSkipFirstParameter,
-                allocatorRequirement
+                allocatorRequirement,
+                returnType == MethodHandle.class ? null : ProcessorTypes.fromMethod(method),
+                StringCharset.getCharset(method)
             );
             methodDataMap.put(method, methodData);
-            methodEntrypointSet.add(entrypoint);
         }
         //endregion
 
@@ -293,28 +297,15 @@ public final class Downcall {
                 classBuilder.withSuperclass(cd_targetClass);
             }
 
-            //region method handles
-            for (String entrypoint : methodEntrypointSet) {
-                if (downcallData.methodHandles().get(entrypoint) != null) {
-                    classBuilder.withField(entrypoint,
-                        CD_MethodHandle,
-                        ACC_PRIVATE | ACC_FINAL | ACC_STATIC);
-                }
-            }
-            //endregion
-
             //region constructor
-            classBuilder.withMethod(INIT_NAME, MTD_void, ACC_PUBLIC,
-                methodBuilder ->
-                    // super
-                    methodBuilder.withCode(codeBuilder -> codeBuilder
-                        .aload(codeBuilder.receiverSlot())
-                        .invokespecial(targetClass.isInterface() ?
-                                CD_Object :
-                                cd_targetClass,
-                            INIT_NAME,
-                            MTD_void)
-                        .return_()));
+            classBuilder.withMethodBody(INIT_NAME, MTD_void, ACC_PUBLIC,
+                // super
+                codeBuilder -> codeBuilder
+                    .aload(codeBuilder.receiverSlot())
+                    .invokespecial(targetClass.isInterface() ? CD_Object : cd_targetClass,
+                        INIT_NAME,
+                        MTD_void)
+                    .return_());
             //endregion
 
             //region methods
@@ -323,7 +314,6 @@ public final class Downcall {
                 DowncallMethodData methodData = entry.getValue();
                 final var returnType = method.getReturnType();
                 final String methodName = method.getName();
-                final int modifiers = method.getModifiers();
                 final ClassDesc cd_returnType = ClassDesc.ofDescriptor(returnType.descriptorString());
                 final List<Parameter> parameters = methodData.parameters();
                 final MethodTypeDesc mtd_method = MethodTypeDesc.of(cd_returnType,
@@ -333,31 +323,13 @@ public final class Downcall {
 
                 classBuilder.withMethodBody(methodName,
                     mtd_method,
-                    Modifier.isPublic(modifiers) ? ACC_PUBLIC : ACC_PROTECTED,
+                    ACC_PUBLIC,
                     codeBuilder -> {
                         final String entrypoint = methodData.entrypoint();
                         final TypeKind returnTypeKind = TypeKind.from(cd_returnType);
 
-                        // returns MethodHandle
-                        if (returnType == MethodHandle.class) {
-                            if (method.isDefault() &&
-                                downcallData.methodHandles().get(entrypoint) == null) {
-                                // invoke super interface
-                                invokeSuperMethod(codeBuilder, parameters);
-                                codeBuilder.invokespecial(cd_targetClass,
-                                        methodName,
-                                        mtd_method,
-                                        targetClass.isInterface())
-                                    .areturn();
-                            } else {
-                                codeBuilder.getstatic(cd_thisClass, entrypoint, CD_MethodHandle)
-                                    .areturn();
-                            }
-                            return;
-                        }
-
                         if (method.isDefault() &&
-                            downcallData.methodHandles().get(entrypoint) == null) {
+                            downcallData.methodHandle(entrypoint) == null) {
                             // invoke super interface
                             invokeSuperMethod(codeBuilder, parameters);
                             codeBuilder.invokespecial(cd_targetClass,
@@ -365,6 +337,14 @@ public final class Downcall {
                                 mtd_method,
                                 targetClass.isInterface()
                             ).return_(returnTypeKind);
+                            return;
+                        } else if (returnType == MethodHandle.class) {
+                            // returns MethodHandle
+                            codeBuilder.ldc(DynamicConstantDesc.ofNamed(BSM_DowncallFactory_downcallHandle,
+                                entrypoint,
+                                CD_MethodHandle,
+                                DCD_classData_DirectAccessData)
+                            ).areturn();
                             return;
                         }
 
@@ -406,7 +386,6 @@ public final class Downcall {
                             );
 
                             // invoke
-                            blockCodeBuilder.getstatic(cd_thisClass, entrypoint, CD_MethodHandle);
                             List<ClassDesc> downcallClassDescList = new ArrayList<>();
                             for (int i = methodData.invokeSkipFirstParameter() ? 1 : 0, size = parameters.size(); i < size; i++) {
                                 Parameter parameter = parameters.get(i);
@@ -425,13 +404,17 @@ public final class Downcall {
                             ProcessorType returnProcessorType = ProcessorTypes.fromMethod(method);
                             ClassDesc cd_returnDowncall = returnProcessorType.downcallClassDesc();
                             TypeKind returnDowncallTypeKind = TypeKind.from(cd_returnDowncall);
-                            blockCodeBuilder.invokevirtual(CD_MethodHandle,
-                                "invokeExact",
-                                MethodTypeDesc.of(cd_returnDowncall, downcallClassDescList));
+                            Convert convert = method.getDeclaredAnnotation(Convert.class);
+                            blockCodeBuilder.invokedynamic(DynamicCallSiteDesc.of(BSM_DowncallFactory_downcallCallSite,
+                                entrypoint,
+                                MethodTypeDesc.of(cd_returnType, downcallClassDescList),
+                                DCD_classData_DirectAccessData,
+                                convert != null ? convert.value().describeConstable().orElseThrow() : NULL,
+                                Objects.requireNonNullElse(StringCharset.getCharset(method), NULL)));
                             boolean returnVoid = returnType == void.class;
-                            int resultSlot = returnVoid ? -1 : blockCodeBuilder.allocateLocal(returnDowncallTypeKind);
+                            int resultSlot = returnVoid ? -1 : blockCodeBuilder.allocateLocal(returnTypeKind);
                             if (!returnVoid) {
-                                blockCodeBuilder.storeLocal(returnDowncallTypeKind, resultSlot);
+                                blockCodeBuilder.storeLocal(returnTypeKind, resultSlot);
                             }
 
                             // after invoke
@@ -442,11 +425,9 @@ public final class Downcall {
                             BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
 
                             // return
-                            UnmarshalProcessor.getInstance().process(blockCodeBuilder, returnProcessorType, new UnmarshalProcessor.Context(
-                                returnType,
-                                resultSlot,
-                                StringCharset.getCharset(method)
-                            ));
+                            if (!returnVoid) {
+                                blockCodeBuilder.loadLocal(returnTypeKind, resultSlot);
+                            }
                             blockCodeBuilder.return_(returnTypeKind);
                         }, catchBuilder -> catchBuilder.catching(CD_Throwable, blockCodeBuilder -> {
                             BeforeReturnProcessor.getInstance().process(blockCodeBuilder, beforeReturnContext);
@@ -476,30 +457,6 @@ public final class Downcall {
                         .ldc(DCD_classData_DirectAccessData)
                         .areturn());
             }
-            //endregion
-
-            //region class initializer
-            classBuilder.withMethodBody(CLASS_INIT_NAME, MTD_void, ACC_STATIC,
-                codeBuilder -> {
-                    final int handleMapSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
-                    codeBuilder.ldc(DCD_classData_DirectAccessData)
-                        .invokevirtual(CD_DirectAccessData, "methodHandles", MTD_Map)
-                        .astore(handleMapSlot);
-
-                    // method handles
-                    for (String entrypoint : methodEntrypointSet) {
-                        if (downcallData.methodHandles().get(entrypoint) != null) {
-                            codeBuilder
-                                .aload(handleMapSlot)
-                                .ldc(entrypoint)
-                                .invokeinterface(CD_Map, "get", MTD_Object_Object)
-                                .checkcast(CD_MethodHandle)
-                                .putstatic(cd_thisClass, entrypoint, CD_MethodHandle);
-                        }
-                    }
-
-                    codeBuilder.return_();
-                });
             //endregion
         }), downcallData);
     }
@@ -612,7 +569,7 @@ public final class Downcall {
         Map<String, FunctionDescriptor> descriptorMap,
         UnaryOperator<MethodHandle> transform) {
         final Map<String, FunctionDescriptor> descriptorMap1 = HashMap.newHashMap(methodDataMap.size());
-        final Map<String, MethodHandle> map = HashMap.newHashMap(methodDataMap.size());
+        final Map<String, Supplier<MethodHandle>> map = HashMap.newHashMap(methodDataMap.size());
 
         for (var entry : methodDataMap.entrySet()) {
             Method method = entry.getKey();
@@ -634,34 +591,34 @@ public final class Downcall {
             descriptorMap1.put(entrypoint, descriptor);
 
             if (descriptor != null) {
-                final Optional<MemorySegment> optional = lookup.find(entrypoint);
-                MethodHandle handle;
-                if (optional.isPresent()) {
-                    // linker options
-                    final Linker.Option[] options;
-                    final Critical critical = method.getDeclaredAnnotation(Critical.class);
-                    if (critical != null) {
-                        options = critical.allowHeapAccess() ? OPTION_CRITICAL_TRUE : OPTION_CRITICAL_FALSE;
-                    } else {
-                        options = NO_OPTION;
-                    }
+                Supplier<MethodHandle> handle = () -> {
+                    final Optional<MemorySegment> optional = lookup.find(entrypoint);
+                    if (optional.isPresent()) {
+                        // linker options
+                        final Linker.Option[] options;
+                        final Critical critical = method.getDeclaredAnnotation(Critical.class);
+                        if (critical != null) {
+                            options = critical.allowHeapAccess() ? OPTION_CRITICAL_TRUE : OPTION_CRITICAL_FALSE;
+                        } else {
+                            options = NO_OPTION;
+                        }
 
-                    handle = transform.apply(LINKER.downcallHandle(optional.get(), descriptor, options));
-                } else {
-                    MethodHandle apply = transform.apply(null);
-                    if (apply != null || method.isDefault()) {
-                        handle = apply;
+                        return transform.apply(LINKER.downcallHandle(optional.get(), descriptor, options));
                     } else {
+                        MethodHandle apply = transform.apply(null);
+                        if (apply != null || method.isDefault()) {
+                            return apply;
+                        }
                         throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + methodData.signatureString());
                     }
-                }
+                };
                 if (!map.containsKey(entrypoint) || map.get(entrypoint) == null) {
                     map.putIfAbsent(entrypoint, handle);
                 }
             }
         }
         return new DirectAccessData(Collections.unmodifiableMap(descriptorMap1),
-            Collections.unmodifiableMap(map),
+            s -> map.get(s).get(),
             lookup);
     }
 }

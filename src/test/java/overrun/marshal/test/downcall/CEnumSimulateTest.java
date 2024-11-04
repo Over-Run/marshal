@@ -30,6 +30,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.foreign.*;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.Optional;
@@ -210,29 +211,23 @@ public class CEnumSimulateTest {
                 };
             }
         });
-        UnmarshalProcessor.getInstance().addProcessor(new TypedCodeProcessor<>() {
+        ReturnValueTransformer.getInstance().addProcessor(new ReturnValueTransformer() {
             @Override
-            public boolean process(CodeBuilder builder, ProcessorType type, UnmarshalProcessor.Context context) {
-                return switch (type) {
-                    case MyEnum.Type _ -> {
-                        builder.iload(context.variableSlot())
-                            .invokestatic(CD_MyEnum,
-                                "byValue",
-                                MethodTypeDesc.of(CD_MyEnum, ConstantDescs.CD_int));
-                        yield true;
-                    }
-                    case ProcessorType.Array array -> switch (array.componentType()) {
-                        case MyEnum.Type _ -> {
-                            builder.aload(context.variableSlot())
-                                .invokestatic(CD_MyEnum,
-                                    "unmarshal",
-                                    MethodTypeDesc.of(CD_MyEnum.arrayType(), MemorySegment.class.describeConstable().orElseThrow()));
-                            yield true;
-                        }
-                        default -> false;
+            public MethodHandle process(Context context) {
+                try {
+                    return switch (context.processorType()) {
+                        case MyEnum.Type _ -> MethodHandles.filterReturnValue(context.originalHandle(),
+                            MethodHandles.lookup().findStatic(MyEnum.class, "byValue", MethodType.methodType(MyEnum.class, int.class)));
+                        case ProcessorType.Array array -> switch (array.componentType()) {
+                            case MyEnum.Type _ -> MethodHandles.filterReturnValue(context.originalHandle(),
+                                MethodHandles.lookup().findStatic(MyEnum.class, "unmarshal", MethodType.methodType(MyEnum[].class, MemorySegment.class)));
+                            default -> null;
+                        };
+                        default -> null;
                     };
-                    default -> false;
-                };
+                } catch (NoSuchMethodException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
         });
         RefCopyProcessor.getInstance().addProcessor(new TypedCodeProcessor<>() {
