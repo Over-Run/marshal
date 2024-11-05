@@ -437,7 +437,6 @@ public final class Constants {
             CD_String,
             CD_MethodType,
             CD_DirectAccessData,
-            CD_ProcessorType$BoolConvert,
             CD_String));
     /// BSM_DowncallFactory_downcallHandle
     public static final DirectMethodHandleDesc BSM_DowncallFactory_downcallHandle = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,

@@ -17,7 +17,6 @@
 package overrun.marshal;
 
 import overrun.marshal.gen.processor.AllocatorRequirement;
-import overrun.marshal.gen.processor.ProcessorType;
 
 import java.lang.reflect.Parameter;
 import java.util.List;
@@ -40,8 +39,6 @@ record DowncallMethodData(
     List<Parameter> parameters,
     boolean invokeSkipFirstParameter,
     boolean descriptorSkipFirstParameter,
-    AllocatorRequirement allocatorRequirement,
-    ProcessorType returnType,
-    String returnCharset
+    AllocatorRequirement allocatorRequirement
 ) {
 }

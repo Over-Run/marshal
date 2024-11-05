@@ -206,6 +206,7 @@ public sealed interface ProcessorType {
     /**
      * Primitive types that are convertible with {@code boolean}.
      */
+    @Deprecated(since = "0.1.0")
     enum BoolConvert implements ProcessorType {
         /**
          * {@code char} type
@@ -237,20 +238,11 @@ public sealed interface ProcessorType {
         DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE);
 
         private final ClassDesc classDesc;
-        private final TypeKind typeKind;
         private final ValueLayout layout;
 
         BoolConvert(ClassDesc classDesc, ValueLayout layout) {
             this.classDesc = classDesc;
-            this.typeKind = TypeKind.from(classDesc);
             this.layout = layout;
-        }
-
-        /**
-         * {@return the type kind of this type}
-         */
-        public TypeKind typeKind() {
-            return typeKind;
         }
 
         @Override

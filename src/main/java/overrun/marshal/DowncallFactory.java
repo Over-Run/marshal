@@ -16,8 +16,6 @@
 
 package overrun.marshal;
 
-import overrun.marshal.gen.processor.ProcessorType;
-import overrun.marshal.gen.processor.ProcessorTypes;
 import overrun.marshal.gen.processor.ReturnValueTransformer;
 
 import java.lang.invoke.*;
@@ -44,13 +42,11 @@ public final class DowncallFactory {
         String entrypoint,
         MethodType type,
         DirectAccessData data,
-        ProcessorType.BoolConvert returnBoolConvert,
         String methodCharset
     ) {
         MethodHandle methodHandle = data.methodHandle(entrypoint);
         Class<?> returnType = type.returnType();
-        ProcessorType returnProcessorType = ProcessorTypes.fromClass(returnType, returnBoolConvert);
-        methodHandle = ReturnValueTransformer.getInstance().process(new ReturnValueTransformer.Context(methodHandle, returnProcessorType, returnType, methodCharset));
+        methodHandle = ReturnValueTransformer.getInstance().process(methodHandle, new ReturnValueTransformer.Context(returnType, methodCharset));
         return new ConstantCallSite(methodHandle);
     }
 }

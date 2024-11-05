@@ -269,16 +269,13 @@ public final class Downcall {
                     allocatorRequirement != AllocatorRequirement.NONE &&
                     SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
             boolean invokeSkipFirstParameter = !byValue && descriptorSkipFirstParameter;
-            Class<?> returnType = method.getReturnType();
             final DowncallMethodData methodData = new DowncallMethodData(
                 entrypoint,
                 signatureStringMap.get(method),
                 parameters,
                 invokeSkipFirstParameter,
                 descriptorSkipFirstParameter,
-                allocatorRequirement,
-                returnType == MethodHandle.class ? null : ProcessorTypes.fromMethod(method),
-                StringCharset.getCharset(method)
+                allocatorRequirement
             );
             methodDataMap.put(method, methodData);
         }
@@ -401,15 +398,10 @@ public final class Downcall {
                                 }
                                 downcallClassDescList.add(processorType.downcallClassDesc());
                             }
-                            ProcessorType returnProcessorType = ProcessorTypes.fromMethod(method);
-                            ClassDesc cd_returnDowncall = returnProcessorType.downcallClassDesc();
-                            TypeKind returnDowncallTypeKind = TypeKind.from(cd_returnDowncall);
-                            Convert convert = method.getDeclaredAnnotation(Convert.class);
                             blockCodeBuilder.invokedynamic(DynamicCallSiteDesc.of(BSM_DowncallFactory_downcallCallSite,
                                 entrypoint,
                                 MethodTypeDesc.of(cd_returnType, downcallClassDescList),
                                 DCD_classData_DirectAccessData,
-                                convert != null ? convert.value().describeConstable().orElseThrow() : NULL,
                                 Objects.requireNonNullElse(StringCharset.getCharset(method), NULL)));
                             boolean returnVoid = returnType == void.class;
                             int resultSlot = returnVoid ? -1 : blockCodeBuilder.allocateLocal(returnTypeKind);

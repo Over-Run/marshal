@@ -30,7 +30,7 @@ import java.nio.charset.Charset;
  * @author squid233
  * @since 0.1.0
  */
-public class ReturnValueTransformer extends HandleTransformer<ReturnValueTransformer.Context> {
+public final class ReturnValueTransformer extends HandleTransformer<ReturnValueTransformer.Context> {
     private static final MethodHandles.Lookup lookup = MethodHandles.publicLookup();
     private static final MethodHandles.Lookup privateLookup = MethodHandles.lookup();
     private static final MethodHandle
@@ -87,28 +87,27 @@ public class ReturnValueTransformer extends HandleTransformer<ReturnValueTransfo
     }
 
     public record Context(
-        MethodHandle originalHandle,
-        ProcessorType processorType,
-        Class<?> originalType,
+        Class<?> returnType,
         String charset
     ) {
     }
 
     @Override
-    public MethodHandle process(Context context) {
-        return switch (context.processorType) {
-            case ProcessorType.Allocator _, ProcessorType.Custom _ -> super.process(context);
-            case ProcessorType.Void _ -> context.originalHandle;
+    public MethodHandle process(MethodHandle originalHandle, Context context) {
+        return switch (ProcessorTypes.fromClass(context.returnType)) {
+            case ProcessorType.Allocator _, ProcessorType.Custom _ -> super.process(originalHandle, context);
+            case ProcessorType.Void _ -> originalHandle;
             case ProcessorType.Array array -> switch (array.componentType()) {
-                case ProcessorType.Allocator _, ProcessorType.Array _, ProcessorType.BoolConvert _,
+                case ProcessorType.Allocator _, ProcessorType.Array _,
                      ProcessorType.Custom _, ProcessorType.Struct _, ProcessorType.Upcall<?> _ ->
-                    super.process(context);
+                    super.process(originalHandle, context);
+                case ProcessorType.BoolConvert _ -> throw new UnsupportedOperationException();//todo
                 case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
-                case ProcessorType.Str _ -> MethodHandles.filterReturnValue(context.originalHandle,
+                case ProcessorType.Str _ -> MethodHandles.filterReturnValue(originalHandle,
                     context.charset != null ?
                         MethodHandles.insertArguments(MH_unmarshalAsStringArrayCharset, 1, Charset.forName(context.charset)) :
                         MH_unmarshalAsStringArray);
-                case ProcessorType.Value value -> MethodHandles.filterReturnValue(context.originalHandle,
+                case ProcessorType.Value value -> MethodHandles.filterReturnValue(originalHandle,
                     switch (value) {
                         case BOOLEAN -> MH_unmarshalAsBooleanArray;
                         case CHAR -> MH_unmarshalAsCharArray;
@@ -121,31 +120,37 @@ public class ReturnValueTransformer extends HandleTransformer<ReturnValueTransfo
                         case ADDRESS -> MH_unmarshalAsAddressArray;
                     });
             };
-            case ProcessorType.BoolConvert boolConvert -> MethodHandles.filterReturnValue(context.originalHandle,
-                switch (boolConvert) {
-                    case CHAR -> MH_unmarshalCharAsBoolean;
-                    case BYTE -> MH_unmarshalByteAsBoolean;
-                    case SHORT -> MH_unmarshalShortAsBoolean;
-                    case INT -> MH_unmarshalIntAsBoolean;
-                    case LONG -> MH_unmarshalLongAsBoolean;
-                    case FLOAT -> MH_unmarshalFloatAsBoolean;
-                    case DOUBLE -> MH_unmarshalDoubleAsBoolean;
-                });
-            case ProcessorType.Str _ -> MethodHandles.filterReturnValue(context.originalHandle,
+            case ProcessorType.Str _ -> MethodHandles.filterReturnValue(originalHandle,
                 context.charset != null ?
                     MethodHandles.insertArguments(MH_unboundStringCharset, 1, Charset.forName(context.charset)) :
                     MH_unboundString);
-            case ProcessorType.Struct _ -> MethodHandles.filterReturnValue(context.originalHandle,
-                MH_unmarshalStruct.asType(MH_unmarshalStruct.type().changeReturnType(context.originalType)).bindTo(context.originalType));
-            case ProcessorType.Upcall<?> _ -> MethodHandles.filterReturnValue(context.originalHandle,
-                MH_unmarshalUpcall.asType(MH_unmarshalUpcall.type().changeReturnType(context.originalType)).bindTo(context.originalType));
-            case ProcessorType.Value _ -> context.originalHandle;
+            case ProcessorType.Struct _ -> MethodHandles.filterReturnValue(originalHandle,
+                MH_unmarshalStruct.asType(MH_unmarshalStruct.type().changeReturnType(context.returnType)).bindTo(context.returnType));
+            case ProcessorType.Upcall<?> _ -> MethodHandles.filterReturnValue(originalHandle,
+                MH_unmarshalUpcall.asType(MH_unmarshalUpcall.type().changeReturnType(context.returnType)).bindTo(context.returnType));
+            case ProcessorType.Value value -> {
+                if (value == ProcessorType.Value.BOOLEAN) {
+                    Class<?> originalReturnType = originalHandle.type().returnType();
+                    if (originalReturnType == char.class)
+                        yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalCharAsBoolean);
+                    if (originalReturnType == byte.class)
+                        yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalByteAsBoolean);
+                    if (originalReturnType == short.class)
+                        yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalShortAsBoolean);
+                    if (originalReturnType == int.class)
+                        yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalIntAsBoolean);
+                    if (originalReturnType == long.class)
+                        yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalLongAsBoolean);
+                    if (originalReturnType == float.class)
+                        yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalFloatAsBoolean);
+                    if (originalReturnType == double.class)
+                        yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalDoubleAsBoolean);
+                    yield originalHandle;
+                }
+                yield originalHandle;
+            }
+            case ProcessorType.BoolConvert _ -> throw new UnsupportedOperationException();//todo
         };
-    }
-
-    @Override
-    protected MethodHandle defaultHandle(Context context) {
-        throw new IllegalStateException(this.getClass().getSimpleName() + ": type '" + context.processorType + "' was not processed");
     }
 
     @SuppressWarnings("unchecked")

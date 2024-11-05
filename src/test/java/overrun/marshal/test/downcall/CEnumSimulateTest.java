@@ -211,15 +211,15 @@ public class CEnumSimulateTest {
                 };
             }
         });
-        ReturnValueTransformer.getInstance().addProcessor(new ReturnValueTransformer() {
+        ReturnValueTransformer.getInstance().addProcessor(new HandleTransformer<>() {
             @Override
-            public MethodHandle process(Context context) {
+            public MethodHandle process(MethodHandle originalHandle, ReturnValueTransformer.Context context) {
                 try {
-                    return switch (context.processorType()) {
-                        case MyEnum.Type _ -> MethodHandles.filterReturnValue(context.originalHandle(),
+                    return switch (ProcessorTypes.fromClass(context.returnType())) {
+                        case MyEnum.Type _ -> MethodHandles.filterReturnValue(originalHandle,
                             MethodHandles.lookup().findStatic(MyEnum.class, "byValue", MethodType.methodType(MyEnum.class, int.class)));
                         case ProcessorType.Array array -> switch (array.componentType()) {
-                            case MyEnum.Type _ -> MethodHandles.filterReturnValue(context.originalHandle(),
+                            case MyEnum.Type _ -> MethodHandles.filterReturnValue(originalHandle,
                                 MethodHandles.lookup().findStatic(MyEnum.class, "unmarshal", MethodType.methodType(MyEnum[].class, MemorySegment.class)));
                             default -> null;
                         };

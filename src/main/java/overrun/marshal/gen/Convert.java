@@ -39,7 +39,6 @@ import java.lang.annotation.*;
 @Documented
 @Target({ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
-@Deprecated(since = "0.1.0")
 public @interface Convert {
     /**
      * {@return the type to be converted}

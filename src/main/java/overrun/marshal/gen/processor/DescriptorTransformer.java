@@ -17,6 +17,7 @@
 package overrun.marshal.gen.processor;
 
 import overrun.marshal.gen.CanonicalType;
+import overrun.marshal.gen.Convert;
 import overrun.marshal.gen.Sized;
 import overrun.marshal.struct.ByValue;
 
@@ -74,14 +75,15 @@ public final class DescriptorTransformer extends TypeTransformer<DescriptorTrans
         if (canonicalType != null) {
             returnLayout = findCanonicalLayout(canonicalType.value());
         } else {
-            ProcessorType returnType = ProcessorTypes.fromMethod(method);
+            ProcessorType returnType = ProcessorTypes.fromClass(method.getReturnType());
+            Convert convert = method.getDeclaredAnnotation(Convert.class);
             Sized sized = method.getDeclaredAnnotation(Sized.class);
             returnLayout = switch (returnType) {
                 case ProcessorType.Allocator allocator -> allocator.downcallLayout();
                 case ProcessorType.Array array -> sized != null ?
                     ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), array.componentType().downcallLayout())) :
                     array.downcallLayout();
-                case ProcessorType.BoolConvert boolConvert -> boolConvert.downcallLayout();
+                case ProcessorType.BoolConvert boolConvert -> throw new UnsupportedOperationException();//todo
                 case ProcessorType.Custom custom -> custom.downcallLayout();
                 case ProcessorType.Str str -> str.downcallLayout();
                 case ProcessorType.Struct struct -> {
@@ -94,9 +96,21 @@ public final class DescriptorTransformer extends TypeTransformer<DescriptorTrans
                     yield ValueLayout.ADDRESS.withTargetLayout(struct.downcallLayout());
                 }
                 case ProcessorType.Upcall<?> upcall -> upcall.downcallLayout();
-                case ProcessorType.Value value -> value == ProcessorType.Value.ADDRESS && sized != null ?
-                    ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), ValueLayout.JAVA_BYTE)) :
-                    value.downcallLayout();
+                case ProcessorType.Value value -> {
+                    switch (value) {
+                        case BOOLEAN -> {
+                            if (convert != null) {
+                                yield convert.value().downcallLayout();
+                            }
+                        }
+                        case ADDRESS -> {
+                            if (sized != null) {
+                                yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), ValueLayout.JAVA_BYTE));
+                            }
+                        }
+                    }
+                    yield value.downcallLayout();
+                }
                 case ProcessorType.Void _ -> null;
             };
         }

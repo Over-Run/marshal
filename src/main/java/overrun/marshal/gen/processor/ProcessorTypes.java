@@ -23,7 +23,6 @@ import overrun.marshal.struct.StructAllocatorSpec;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
-import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 
@@ -95,28 +94,6 @@ public final class ProcessorTypes {
             return candidate;
         }
         throw new NoSuchElementException("Cannot find processor type of " + aClass);
-    }
-
-    public static ProcessorType fromClass(Class<?> aClass, ProcessorType.BoolConvert boolConvert) {
-        if (aClass == boolean.class && boolConvert != null) return boolConvert;
-        return fromClass(aClass);
-    }
-
-    /**
-     * Gets the processor type from the given method.
-     *
-     * @param method the method
-     * @return the processor type
-     */
-    public static ProcessorType fromMethod(Method method) {
-        Class<?> returnType = method.getReturnType();
-        if (returnType == boolean.class) {
-            Convert convert = method.getDeclaredAnnotation(Convert.class);
-            if (convert != null) {
-                return convert.value();
-            }
-        }
-        return fromClass(returnType);
     }
 
     /**

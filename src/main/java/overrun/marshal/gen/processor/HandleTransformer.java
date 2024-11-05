@@ -31,17 +31,15 @@ public abstract class HandleTransformer<T> implements Processor<HandleTransforme
     protected HandleTransformer() {
     }
 
-    public MethodHandle process(T context) {
+    public MethodHandle process(MethodHandle originalHandle, T context) {
         for (HandleTransformer<T> transformer : list) {
-            MethodHandle handle = transformer.process(context);
+            MethodHandle handle = transformer.process(originalHandle, context);
             if (handle != null) {
                 return handle;
             }
         }
-        return defaultHandle(context);
+        return originalHandle;
     }
-
-    protected abstract MethodHandle defaultHandle(T context);
 
     @Override
     public void addProcessor(HandleTransformer<T> processor) {
