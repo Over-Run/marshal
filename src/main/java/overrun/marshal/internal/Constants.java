@@ -49,10 +49,6 @@ public final class Constants {
     /// CD_DowncallFactory
     public static final ClassDesc CD_DowncallFactory = ClassDesc.of("overrun.marshal.DowncallFactory");
     /**
-     * CD_IllegalStateException
-     */
-    public static final ClassDesc CD_IllegalStateException = ClassDesc.of("java.lang.IllegalStateException");
-    /**
      * CD_Marshal
      */
     public static final ClassDesc CD_Marshal = ClassDesc.of("overrun.marshal.Marshal");
@@ -69,28 +65,6 @@ public final class Constants {
      */
     public static final ClassDesc CD_MemoryStack = ClassDesc.of("io.github.overrun.memstack.MemoryStack");
     /**
-     * CD_ProcessorType
-     */
-    public static final ClassDesc CD_ProcessorType = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType");
-    /// CD_ProcessorType$BoolConvert
-    public static final ClassDesc CD_ProcessorType$BoolConvert = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType$BoolConvert");
-    /**
-     * CD_ProcessorType$Struct
-     */
-    public static final ClassDesc CD_ProcessorType$Struct = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType$Struct");
-    /**
-     * CD_ProcessorType$Upcall
-     */
-    public static final ClassDesc CD_ProcessorType$Upcall = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType$Upcall");
-    /**
-     * CD_ProcessorType$Upcall$Factory
-     */
-    public static final ClassDesc CD_ProcessorType$Upcall$Factory = ClassDesc.of("overrun.marshal.gen.processor.ProcessorType$Upcall$Factory");
-    /**
-     * CD_ProcessorTypes
-     */
-    public static final ClassDesc CD_ProcessorTypes = ClassDesc.of("overrun.marshal.gen.processor.ProcessorTypes");
-    /**
      * CD_SegmentAllocator
      */
     public static final ClassDesc CD_SegmentAllocator = ClassDesc.of("java.lang.foreign.SegmentAllocator");
@@ -102,10 +76,6 @@ public final class Constants {
      * CD_Struct
      */
     public static final ClassDesc CD_Struct = ClassDesc.of("overrun.marshal.struct.Struct");
-    /**
-     * CD_StructAllocatorSpec
-     */
-    public static final ClassDesc CD_StructAllocatorSpec = ClassDesc.of("overrun.marshal.struct.StructAllocatorSpec");
     /**
      * CD_StructLayout
      */
@@ -119,34 +89,6 @@ public final class Constants {
      */
     public static final ClassDesc CD_Upcall = ClassDesc.of("overrun.marshal.Upcall");
 
-    /**
-     * MTD_boolean_char
-     */
-    public static final MethodTypeDesc MTD_boolean_char = MethodTypeDesc.of(CD_boolean, CD_char);
-    /**
-     * MTD_boolean_byte
-     */
-    public static final MethodTypeDesc MTD_boolean_byte = MethodTypeDesc.of(CD_boolean, CD_byte);
-    /**
-     * MTD_boolean_short
-     */
-    public static final MethodTypeDesc MTD_boolean_short = MethodTypeDesc.of(CD_boolean, CD_short);
-    /**
-     * MTD_boolean_int
-     */
-    public static final MethodTypeDesc MTD_boolean_int = MethodTypeDesc.of(CD_boolean, CD_int);
-    /**
-     * MTD_boolean_long
-     */
-    public static final MethodTypeDesc MTD_boolean_long = MethodTypeDesc.of(CD_boolean, CD_long);
-    /**
-     * MTD_boolean_float
-     */
-    public static final MethodTypeDesc MTD_boolean_float = MethodTypeDesc.of(CD_boolean, CD_float);
-    /**
-     * MTD_boolean_double
-     */
-    public static final MethodTypeDesc MTD_boolean_double = MethodTypeDesc.of(CD_boolean, CD_double);
     /**
      * MTD_char_boolean
      */
@@ -175,42 +117,6 @@ public final class Constants {
      * MTD_double_boolean
      */
     public static final MethodTypeDesc MTD_double_boolean = MethodTypeDesc.of(CD_double, CD_boolean);
-    /**
-     * MTD_booleanArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_booleanArray_MemorySegment = MethodTypeDesc.of(CD_boolean.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_charArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_charArray_MemorySegment = MethodTypeDesc.of(CD_boolean.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_byteArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_byteArray_MemorySegment = MethodTypeDesc.of(CD_byte.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_shortArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_shortArray_MemorySegment = MethodTypeDesc.of(CD_short.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_intArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_intArray_MemorySegment = MethodTypeDesc.of(CD_int.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_longArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_longArray_MemorySegment = MethodTypeDesc.of(CD_long.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_floatArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_floatArray_MemorySegment = MethodTypeDesc.of(CD_float.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_doubleArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_doubleArray_MemorySegment = MethodTypeDesc.of(CD_double.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_MemorySegmentArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_MemorySegmentArray_MemorySegment = MethodTypeDesc.of(CD_MemorySegment.arrayType(), CD_MemorySegment);
     /**
      * MTD_Charset_String
      */
@@ -328,45 +234,9 @@ public final class Constants {
      */
     public static final MethodTypeDesc MTD_MemoryStack = MethodTypeDesc.of(CD_MemoryStack);
     /**
-     * MTD_Object_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_Object_MemorySegment = MethodTypeDesc.of(CD_Object, CD_MemorySegment);
-    /**
-     * MTD_ProcessorType$Upcall$Factory
-     */
-    public static final MethodTypeDesc MTD_ProcessorType$Upcall$Factory = MethodTypeDesc.of(CD_ProcessorType$Upcall$Factory);
-    /**
-     * MTD_ProcessorType_Class
-     */
-    public static final MethodTypeDesc MTD_ProcessorType_Class = MethodTypeDesc.of(CD_ProcessorType, CD_Class);
-    /**
-     * MTD_String_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_String_MemorySegment = MethodTypeDesc.of(CD_String, CD_MemorySegment);
-    /**
-     * MTD_String_MemorySegment_Charset
-     */
-    public static final MethodTypeDesc MTD_String_MemorySegment_Charset = MethodTypeDesc.of(CD_String, CD_MemorySegment, CD_Charset);
-    /**
-     * MTD_StringArray_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_StringArray_MemorySegment = MethodTypeDesc.of(CD_String.arrayType(), CD_MemorySegment);
-    /**
-     * MTD_StringArray_MemorySegment_Charset
-     */
-    public static final MethodTypeDesc MTD_StringArray_MemorySegment_Charset = MethodTypeDesc.of(CD_String.arrayType(), CD_MemorySegment, CD_Charset);
-    /**
-     * MTD_StructAllocatorSpec
-     */
-    public static final MethodTypeDesc MTD_StructAllocatorSpec = MethodTypeDesc.of(CD_StructAllocatorSpec);
-    /**
      * MTD_StructLayout
      */
     public static final MethodTypeDesc MTD_StructLayout = MethodTypeDesc.of(CD_StructLayout);
-    /**
-     * MTD_Upcall_MemorySegment
-     */
-    public static final MethodTypeDesc MTD_Upcall_MemorySegment = MethodTypeDesc.of(CD_Upcall, CD_MemorySegment);
     /**
      * MTD_VarHandle_MemoryLayout$PathElementArray
      */
@@ -423,10 +293,6 @@ public final class Constants {
      * MTD_void_MemorySegment_StringArray_Charset
      */
     public static final MethodTypeDesc MTD_void_MemorySegment_StringArray_Charset = MethodTypeDesc.of(CD_void, CD_MemorySegment, CD_String.arrayType(), CD_Charset);
-    /**
-     * MTD_void_String_Throwable
-     */
-    public static final MethodTypeDesc MTD_void_String_Throwable = MethodTypeDesc.of(CD_void, CD_String, CD_Throwable);
 
     /// BSM_DowncallFactory_downcallCallSite
     public static final DirectMethodHandleDesc BSM_DowncallFactory_downcallCallSite = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
@@ -437,7 +303,9 @@ public final class Constants {
             CD_String,
             CD_MethodType,
             CD_DirectAccessData,
-            CD_String));
+            CD_String,
+            CD_boolean
+        ));
     /// BSM_DowncallFactory_downcallHandle
     public static final DirectMethodHandleDesc BSM_DowncallFactory_downcallHandle = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
         CD_DowncallFactory,

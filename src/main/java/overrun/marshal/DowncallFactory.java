@@ -16,6 +16,7 @@
 
 package overrun.marshal;
 
+import io.github.overrun.memstack.MemoryStack;
 import overrun.marshal.gen.processor.ReturnValueTransformer;
 
 import java.lang.invoke.*;
@@ -25,6 +26,22 @@ import java.lang.invoke.*;
  * @since 0.1.0
  */
 public final class DowncallFactory {
+    private static final MethodHandles.Lookup privateLookup = MethodHandles.lookup();
+    private static final MethodHandle
+        MH_throwISE,
+        MH_popStack,
+        MH_popStackVoid;
+
+    static {
+        try {
+            MH_throwISE = privateLookup.findStatic(DowncallFactory.class, "throwISE", MethodType.methodType(Object.class, Throwable.class, Class.class, String.class, MethodType.class));
+            MH_popStack = privateLookup.findStatic(DowncallFactory.class, "popStack", MethodType.methodType(Object.class, Throwable.class, Object.class));
+            MH_popStackVoid = privateLookup.findStatic(DowncallFactory.class, "popStack", MethodType.methodType(void.class, Throwable.class));
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private DowncallFactory() {
     }
 
@@ -42,11 +59,33 @@ public final class DowncallFactory {
         String entrypoint,
         MethodType type,
         DirectAccessData data,
-        String methodCharset
+        String methodCharset,
+        boolean popStack
     ) {
         MethodHandle methodHandle = data.methodHandle(entrypoint);
         Class<?> returnType = type.returnType();
         methodHandle = ReturnValueTransformer.getInstance().process(methodHandle, new ReturnValueTransformer.Context(returnType, methodCharset));
+        methodHandle = MethodHandles.catchException(methodHandle, Throwable.class, MethodHandles.insertArguments(MH_throwISE.asType(MH_throwISE.type().changeReturnType(returnType)), 1, caller.lookupClass(), entrypoint, type));
+        if (popStack) {
+            if (returnType == void.class) {
+                methodHandle = MethodHandles.tryFinally(methodHandle, MH_popStackVoid);
+            } else {
+                methodHandle = MethodHandles.tryFinally(methodHandle, MH_popStack.asType(MethodType.methodType(returnType, Throwable.class, returnType)));
+            }
+        }
         return new ConstantCallSite(methodHandle);
+    }
+
+    private static Object throwISE(Throwable t, Class<?> caller, String entrypoint, MethodType type) {
+        throw new IllegalStateException(caller.getName() + "." + entrypoint + type, t);
+    }
+
+    private static Object popStack(Throwable t, Object result) {
+        MemoryStack.popLocal();
+        return result;
+    }
+
+    private static void popStack(Throwable t) {
+        MemoryStack.popLocal();
     }
 }
