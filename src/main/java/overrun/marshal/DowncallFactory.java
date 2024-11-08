@@ -17,9 +17,12 @@
 package overrun.marshal;
 
 import io.github.overrun.memstack.MemoryStack;
+import overrun.marshal.gen.DowncallMethodParameter;
+import overrun.marshal.gen.DowncallMethodType;
 import overrun.marshal.gen.processor.ReturnValueTransformer;
 
 import java.lang.invoke.*;
+import java.util.Arrays;
 
 /**
  * @author squid233
@@ -87,5 +90,37 @@ public final class DowncallFactory {
 
     private static void popStack(Throwable t) {
         MemoryStack.popLocal();
+    }
+
+    public static DowncallMethodParameter createDowncallMethodParameter(
+        MethodHandles.Lookup lookup,
+        String name,
+        Class<?> type,
+        boolean ref,
+        long sized,
+        String charset
+    ) {
+        return new DowncallMethodParameter(type, ref, sized, charset);
+    }
+
+    public static DowncallMethodType createDowncallMethodType(
+        MethodHandles.Lookup lookup,
+        String entrypoint,
+        Class<?> returnType,
+        boolean byValue,
+        boolean critical,
+        boolean criticalAllowHeapAccess,
+        long sized,
+        String charset,
+        Object... args
+    ) {
+        return new DowncallMethodType(entrypoint,
+            returnType,
+            Arrays.stream(args).map(o -> (DowncallMethodParameter) o).toArray(DowncallMethodParameter[]::new),
+            byValue,
+            critical,
+            criticalAllowHeapAccess,
+            sized,
+            charset);
     }
 }

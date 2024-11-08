@@ -200,13 +200,6 @@ public final class Downcall {
         }
     }
 
-    private static String getMethodEntrypoint(Method method) {
-        final Entrypoint entrypoint = method.getDeclaredAnnotation(Entrypoint.class);
-        return (entrypoint == null || entrypoint.value().isBlank()) ?
-            method.getName() :
-            entrypoint.value();
-    }
-
     private static Map.Entry<byte[], DirectAccessData> buildBytecode(MethodHandles.Lookup caller, SymbolLookup lookup, DowncallOption... options) {
         Class<?> _targetClass = null, targetClass;
         Map<String, FunctionDescriptor> _descriptorMap = null, descriptorMap;
@@ -251,7 +244,6 @@ public final class Downcall {
 
         //region method handles
         for (Method method : methodList) {
-            final String entrypoint = getMethodEntrypoint(method);
             final var parameters = List.of(method.getParameters());
 
             boolean byValue = method.getDeclaredAnnotation(ByValue.class) != null;
@@ -267,8 +259,7 @@ public final class Downcall {
                     SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
             boolean invokeSkipFirstParameter = !byValue && descriptorSkipFirstParameter;
             final DowncallMethodData methodData = new DowncallMethodData(
-                entrypoint,
-                signatureStringMap.get(method),
+                DowncallMethodType.of(method),
                 parameters,
                 invokeSkipFirstParameter,
                 descriptorSkipFirstParameter,
@@ -284,7 +275,7 @@ public final class Downcall {
             classBuilder.withFlags(ACC_FINAL | ACC_SUPER);
 
             // inherit
-            final ClassDesc cd_targetClass = targetClass.describeConstable().orElseThrow();
+            final ClassDesc cd_targetClass = ClassDesc.ofDescriptor(targetClass.descriptorString());
             if (targetClass.isInterface()) {
                 classBuilder.withInterfaceSymbols(cd_targetClass);
             } else {
@@ -306,8 +297,16 @@ public final class Downcall {
             for (var entry : methodDataMap.entrySet()) {
                 Method method = entry.getKey();
                 DowncallMethodData methodData = entry.getValue();
-                final var returnType = method.getReturnType();
+                DowncallMethodType downcallMethodType = methodData.methodType();
+
+                final String entrypoint = downcallMethodType.entrypoint();
+                if (method.isDefault() &&
+                    downcallData.methodHandle(entrypoint) == null) {
+                    continue;
+                }
+
                 final String methodName = method.getName();
+                final var returnType = method.getReturnType();
                 final ClassDesc cd_returnType = ClassDesc.ofDescriptor(returnType.descriptorString());
                 final List<Parameter> parameters = methodData.parameters();
                 final MethodTypeDesc mtd_method = MethodTypeDesc.of(cd_returnType,
@@ -319,20 +318,7 @@ public final class Downcall {
                     mtd_method,
                     ACC_PUBLIC,
                     codeBuilder -> {
-                        final String entrypoint = methodData.entrypoint();
-                        final TypeKind returnTypeKind = TypeKind.from(cd_returnType);
-
-                        if (method.isDefault() &&
-                            downcallData.methodHandle(entrypoint) == null) {
-                            // invoke super interface
-                            invokeSuperMethod(codeBuilder, parameters);
-                            codeBuilder.invokespecial(cd_targetClass,
-                                methodName,
-                                mtd_method,
-                                targetClass.isInterface()
-                            ).return_(returnTypeKind);
-                            return;
-                        } else if (returnType == MethodHandle.class) {
+                        if (returnType == MethodHandle.class) {
                             // returns MethodHandle
                             codeBuilder.ldc(DynamicConstantDesc.ofNamed(BSM_DowncallFactory_downcallHandle,
                                 entrypoint,
@@ -344,6 +330,7 @@ public final class Downcall {
 
                         //region body
 
+                        final TypeKind returnTypeKind = TypeKind.from(cd_returnType);
                         AllocatorRequirement allocatorRequirement = methodData.allocatorRequirement();
                         boolean isFirstAllocator = !parameters.isEmpty() &&
                             SegmentAllocator.class.isAssignableFrom(parameters.getFirst().getType());
@@ -548,7 +535,8 @@ public final class Downcall {
         for (var entry : methodDataMap.entrySet()) {
             Method method = entry.getKey();
             DowncallMethodData methodData = entry.getValue();
-            final String entrypoint = methodData.entrypoint();
+            DowncallMethodType downcallMethodType = methodData.methodType();
+            final String entrypoint = downcallMethodType.entrypoint();
 
             // function descriptor
             final FunctionDescriptor get = descriptorMap.get(entrypoint);
@@ -560,7 +548,8 @@ public final class Downcall {
                     get :
                     DescriptorTransformer.getInstance().process(new DescriptorTransformer.Context(method,
                         methodData.descriptorSkipFirstParameter(),
-                        methodData.parameters()));
+                        methodData.parameters(),
+                        methodData.methodType()));
             }
             descriptorMap1.put(entrypoint, descriptor);
 
@@ -583,7 +572,7 @@ public final class Downcall {
                         if (apply != null || method.isDefault()) {
                             return apply;
                         }
-                        throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + methodData.signatureString());
+                        throw new NoSuchElementException("Symbol not found: " + entrypoint + " (" + descriptor + "): " + downcallMethodType);
                     }
                 };
                 if (!map.containsKey(entrypoint) || map.get(entrypoint) == null) {

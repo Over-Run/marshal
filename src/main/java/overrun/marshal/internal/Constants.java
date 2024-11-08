@@ -48,6 +48,10 @@ public final class Constants {
     public static final ClassDesc CD_DirectAccessData = ClassDesc.of("overrun.marshal.DirectAccessData");
     /// CD_DowncallFactory
     public static final ClassDesc CD_DowncallFactory = ClassDesc.of("overrun.marshal.DowncallFactory");
+    /// CD_DowncallMethodType
+    public static final ClassDesc CD_DowncallMethodType = ClassDesc.of("overrun.marshal.gen.DowncallMethodType");
+    /// CD_DowncallMethodParameter
+    public static final ClassDesc CD_DowncallMethodParameter = ClassDesc.of("overrun.marshal.gen.DowncallMethodParameter");
     /**
      * CD_Marshal
      */
@@ -311,6 +315,16 @@ public final class Constants {
         CD_DowncallFactory,
         "downcallHandle",
         MethodTypeDesc.of(CD_MethodHandle, CD_MethodHandles_Lookup, CD_String, CD_Class, CD_DirectAccessData));
+    /// BSM_DowncallFactory_createDowncallMethodParameter
+    public static final DirectMethodHandleDesc BSM_DowncallFactory_createDowncallMethodParameter = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+        CD_DowncallFactory,
+        "createDowncallMethodParameter",
+        MethodTypeDesc.of(CD_DowncallMethodParameter, CD_boolean, CD_long, CD_String));
+    /// BSM_DowncallFactory_createDowncallMethodType
+    public static final DirectMethodHandleDesc BSM_DowncallFactory_createDowncallMethodType = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+        CD_DowncallFactory,
+        "createDowncallMethodType",
+        MethodTypeDesc.of(CD_DowncallMethodType, CD_boolean, CD_boolean, CD_boolean, CD_long, CD_String, CD_Object.arrayType()));
 
     /**
      * DCD_classData_DowncallData

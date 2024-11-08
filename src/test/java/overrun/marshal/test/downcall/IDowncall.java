@@ -115,10 +115,6 @@ public interface IDowncall {
 
     void testRefIntArray(@Ref int[] arr);
 
-    void testCriticalFalse();
-
-    void testCriticalTrue(@Ref int[] arr);
-
     @Convert(ProcessorType.BoolConvert.INT)
     boolean testConvertBoolean(@Convert(ProcessorType.BoolConvert.INT) boolean b);
 

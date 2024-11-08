@@ -18,6 +18,7 @@ package overrun.marshal.gen.processor;
 
 import overrun.marshal.gen.CanonicalType;
 import overrun.marshal.gen.Convert;
+import overrun.marshal.gen.DowncallMethodType;
 import overrun.marshal.gen.Sized;
 import overrun.marshal.struct.ByValue;
 
@@ -57,11 +58,13 @@ public final class DescriptorTransformer extends TypeTransformer<DescriptorTrans
      * @param method                       the method
      * @param descriptorSkipFirstParameter {@code true} if the function descriptor should skip the first parameter
      * @param parameters                   the parameters
+     * @param methodType                   the downcall method type
      */
     public record Context(
         Method method,
         boolean descriptorSkipFirstParameter,
-        List<Parameter> parameters
+        List<Parameter> parameters,
+        DowncallMethodType methodType
     ) {
     }
 

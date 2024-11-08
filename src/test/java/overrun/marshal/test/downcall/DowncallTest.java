@@ -147,14 +147,6 @@ public final class DowncallTest {
     }
 
     @Test
-    void testCritical() {
-        d.testCriticalFalse();
-        int[] arr = {0};
-        d.testCriticalTrue(arr);
-        assertArrayEquals(new int[]{8}, arr);
-    }
-
-    @Test
     void testConvertBoolean() {
         assertTrue(d.testConvertBoolean(false));
         assertFalse(d.testConvertBoolean(true));

@@ -16,17 +16,16 @@
 
 package overrun.marshal;
 
+import overrun.marshal.gen.DowncallMethodType;
 import overrun.marshal.gen.processor.AllocatorRequirement;
 
 import java.lang.reflect.Parameter;
 import java.util.List;
 
 /**
- * Holds downcall method name
+ * Holds downcall method data
  *
- * @param entrypoint                   entrypoint
- * @param signatureString              signatureString
- * @param parameters                   parameters
+ * @param methodType                   the downcall method type
  * @param invokeSkipFirstParameter     invokeSkipFirstParameter
  * @param descriptorSkipFirstParameter descriptorSkipFirstParameter
  * @param allocatorRequirement         allocatorRequirement
@@ -34,8 +33,7 @@ import java.util.List;
  * @since 0.1.0
  */
 record DowncallMethodData(
-    String entrypoint,
-    String signatureString,
+    DowncallMethodType methodType,
     List<Parameter> parameters,
     boolean invokeSkipFirstParameter,
     boolean descriptorSkipFirstParameter,
