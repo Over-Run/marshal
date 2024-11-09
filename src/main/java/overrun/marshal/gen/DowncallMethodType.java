@@ -22,7 +22,6 @@ import overrun.marshal.struct.ByValue;
 import java.lang.constant.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -40,8 +39,19 @@ public final class DowncallMethodType implements Constable {
     private final boolean criticalAllowHeapAccess;
     private final long sized;
     private final String charset;
+    private final String canonicalType;
 
-    public DowncallMethodType(String entrypoint, Class<?> returnType, DowncallMethodParameter[] parameters, boolean byValue, boolean critical, boolean criticalAllowHeapAccess, long sized, String charset) {
+    public DowncallMethodType(
+        String entrypoint,
+        Class<?> returnType,
+        DowncallMethodParameter[] parameters,
+        boolean byValue,
+        boolean critical,
+        boolean criticalAllowHeapAccess,
+        long sized,
+        String charset,
+        String canonicalType
+    ) {
         this.entrypoint = entrypoint;
         this.returnType = returnType;
         this.parameters = parameters;
@@ -50,37 +60,36 @@ public final class DowncallMethodType implements Constable {
         this.criticalAllowHeapAccess = criticalAllowHeapAccess;
         this.sized = sized;
         this.charset = charset;
+        this.canonicalType = canonicalType;
     }
 
     public static DowncallMethodType of(Method method) {
+        CanonicalType anCanonicalType = method.getDeclaredAnnotation(CanonicalType.class);
+        Convert anConvert = method.getDeclaredAnnotation(Convert.class);
         Critical anCritical = method.getDeclaredAnnotation(Critical.class);
         Sized anSized = method.getDeclaredAnnotation(Sized.class);
         StrCharset anStrCharset = method.getDeclaredAnnotation(StrCharset.class);
 
+        Class<?> returnType = method.getReturnType();
+        if (returnType == boolean.class && anConvert != null) {
+            returnType = anConvert.value().javaClass();
+        }
+
         return new DowncallMethodType(getMethodEntrypoint(method),
-            method.getReturnType(),
+            returnType,
             getMethodParameters(method),
             method.getDeclaredAnnotation(ByValue.class) != null,
             anCritical != null,
             anCritical != null && anCritical.allowHeapAccess(),
             anSized != null ? anSized.value() : -1,
-            anStrCharset != null && !anStrCharset.value().isBlank() ? anStrCharset.value() : null);
+            anStrCharset != null ? anStrCharset.value() : null,
+            anCanonicalType != null ? anCanonicalType.value() : null);
     }
 
     private static DowncallMethodParameter[] getMethodParameters(Method method) {
-        Parameter[] p = method.getParameters();
-        DowncallMethodParameter[] parameters = new DowncallMethodParameter[p.length];
-        for (int i = 0; i < p.length; i++) {
-            Parameter parameter = p[i];
-            Sized anSized = parameter.getDeclaredAnnotation(Sized.class);
-            StrCharset anStrCharset = parameter.getDeclaredAnnotation(StrCharset.class);
-
-            parameters[i] = new DowncallMethodParameter(parameter.getType(),
-                parameter.getDeclaredAnnotation(Ref.class) != null,
-                anSized != null ? anSized.value() : -1,
-                anStrCharset != null && !anStrCharset.value().isBlank() ? anStrCharset.value() : null);
-        }
-        return parameters;
+        return Arrays.stream(method.getParameters())
+            .map(DowncallMethodParameter::of)
+            .toArray(DowncallMethodParameter[]::new);
     }
 
     private static String getMethodEntrypoint(Method method) {
@@ -91,8 +100,8 @@ public final class DowncallMethodType implements Constable {
     }
 
     @Override
-    public Optional<? extends ConstantDesc> describeConstable() {
-        return Optional.of(new Desc(entrypoint, ClassDesc.ofDescriptor(returnType.descriptorString()), parameters, byValue, critical, criticalAllowHeapAccess, sized, charset));
+    public Optional<Desc> describeConstable() {
+        return Optional.of(new Desc(entrypoint, ClassDesc.ofDescriptor(returnType.descriptorString()), parameters, byValue, critical, criticalAllowHeapAccess, sized, charset, canonicalType));
     }
 
     public String entrypoint() {
@@ -127,11 +136,21 @@ public final class DowncallMethodType implements Constable {
         return charset;
     }
 
+    public String canonicalType() {
+        return canonicalType;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         if (byValue) {
             sb.append("[ByValue]");
+        }
+        if (canonicalType != null) {
+            sb.append("[CanonicalType=").append(canonicalType).append(']');
+        }
+        if (critical) {
+            sb.append("[Critical allowHeapAccess=").append(criticalAllowHeapAccess).append(']');
         }
         if (sized >= 0) {
             sb.append("[Sized=").append(sized).append(']');
@@ -140,9 +159,6 @@ public final class DowncallMethodType implements Constable {
             sb.append("[StrCharset=").append(charset).append(']');
         }
         sb.append(returnType.getSimpleName()).append(' ');
-        if (critical) {
-            sb.append("[Critical allowHeapAccess=").append(criticalAllowHeapAccess).append(']');
-        }
         sb.append(entrypoint).append('(');
         for (int i = 0; i < parameters.length; i++) {
             if (i > 0) {
@@ -155,34 +171,51 @@ public final class DowncallMethodType implements Constable {
     }
 
     public static final class Desc extends DynamicConstantDesc<DowncallMethodType> {
+        private final ClassDesc returnType;
         private final DowncallMethodParameter[] parameters;
         private final boolean byValue;
         private final boolean critical;
         private final boolean criticalAllowHeapAccess;
         private final long sized;
         private final String charset;
+        private final String canonicalType;
 
-        public Desc(String entrypoint, ClassDesc returnType, DowncallMethodParameter[] parameters, boolean byValue, boolean critical, boolean criticalAllowHeapAccess, long sized, String charset) {
-            ConstantDesc[] args = new ConstantDesc[parameters.length + 1 + 1 + 1 + 1];
-            args[0] = byValue ? ConstantDescs.TRUE : ConstantDescs.FALSE;
-            args[1] = critical ? ConstantDescs.TRUE : ConstantDescs.FALSE;
-            args[2] = sized;
-            args[3] = entrypoint;
+        public Desc(
+            String entrypoint,
+            ClassDesc returnType,
+            DowncallMethodParameter[] parameters,
+            boolean byValue,
+            boolean critical,
+            boolean criticalAllowHeapAccess,
+            long sized,
+            String charset,
+            String canonicalType
+        ) {
+            ConstantDesc[] args = new ConstantDesc[1 + 1 + 1 + 1 + 1 + 1 + 1 + parameters.length];
+            args[0] = returnType;
+            args[1] = byValue ? ConstantDescs.TRUE : ConstantDescs.FALSE;
+            args[2] = critical ? ConstantDescs.TRUE : ConstantDescs.FALSE;
+            args[3] = criticalAllowHeapAccess ? ConstantDescs.TRUE : ConstantDescs.FALSE;
+            args[4] = sized;
+            args[5] = charset != null ? charset : ConstantDescs.NULL;
+            args[6] = canonicalType != null ? canonicalType : ConstantDescs.NULL;
             for (int i = 0; i < parameters.length; i++) {
-                args[i + 4] = parameters[i].describeConstable().orElseThrow();
+                args[i + 7] = parameters[i].describeConstable().orElseThrow();
             }
-            super(Constants.BSM_DowncallFactory_createDowncallMethodType, entrypoint, returnType, args);
+            super(Constants.BSM_DowncallFactory_createDowncallMethodType, entrypoint, Constants.CD_DowncallMethodType, args);
+            this.returnType = returnType;
             this.parameters = parameters;
             this.byValue = byValue;
             this.critical = critical;
             this.criticalAllowHeapAccess = criticalAllowHeapAccess;
             this.sized = sized;
             this.charset = charset;
+            this.canonicalType = canonicalType;
         }
 
         @Override
         public DowncallMethodType resolveConstantDesc(MethodHandles.Lookup lookup) throws ReflectiveOperationException {
-            return new DowncallMethodType(constantName(), constantType().resolveConstantDesc(lookup), parameters, byValue, critical, criticalAllowHeapAccess, sized, charset);
+            return new DowncallMethodType(constantName(), returnType.resolveConstantDesc(lookup), parameters, byValue, critical, criticalAllowHeapAccess, sized, charset, canonicalType);
         }
     }
 }

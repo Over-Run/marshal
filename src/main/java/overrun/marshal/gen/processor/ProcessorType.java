@@ -211,38 +211,40 @@ public sealed interface ProcessorType {
         /**
          * {@code char} type
          */
-        CHAR(CD_char, ValueLayout.JAVA_CHAR),
+        CHAR(CD_char, ValueLayout.JAVA_CHAR, char.class),
         /**
          * {@code byte} type
          */
-        BYTE(CD_byte, ValueLayout.JAVA_BYTE),
+        BYTE(CD_byte, ValueLayout.JAVA_BYTE, byte.class),
         /**
          * {@code short} type
          */
-        SHORT(CD_short, ValueLayout.JAVA_SHORT),
+        SHORT(CD_short, ValueLayout.JAVA_SHORT, short.class),
         /**
          * {@code int} type
          */
-        INT(CD_int, ValueLayout.JAVA_INT),
+        INT(CD_int, ValueLayout.JAVA_INT, int.class),
         /**
          * {@code long} type
          */
-        LONG(CD_long, ValueLayout.JAVA_LONG),
+        LONG(CD_long, ValueLayout.JAVA_LONG, long.class),
         /**
          * {@code float} type
          */
-        FLOAT(CD_float, ValueLayout.JAVA_FLOAT),
+        FLOAT(CD_float, ValueLayout.JAVA_FLOAT, float.class),
         /**
          * {@code double} type
          */
-        DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE);
+        DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE, double.class),;
 
         private final ClassDesc classDesc;
         private final ValueLayout layout;
+        private final Class<?> javaClass;
 
-        BoolConvert(ClassDesc classDesc, ValueLayout layout) {
+        BoolConvert(ClassDesc classDesc, ValueLayout layout, Class<?> javaClass) {
             this.classDesc = classDesc;
             this.layout = layout;
+            this.javaClass = javaClass;
         }
 
         @Override
@@ -253,6 +255,10 @@ public sealed interface ProcessorType {
         @Override
         public ValueLayout downcallLayout() {
             return layout;
+        }
+
+        public Class<?> javaClass() {
+            return javaClass;
         }
 
         @Override

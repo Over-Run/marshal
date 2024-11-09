@@ -62,12 +62,12 @@ public final class DowncallFactory {
         String entrypoint,
         MethodType type,
         DirectAccessData data,
-        String methodCharset,
+        DowncallMethodType downcallMethodType,
         boolean popStack
     ) {
         MethodHandle methodHandle = data.methodHandle(entrypoint);
         Class<?> returnType = type.returnType();
-        methodHandle = ReturnValueTransformer.getInstance().process(methodHandle, new ReturnValueTransformer.Context(returnType, methodCharset));
+        methodHandle = ReturnValueTransformer.getInstance().process(methodHandle, new ReturnValueTransformer.Context(returnType, downcallMethodType));
         methodHandle = MethodHandles.catchException(methodHandle, Throwable.class, MethodHandles.insertArguments(MH_throwISE.asType(MH_throwISE.type().changeReturnType(returnType)), 1, caller.lookupClass(), entrypoint, type));
         if (popStack) {
             if (returnType == void.class) {
@@ -96,22 +96,27 @@ public final class DowncallFactory {
         MethodHandles.Lookup lookup,
         String name,
         Class<?> type,
+        Class<?> parameterType,
+        boolean byValue,
         boolean ref,
         long sized,
-        String charset
+        String charset,
+        String canonicalType
     ) {
-        return new DowncallMethodParameter(type, ref, sized, charset);
+        return new DowncallMethodParameter(parameterType, byValue, ref, sized, charset, canonicalType);
     }
 
     public static DowncallMethodType createDowncallMethodType(
         MethodHandles.Lookup lookup,
         String entrypoint,
+        Class<?> type,
         Class<?> returnType,
         boolean byValue,
         boolean critical,
         boolean criticalAllowHeapAccess,
         long sized,
         String charset,
+        String canonicalType,
         Object... args
     ) {
         return new DowncallMethodType(entrypoint,
@@ -121,6 +126,7 @@ public final class DowncallFactory {
             critical,
             criticalAllowHeapAccess,
             sized,
-            charset);
+            charset,
+            canonicalType);
     }
 }

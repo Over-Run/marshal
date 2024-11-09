@@ -18,6 +18,7 @@ package overrun.marshal.gen.processor;
 
 import overrun.marshal.Unmarshal;
 import overrun.marshal.Upcall;
+import overrun.marshal.gen.DowncallMethodType;
 import overrun.marshal.struct.Struct;
 
 import java.lang.foreign.MemorySegment;
@@ -88,12 +89,13 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
 
     public record Context(
         Class<?> returnType,
-        String charset
+        DowncallMethodType downcallMethodType
     ) {
     }
 
     @Override
     public MethodHandle process(MethodHandle originalHandle, Context context) {
+        DowncallMethodType downcallMethodType = context.downcallMethodType;
         return switch (ProcessorTypes.fromClass(context.returnType)) {
             case ProcessorType.Allocator _, ProcessorType.Custom _ -> super.process(originalHandle, context);
             case ProcessorType.Void _ -> originalHandle;
@@ -104,8 +106,8 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
                 case ProcessorType.BoolConvert _ -> throw new UnsupportedOperationException();//todo
                 case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
                 case ProcessorType.Str _ -> MethodHandles.filterReturnValue(originalHandle,
-                    context.charset != null ?
-                        MethodHandles.insertArguments(MH_unmarshalAsStringArrayCharset, 1, Charset.forName(context.charset)) :
+                    downcallMethodType.charset() != null ?
+                        MethodHandles.insertArguments(MH_unmarshalAsStringArrayCharset, 1, Charset.forName(downcallMethodType.charset())) :
                         MH_unmarshalAsStringArray);
                 case ProcessorType.Value value -> MethodHandles.filterReturnValue(originalHandle,
                     switch (value) {
@@ -121,8 +123,8 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
                     });
             };
             case ProcessorType.Str _ -> MethodHandles.filterReturnValue(originalHandle,
-                context.charset != null ?
-                    MethodHandles.insertArguments(MH_unboundStringCharset, 1, Charset.forName(context.charset)) :
+                downcallMethodType.charset() != null ?
+                    MethodHandles.insertArguments(MH_unboundStringCharset, 1, Charset.forName(downcallMethodType.charset())) :
                     MH_unboundString);
             case ProcessorType.Struct _ -> MethodHandles.filterReturnValue(originalHandle,
                 MH_unmarshalStruct.asType(MH_unmarshalStruct.type().changeReturnType(context.returnType)).bindTo(context.returnType));
@@ -130,7 +132,7 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
                 MH_unmarshalUpcall.asType(MH_unmarshalUpcall.type().changeReturnType(context.returnType)).bindTo(context.returnType));
             case ProcessorType.Value value -> {
                 if (value == ProcessorType.Value.BOOLEAN) {
-                    Class<?> originalReturnType = originalHandle.type().returnType();
+                    Class<?> originalReturnType = downcallMethodType.returnType();
                     if (originalReturnType == char.class)
                         yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalCharAsBoolean);
                     if (originalReturnType == byte.class)

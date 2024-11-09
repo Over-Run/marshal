@@ -16,21 +16,18 @@
 
 package overrun.marshal.gen.processor;
 
+import overrun.marshal.CanonicalLayouts;
 import overrun.marshal.gen.CanonicalType;
-import overrun.marshal.gen.Convert;
 import overrun.marshal.gen.DowncallMethodType;
-import overrun.marshal.gen.Sized;
 import overrun.marshal.struct.ByValue;
 
 import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Transforms the method and parameters into a function descriptor.
@@ -39,15 +36,13 @@ import java.util.Map;
  * @since 0.1.0
  */
 public final class DescriptorTransformer extends TypeTransformer<DescriptorTransformer.Context, FunctionDescriptor> {
-    private final Map<String, MemoryLayout> canonicalLayouts = Linker.nativeLinker().canonicalLayouts();
-
     private DescriptorTransformer() {
     }
 
     private MemoryLayout findCanonicalLayout(String typename) {
-        MemoryLayout layout = canonicalLayouts.get(typename);
+        MemoryLayout layout = CanonicalLayouts.get(typename);
         if (layout == null) {
-            throw new IllegalArgumentException("Canonical layout not found for type: " + typename);
+            throw new IllegalArgumentException("Canonical layout not found for type name: " + typename);
         }
         return layout;
     }
@@ -70,46 +65,36 @@ public final class DescriptorTransformer extends TypeTransformer<DescriptorTrans
 
     @Override
     public FunctionDescriptor process(Context context) {
-        Method method = context.method();
-        CanonicalType canonicalType = method.getDeclaredAnnotation(CanonicalType.class);
+        DowncallMethodType methodType = context.methodType();
         List<MemoryLayout> argLayouts = new ArrayList<>();
 
         MemoryLayout returnLayout;
-        if (canonicalType != null) {
-            returnLayout = findCanonicalLayout(canonicalType.value());
+        if (methodType.canonicalType() != null) {
+            returnLayout = findCanonicalLayout(methodType.canonicalType());
         } else {
-            ProcessorType returnType = ProcessorTypes.fromClass(method.getReturnType());
-            Convert convert = method.getDeclaredAnnotation(Convert.class);
-            Sized sized = method.getDeclaredAnnotation(Sized.class);
+            ProcessorType returnType = ProcessorTypes.fromClass(methodType.returnType());
             returnLayout = switch (returnType) {
                 case ProcessorType.Allocator allocator -> allocator.downcallLayout();
-                case ProcessorType.Array array -> sized != null ?
-                    ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), array.componentType().downcallLayout())) :
+                case ProcessorType.Array array -> methodType.sized() >= 0 ?
+                    ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), array.componentType().downcallLayout())) :
                     array.downcallLayout();
                 case ProcessorType.BoolConvert boolConvert -> throw new UnsupportedOperationException();//todo
                 case ProcessorType.Custom custom -> custom.downcallLayout();
                 case ProcessorType.Str str -> str.downcallLayout();
                 case ProcessorType.Struct struct -> {
-                    if (method.getDeclaredAnnotation(ByValue.class) != null) {
+                    if (methodType.byValue()) {
                         yield struct.downcallLayout();
                     }
-                    if (sized != null) {
-                        yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), struct.downcallLayout()));
+                    if (methodType.sized() >= 0) {
+                        yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), struct.downcallLayout()));
                     }
                     yield ValueLayout.ADDRESS.withTargetLayout(struct.downcallLayout());
                 }
                 case ProcessorType.Upcall<?> upcall -> upcall.downcallLayout();
                 case ProcessorType.Value value -> {
-                    switch (value) {
-                        case BOOLEAN -> {
-                            if (convert != null) {
-                                yield convert.value().downcallLayout();
-                            }
-                        }
-                        case ADDRESS -> {
-                            if (sized != null) {
-                                yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(sized.value(), ValueLayout.JAVA_BYTE));
-                            }
+                    if (value == ProcessorType.Value.ADDRESS) {
+                        if (methodType.sized() >= 0) {
+                            yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), ValueLayout.JAVA_BYTE));
                         }
                     }
                     yield value.downcallLayout();

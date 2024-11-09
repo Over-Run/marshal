@@ -25,7 +25,10 @@ import overrun.marshal.struct.ByValue;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.TypeKind;
-import java.lang.constant.*;
+import java.lang.constant.ClassDesc;
+import java.lang.constant.DynamicCallSiteDesc;
+import java.lang.constant.DynamicConstantDesc;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -384,7 +387,7 @@ public final class Downcall {
                             entrypoint,
                             MethodTypeDesc.of(cd_returnType, downcallClassDescList),
                             DCD_classData_DirectAccessData,
-                            Objects.requireNonNullElse(StringCharset.getCharset(method), NULL),
+                            downcallMethodType.describeConstable().orElseThrow(),
                             hasMemoryStack ? TRUE : FALSE
                         ));
                         boolean returnVoid = returnType == void.class;
@@ -549,7 +552,7 @@ public final class Downcall {
                     DescriptorTransformer.getInstance().process(new DescriptorTransformer.Context(method,
                         methodData.descriptorSkipFirstParameter(),
                         methodData.parameters(),
-                        methodData.methodType()));
+                        downcallMethodType));
             }
             descriptorMap1.put(entrypoint, descriptor);
 
@@ -558,10 +561,9 @@ public final class Downcall {
                     final Optional<MemorySegment> optional = lookup.find(entrypoint);
                     if (optional.isPresent()) {
                         // linker options
-                        final Linker.Option[] options;
-                        final Critical critical = method.getDeclaredAnnotation(Critical.class);
-                        if (critical != null) {
-                            options = critical.allowHeapAccess() ? OPTION_CRITICAL_TRUE : OPTION_CRITICAL_FALSE;
+                        Linker.Option[] options;
+                        if (downcallMethodType.critical()) {
+                            options = downcallMethodType.criticalAllowHeapAccess() ? OPTION_CRITICAL_TRUE : OPTION_CRITICAL_FALSE;
                         } else {
                             options = NO_OPTION;
                         }

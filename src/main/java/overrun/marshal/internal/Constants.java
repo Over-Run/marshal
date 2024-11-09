@@ -307,7 +307,7 @@ public final class Constants {
             CD_String,
             CD_MethodType,
             CD_DirectAccessData,
-            CD_String,
+            CD_DowncallMethodType,
             CD_boolean
         ));
     /// BSM_DowncallFactory_downcallHandle
@@ -319,12 +319,32 @@ public final class Constants {
     public static final DirectMethodHandleDesc BSM_DowncallFactory_createDowncallMethodParameter = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
         CD_DowncallFactory,
         "createDowncallMethodParameter",
-        MethodTypeDesc.of(CD_DowncallMethodParameter, CD_boolean, CD_long, CD_String));
+        MethodTypeDesc.of(CD_DowncallMethodParameter,
+            CD_MethodHandles_Lookup,
+            CD_String,
+            CD_Class,
+            CD_Class,
+            CD_boolean,
+            CD_boolean,
+            CD_long,
+            CD_String,
+            CD_String));
     /// BSM_DowncallFactory_createDowncallMethodType
     public static final DirectMethodHandleDesc BSM_DowncallFactory_createDowncallMethodType = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
         CD_DowncallFactory,
         "createDowncallMethodType",
-        MethodTypeDesc.of(CD_DowncallMethodType, CD_boolean, CD_boolean, CD_boolean, CD_long, CD_String, CD_Object.arrayType()));
+        MethodTypeDesc.of(CD_DowncallMethodType,
+            CD_MethodHandles_Lookup,
+            CD_String,
+            CD_Class,
+            CD_Class,
+            CD_boolean,
+            CD_boolean,
+            CD_boolean,
+            CD_long,
+            CD_String,
+            CD_String,
+            CD_Object.arrayType()));
 
     /**
      * DCD_classData_DowncallData
