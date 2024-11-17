@@ -189,7 +189,7 @@ public final class StructAllocator<T> implements StructAllocatorSpec<T> {
 
             // Struct implementation
             classBuilder.withMethodBody("layout", MTD_StructLayout, Modifier.PUBLIC, codeBuilder -> codeBuilder
-                .ldc(DCD_classData_StructLayout)
+                .loadConstant(DCD_classData_StructLayout)
                 .areturn());
             classBuilder.withMethodBody("segment", MTD_MemorySegment, Modifier.PUBLIC, codeBuilder -> codeBuilder
                 .aload(codeBuilder.receiverSlot())
@@ -216,15 +216,15 @@ public final class StructAllocator<T> implements StructAllocatorSpec<T> {
                 .dup()
                 .aload(codeBuilder.receiverSlot())
                 .getfield(cd_thisClass, "_segment", CD_MemorySegment)
-                .ldc(DCD_classData_StructLayout)
+                .loadConstant(DCD_classData_StructLayout)
                 .lconst_0()
                 .lload(codeBuilder.parameterSlot(0))
                 .invokeinterface(CD_StructLayout, "scale", MTD_long_long_long)
-                .ldc(DCD_classData_StructLayout)
+                .loadConstant(DCD_classData_StructLayout)
                 .lconst_0()
                 .lload(codeBuilder.parameterSlot(1))
                 .invokeinterface(CD_StructLayout, "scale", MTD_long_long_long)
-                .ldc(DCD_classData_StructLayout)
+                .loadConstant(DCD_classData_StructLayout)
                 .invokeinterface(CD_StructLayout, "byteAlignment", MTD_long)
                 .invokeinterface(CD_MemorySegment, "asSlice", MTD_MemorySegment_long_long_long)
                 .lload(codeBuilder.parameterSlot(1))
@@ -235,13 +235,13 @@ public final class StructAllocator<T> implements StructAllocatorSpec<T> {
                 .dup()
                 .aload(codeBuilder.receiverSlot())
                 .getfield(cd_thisClass, "_segment", CD_MemorySegment)
-                .ldc(DCD_classData_StructLayout)
+                .loadConstant(DCD_classData_StructLayout)
                 .lconst_0()
                 .lload(codeBuilder.parameterSlot(0))
                 .invokeinterface(CD_StructLayout, "scale", MTD_long_long_long)
-                .ldc(DCD_classData_StructLayout)
+                .loadConstant(DCD_classData_StructLayout)
                 .invokeinterface(CD_StructLayout, "byteSize", MTD_long)
-                .ldc(DCD_classData_StructLayout)
+                .loadConstant(DCD_classData_StructLayout)
                 .invokeinterface(CD_StructLayout, "byteAlignment", MTD_long)
                 .invokeinterface(CD_MemorySegment, "asSlice", MTD_MemorySegment_long_long_long)
                 .lconst_1()
@@ -358,21 +358,21 @@ public final class StructAllocator<T> implements StructAllocatorSpec<T> {
 
                             for (FindResult result : results) {
                                 // var handle
-                                codeBuilder.ldc(DCD_classData_StructLayout)
-                                    .ldc(result.elems().size() + 1)
+                                codeBuilder.loadConstant(DCD_classData_StructLayout)
+                                    .loadConstant(result.elems().size() + 1)
                                     .anewarray(CD_MemoryLayout$PathElement)
                                     .dup()
                                     .iconst_0()
-                                    .ldc(name)
+                                    .loadConstant(name)
                                     .invokestatic(CD_MemoryLayout$PathElement, "groupElement", MTD_MemoryLayout$PathElement_String, true)
                                     .aastore();
                                 int i = 0;
                                 for (Elem elem : result.elems()) {
                                     codeBuilder.dup()
-                                        .ldc(i + 1);
+                                        .loadConstant(i + 1);
                                     switch (elem) {
                                         case GroupElem groupElem -> codeBuilder
-                                            .ldc(groupElem.name)
+                                            .loadConstant(groupElem.name)
                                             .invokestatic(CD_MemoryLayout$PathElement, "groupElement", MTD_MemoryLayout$PathElement_String, true);
                                         case SeqElem _ -> codeBuilder
                                             .invokestatic(CD_MemoryLayout$PathElement, "sequenceElement", MTD_MemoryLayout$PathElement, true);
@@ -388,12 +388,12 @@ public final class StructAllocator<T> implements StructAllocatorSpec<T> {
                             final String name = valueLayout.name().orElseThrow();
 
                             // var handle
-                            codeBuilder.ldc(DCD_classData_StructLayout)
+                            codeBuilder.loadConstant(DCD_classData_StructLayout)
                                 .iconst_1()
                                 .anewarray(CD_MemoryLayout$PathElement)
                                 .dup()
                                 .iconst_0()
-                                .ldc(name)
+                                .loadConstant(name)
                                 .invokestatic(CD_MemoryLayout$PathElement, "groupElement", MTD_MemoryLayout$PathElement_String, true)
                                 .aastore()
                                 .invokeinterface(CD_StructLayout, "varHandle", MTD_VarHandle_MemoryLayout$PathElementArray)

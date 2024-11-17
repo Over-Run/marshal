@@ -323,7 +323,7 @@ public final class Downcall {
                     codeBuilder -> {
                         if (returnType == MethodHandle.class) {
                             // returns MethodHandle
-                            codeBuilder.ldc(DynamicConstantDesc.ofNamed(BSM_DowncallFactory_downcallHandle,
+                            codeBuilder.loadConstant(DynamicConstantDesc.ofNamed(BSM_DowncallFactory_downcallHandle,
                                 entrypoint,
                                 CD_MethodHandle,
                                 DCD_classData_DirectAccessData)
@@ -418,7 +418,7 @@ public final class Downcall {
                     MTD_DirectAccessData,
                     ACC_PUBLIC,
                     codeBuilder -> codeBuilder
-                        .ldc(DCD_classData_DirectAccessData)
+                        .loadConstant(DCD_classData_DirectAccessData)
                         .areturn());
             }
             //endregion

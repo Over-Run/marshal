@@ -51,7 +51,7 @@ public final class CharsetProcessor {
             case "UTF_8", "ISO_8859_1", "US_ASCII",
                  "UTF_16", "UTF_16BE", "UTF_16LE",
                  "UTF_32", "UTF_32BE", "UTF_32LE" -> builder.getstatic(CD_StandardCharsets, upperCase, CD_Charset);
-            default -> builder.ldc(upperCase)
+            default -> builder.loadConstant(upperCase)
                 .invokestatic(CD_Charset, "forName", MTD_Charset_String);
         }
         return true;

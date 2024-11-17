@@ -53,7 +53,7 @@ public final class CheckProcessor extends CodeInserter<CheckProcessor.Context> {
             if (parameter.getType().isArray()) {
                 Sized sized = parameter.getDeclaredAnnotation(Sized.class);
                 if (sized != null) {
-                    builder.ldc(sized.value())
+                    builder.loadConstant(sized.value())
                         .aload(builder.parameterSlot(i))
                         .arraylength()
                         .invokestatic(CD_Checks,
