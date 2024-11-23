@@ -134,7 +134,6 @@ import static overrun.marshal.internal.Constants.*;
  * @see StrCharset
  * @since 0.1.0
  */
-@SuppressWarnings("preview")
 public final class Downcall {
     private static final Linker LINKER = Linker.nativeLinker();
     private static final Linker.Option[] NO_OPTION = new Linker.Option[0];
@@ -307,7 +306,7 @@ public final class Downcall {
                         if (isFirstAllocator) {
                             allocatorSlot = codeBuilder.parameterSlot(0);
                         } else if (hasMemoryStack) {
-                            allocatorSlot = codeBuilder.allocateLocal(TypeKind.ReferenceType);
+                            allocatorSlot = codeBuilder.allocateLocal(TypeKind.REFERENCE);
                             codeBuilder.invokestatic(CD_MemoryStack,
                                 "pushLocal",
                                 MTD_MemoryStack,
