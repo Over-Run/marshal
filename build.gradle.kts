@@ -148,10 +148,6 @@ tasks.withType<Jar> {
     )
 }
 
-tasks.withType<JavaCompile> {
-    options.compilerArgs.add("-proc:none")
-}
-
 java {
     if (hasJavadocJar.toBoolean()) withJavadocJar()
     if (hasSourcesJar.toBoolean()) withSourcesJar()

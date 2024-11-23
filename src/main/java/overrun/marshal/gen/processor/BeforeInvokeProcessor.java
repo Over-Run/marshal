@@ -16,14 +16,13 @@
 
 package overrun.marshal.gen.processor;
 
+import overrun.marshal.gen.ConvertedClassType;
+import overrun.marshal.gen.DowncallMethodParameter;
+import overrun.marshal.gen.DowncallMethodType;
 import overrun.marshal.gen.Ref;
-import overrun.marshal.internal.StringCharset;
 
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.TypeKind;
-import java.lang.reflect.Parameter;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Insert codes before invoking the downcall handle.
@@ -40,13 +39,13 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
     /**
      * The context.
      *
-     * @param parameters    the parameters
-     * @param refSlotMap    the map
+     * @param methodType    the method type
+     * @param refSlotList   the ref slots
      * @param allocatorSlot the slot of the allocator
      */
     public record Context(
-        List<Parameter> parameters,
-        Map<Parameter, Integer> refSlotMap,
+        DowncallMethodType methodType,
+        int[] refSlotList,
         int allocatorSlot
     ) {
     }
@@ -54,20 +53,23 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
     @SuppressWarnings("preview")
     @Override
     public void process(CodeBuilder builder, Context context) {
-        List<Parameter> parameters = context.parameters();
+        var parameters = context.methodType.parameters();
         for (int i = 0, size = parameters.size(); i < size; i++) {
-            Parameter parameter = parameters.get(i);
-            if (parameter.getType().isArray() &&
-                parameter.getDeclaredAnnotation(Ref.class) != null) {
-                ProcessorType type = ProcessorTypes.fromParameter(parameter);
+            DowncallMethodParameter parameter = parameters.get(i);
+            ConvertedClassType type1 = parameter.type();
+            Class<?> type = type1.javaClass();
+            if (type.isArray() &&
+                parameter.ref()) {
+                ProcessorType processorType = ProcessorTypes.fromClass(type);
                 int local = builder.allocateLocal(TypeKind.ReferenceType);
-                MarshalProcessor.getInstance().process(builder, type, new MarshalProcessor.Context(
+                MarshalProcessor.getInstance().process(builder, processorType, new MarshalProcessor.Context(
                     context.allocatorSlot(),
                     builder.parameterSlot(i),
-                    StringCharset.getCharset(parameter)
+                    parameter.charset(),
+                    type1.downcallClass()
                 ));
                 builder.astore(local);
-                context.refSlotMap().put(parameter, local);
+                context.refSlotList[i] = local;
             }
         }
         super.process(builder, context);

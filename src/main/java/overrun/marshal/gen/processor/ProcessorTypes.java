@@ -17,14 +17,11 @@
 package overrun.marshal.gen.processor;
 
 import overrun.marshal.Upcall;
-import overrun.marshal.gen.Convert;
 import overrun.marshal.struct.Struct;
 import overrun.marshal.struct.StructAllocatorSpec;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.*;
 
 /**
@@ -95,40 +92,6 @@ public final class ProcessorTypes {
             return candidate;
         }
         throw new NoSuchElementException("Cannot find processor type of " + aClass);
-    }
-
-    /**
-     * Gets the processor type from the given method.
-     *
-     * @param method the method
-     * @return the processor type
-     */
-    public static ProcessorType fromMethod(Method method) {
-        Class<?> returnType = method.getReturnType();
-        if (returnType == boolean.class) {
-            Convert convert = method.getDeclaredAnnotation(Convert.class);
-            if (convert != null) {
-                return convert.value();
-            }
-        }
-        return fromClass(returnType);
-    }
-
-    /**
-     * Gets the processor type from the given parameter.
-     *
-     * @param parameter the parameter
-     * @return the processor type
-     */
-    public static ProcessorType fromParameter(Parameter parameter) {
-        Class<?> type = parameter.getType();
-        if (type == boolean.class) {
-            Convert convert = parameter.getDeclaredAnnotation(Convert.class);
-            if (convert != null) {
-                return convert.value();
-            }
-        }
-        return fromClass(type);
     }
 
     /**

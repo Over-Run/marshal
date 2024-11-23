@@ -29,8 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static java.lang.foreign.ValueLayout.ADDRESS;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static overrun.marshal.test.TestUtil.*;
 
 /**
@@ -70,9 +70,8 @@ public final class DowncallProvider {
             seg("testSizedIntArray", LOOKUP.findStatic(DowncallProvider.class, "testSizedIntArray", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
             seg("testReturnSizedSeg", LOOKUP.findStatic(DowncallProvider.class, "testReturnSizedSeg", MethodType.methodType(MemorySegment.class)), FunctionDescriptor.of(ADDRESS));
             seg("testRefIntArray", LOOKUP.findStatic(DowncallProvider.class, "testRefIntArray", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
-            seg("testCriticalFalse", MethodHandles.empty(MethodType.methodType(void.class)), FunctionDescriptor.ofVoid());
-            seg("testCriticalTrue", LOOKUP.findStatic(DowncallProvider.class, "testCriticalTrue", MethodType.methodType(void.class, MemorySegment.class)), FunctionDescriptor.ofVoid(ADDRESS));
             seg("testConvertBoolean", LOOKUP.findStatic(DowncallProvider.class, "testConvertBoolean", MethodType.methodType(int.class, int.class)), FunctionDescriptor.of(JAVA_INT, JAVA_INT));
+            seg("testConvertLongBoolean", LOOKUP.findStatic(DowncallProvider.class, "testConvertLongBoolean", MethodType.methodType(long.class, long.class)), FunctionDescriptor.of(JAVA_LONG, JAVA_LONG));
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -194,11 +193,11 @@ public final class DowncallProvider {
         arr.reinterpret(JAVA_INT.byteSize()).set(JAVA_INT, 0, 8);
     }
 
-    private static void testCriticalTrue(MemorySegment arr) {
-        testRefIntArray(arr);
+    private static int testConvertBoolean(int b) {
+        return b == 0 ? 1 : 0;
     }
 
-    private static int testConvertBoolean(int b) {
+    private static long testConvertLongBoolean(long b) {
         return b == 0 ? 1 : 0;
     }
 

@@ -16,11 +16,10 @@
 
 package overrun.marshal.gen.processor;
 
+import overrun.marshal.gen.DowncallMethodType;
 import overrun.marshal.gen.Sized;
 
 import java.lang.classfile.CodeBuilder;
-import java.lang.reflect.Parameter;
-import java.util.List;
 
 import static overrun.marshal.internal.Constants.*;
 
@@ -40,20 +39,20 @@ public final class CheckProcessor extends CodeInserter<CheckProcessor.Context> {
     /**
      * The context.
      *
-     * @param parameters the parameters
+     * @param methodType the method type
      */
-    public record Context(List<Parameter> parameters) {
+    public record Context(DowncallMethodType methodType) {
     }
 
     @Override
     public void process(CodeBuilder builder, Context context) {
-        List<Parameter> parameters = context.parameters();
+        var parameters = context.methodType.parameters();
         for (int i = 0, size = parameters.size(); i < size; i++) {
-            Parameter parameter = parameters.get(i);
-            if (parameter.getType().isArray()) {
-                Sized sized = parameter.getDeclaredAnnotation(Sized.class);
-                if (sized != null) {
-                    builder.ldc(sized.value())
+            var parameter = parameters.get(i);
+            if (parameter.type().javaClass().isArray()) {
+                long sized = parameter.sized();
+                if (sized >= 0) {
+                    builder.loadConstant(sized)
                         .aload(builder.parameterSlot(i))
                         .arraylength()
                         .invokestatic(CD_Checks,

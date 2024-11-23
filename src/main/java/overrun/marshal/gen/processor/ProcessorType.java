@@ -25,7 +25,6 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
-import java.util.Locale;
 
 import static java.lang.constant.ConstantDescs.*;
 import static overrun.marshal.internal.Constants.CD_MemorySegment;
@@ -204,77 +203,6 @@ public sealed interface ProcessorType {
     }
 
     /**
-     * Primitive types that are convertible with {@code boolean}.
-     */
-    enum BoolConvert implements ProcessorType {
-        /**
-         * {@code char} type
-         */
-        CHAR(CD_char, ValueLayout.JAVA_CHAR),
-        /**
-         * {@code byte} type
-         */
-        BYTE(CD_byte, ValueLayout.JAVA_BYTE),
-        /**
-         * {@code short} type
-         */
-        SHORT(CD_short, ValueLayout.JAVA_SHORT),
-        /**
-         * {@code int} type
-         */
-        INT(CD_int, ValueLayout.JAVA_INT),
-        /**
-         * {@code long} type
-         */
-        LONG(CD_long, ValueLayout.JAVA_LONG),
-        /**
-         * {@code float} type
-         */
-        FLOAT(CD_float, ValueLayout.JAVA_FLOAT),
-        /**
-         * {@code double} type
-         */
-        DOUBLE(CD_double, ValueLayout.JAVA_DOUBLE);
-
-        private final ClassDesc classDesc;
-        private final TypeKind typeKind;
-        private final ValueLayout layout;
-
-        BoolConvert(ClassDesc classDesc, ValueLayout layout) {
-            this.classDesc = classDesc;
-            this.typeKind = TypeKind.from(classDesc);
-            this.layout = layout;
-        }
-
-        /**
-         * {@return the type kind of this type}
-         */
-        public TypeKind typeKind() {
-            return typeKind;
-        }
-
-        @Override
-        public ClassDesc downcallClassDesc() {
-            return classDesc;
-        }
-
-        @Override
-        public ValueLayout downcallLayout() {
-            return layout;
-        }
-
-        @Override
-        public AllocatorRequirement allocationRequirement() {
-            return AllocatorRequirement.NONE;
-        }
-
-        @Override
-        public String toString() {
-            return name().toLowerCase(Locale.ROOT);
-        }
-    }
-
-    /**
      * {@link SegmentAllocator}
      */
     final class Allocator implements ProcessorType {
@@ -395,7 +323,7 @@ public sealed interface ProcessorType {
 
         @Override
         public MemoryLayout downcallLayout() {
-            return allocatorSpec != null ? allocatorSpec.layout() : ValueLayout.ADDRESS;
+            return allocatorSpec != null ? allocatorSpec.layout() : MemoryLayout.structLayout();
         }
 
         @Override

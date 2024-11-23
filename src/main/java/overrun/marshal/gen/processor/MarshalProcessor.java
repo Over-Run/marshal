@@ -39,11 +39,13 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
      * @param allocatorSlot the slot of the allocator
      * @param variableSlot  the slot of the value
      * @param charset       the charset annotation value
+     * @param downcallClass the class type of the downcall handle
      */
     public record Context(
         int allocatorSlot,
         int variableSlot,
-        String charset
+        String charset,
+        Class<?> downcallClass
     ) {
     }
 
@@ -60,8 +62,7 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
             case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
             case ProcessorType.Array array -> {
                 switch (array.componentType()) {
-                    case ProcessorType.Allocator _, ProcessorType.Array _, ProcessorType.BoolConvert _,
-                         ProcessorType.Custom _ -> {
+                    case ProcessorType.Allocator _, ProcessorType.Array _, ProcessorType.Custom _ -> {
                         return super.process(builder, type, context);
                     }
                     case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
@@ -103,27 +104,6 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
                             });
                 }
             }
-            case ProcessorType.BoolConvert boolConvert -> builder
-                .iload(variableSlot)
-                .invokestatic(CD_Marshal,
-                    switch (boolConvert) {
-                        case CHAR -> "marshalAsChar";
-                        case BYTE -> "marshalAsByte";
-                        case SHORT -> "marshalAsShort";
-                        case INT -> "marshalAsInt";
-                        case LONG -> "marshalAsLong";
-                        case FLOAT -> "marshalAsFloat";
-                        case DOUBLE -> "marshalAsDouble";
-                    },
-                    switch (boolConvert) {
-                        case CHAR -> MTD_char_boolean;
-                        case BYTE -> MTD_byte_boolean;
-                        case SHORT -> MTD_short_boolean;
-                        case INT -> MTD_int_boolean;
-                        case LONG -> MTD_long_boolean;
-                        case FLOAT -> MTD_float_boolean;
-                        case DOUBLE -> MTD_double_boolean;
-                    });
             case ProcessorType.Str _ -> builder
                 .aload(allocatorSlot)
                 .aload(variableSlot)
@@ -143,7 +123,25 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
                 .invokestatic(CD_Marshal,
                     "marshal",
                     MTD_MemorySegment_Arena_Upcall);
-            case ProcessorType.Value value -> builder.loadLocal(value.typeKind(), variableSlot);
+            case ProcessorType.Value value -> {
+                builder.loadLocal(value.typeKind(), variableSlot);
+                if (value == ProcessorType.Value.BOOLEAN) {
+                    if (context.downcallClass == char.class)
+                        builder.invokestatic(CD_Marshal, "marshalAsChar", MTD_char_boolean);
+                    else if (context.downcallClass == byte.class)
+                        builder.invokestatic(CD_Marshal, "marshalAsByte", MTD_byte_boolean);
+                    else if (context.downcallClass == short.class)
+                        builder.invokestatic(CD_Marshal, "marshalAsShort", MTD_short_boolean);
+                    else if (context.downcallClass == int.class)
+                        builder.invokestatic(CD_Marshal, "marshalAsInt", MTD_int_boolean);
+                    else if (context.downcallClass == long.class)
+                        builder.invokestatic(CD_Marshal, "marshalAsLong", MTD_long_boolean);
+                    else if (context.downcallClass == float.class)
+                        builder.invokestatic(CD_Marshal, "marshalAsFloat", MTD_float_boolean);
+                    else if (context.downcallClass == double.class)
+                        builder.invokestatic(CD_Marshal, "marshalAsDouble", MTD_double_boolean);
+                }
+            }
         }
         return true;
     }
