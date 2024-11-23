@@ -103,7 +103,6 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
                 case ProcessorType.Allocator _, ProcessorType.Array _,
                      ProcessorType.Custom _, ProcessorType.Struct _, ProcessorType.Upcall<?> _ ->
                     super.process(originalHandle, context);
-                case ProcessorType.BoolConvert _ -> throw new UnsupportedOperationException();//todo
                 case ProcessorType.Void _ -> throw new AssertionError("should not reach here");
                 case ProcessorType.Str _ -> MethodHandles.filterReturnValue(originalHandle,
                     downcallMethodType.charset() != null ?
@@ -132,7 +131,7 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
                 MH_unmarshalUpcall.asType(MH_unmarshalUpcall.type().changeReturnType(context.returnType)).bindTo(context.returnType));
             case ProcessorType.Value value -> {
                 if (value == ProcessorType.Value.BOOLEAN) {
-                    Class<?> originalReturnType = downcallMethodType.returnType();
+                    Class<?> originalReturnType = downcallMethodType.returnType().downcallClass();
                     if (originalReturnType == char.class)
                         yield MethodHandles.filterReturnValue(originalHandle, MH_unmarshalCharAsBoolean);
                     if (originalReturnType == byte.class)
@@ -151,7 +150,6 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
                 }
                 yield originalHandle;
             }
-            case ProcessorType.BoolConvert _ -> throw new UnsupportedOperationException();//todo
         };
     }
 

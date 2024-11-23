@@ -29,7 +29,7 @@ import java.util.Optional;
  * @since 0.1.0
  */
 public record DowncallMethodParameter(
-    Class<?> type,
+    ConvertedClassType type,
     boolean byValue,
     boolean ref,
     long sized,
@@ -41,7 +41,7 @@ public record DowncallMethodParameter(
         Sized anSized = parameter.getDeclaredAnnotation(Sized.class);
         StrCharset anStrCharset = parameter.getDeclaredAnnotation(StrCharset.class);
 
-        return new DowncallMethodParameter(parameter.getType(),
+        return new DowncallMethodParameter(ConvertedClassType.parameterType(parameter),
             parameter.getDeclaredAnnotation(ByValue.class) != null,
             parameter.getDeclaredAnnotation(Ref.class) != null,
             anSized != null ? anSized.value() : -1,
@@ -51,7 +51,7 @@ public record DowncallMethodParameter(
 
     @Override
     public Optional<Desc> describeConstable() {
-        return Optional.of(new Desc(ClassDesc.ofDescriptor(type.descriptorString()), byValue, ref, sized, charset, canonicalType));
+        return Optional.of(new Desc(type.describeConstable().orElseThrow(), byValue, ref, sized, charset, canonicalType));
     }
 
     @Override
@@ -72,19 +72,19 @@ public record DowncallMethodParameter(
         if (charset != null) {
             sb.append("[StrCharset=").append(charset).append(']');
         }
-        sb.append(type.getSimpleName());
+        sb.append(type);
         return sb.toString();
     }
 
     public static final class Desc extends DynamicConstantDesc<DowncallMethodParameter> {
-        private final ClassDesc type;
+        private final ConvertedClassType.Desc type;
         private final boolean byValue;
         private final boolean ref;
         private final long sized;
         private final String charset;
         private final String canonicalType;
 
-        public Desc(ClassDesc type, boolean byValue, boolean ref, long sized, String charset, String canonicalType) {
+        public Desc(ConvertedClassType.Desc type, boolean byValue, boolean ref, long sized, String charset, String canonicalType) {
             super(Constants.BSM_DowncallFactory_createDowncallMethodParameter,
                 ConstantDescs.DEFAULT_NAME,
                 Constants.CD_DowncallMethodParameter,

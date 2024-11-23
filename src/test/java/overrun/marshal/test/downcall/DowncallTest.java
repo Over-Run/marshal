@@ -150,6 +150,8 @@ public final class DowncallTest {
     void testConvertBoolean() {
         assertTrue(d.testConvertBoolean(false));
         assertFalse(d.testConvertBoolean(true));
+        assertTrue(d.testConvertLongBoolean(false));
+        assertFalse(d.testConvertLongBoolean(true));
     }
 
     @Test

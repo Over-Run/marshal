@@ -24,7 +24,7 @@ package overrun.marshal.gen.processor;
  */
 public enum AllocatorRequirement {
     /**
-     * No allocator required
+     * No allocator is required
      */
     NONE(0),
     /**
@@ -32,11 +32,11 @@ public enum AllocatorRequirement {
      */
     STACK(1),
     /**
-     * {@link java.lang.foreign.SegmentAllocator SegmentAllocator} required
+     * {@link java.lang.foreign.SegmentAllocator SegmentAllocator} is required
      */
     ALLOCATOR(2),
     /**
-     * {@link java.lang.foreign.Arena Arena} required
+     * {@link java.lang.foreign.Arena Arena} is required
      */
     ARENA(3);
 

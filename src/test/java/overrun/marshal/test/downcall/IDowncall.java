@@ -20,7 +20,6 @@ import io.github.overrun.memstack.MemoryStack;
 import overrun.marshal.Downcall;
 import overrun.marshal.DowncallOption;
 import overrun.marshal.gen.*;
-import overrun.marshal.gen.processor.ProcessorType;
 import overrun.marshal.gen.processor.ProcessorTypes;
 import overrun.marshal.struct.ByValue;
 import overrun.marshal.test.struct.Vector3;
@@ -115,8 +114,11 @@ public interface IDowncall {
 
     void testRefIntArray(@Ref int[] arr);
 
-    @Convert(ProcessorType.BoolConvert.INT)
-    boolean testConvertBoolean(@Convert(ProcessorType.BoolConvert.INT) boolean b);
+    @Convert(AsBool.INT)
+    boolean testConvertBoolean(@Convert(AsBool.INT) boolean b);
+
+    @Convert(AsBool.LONG)
+    boolean testConvertLongBoolean(@Convert(AsBool.LONG) boolean b);
 
     @Entrypoint("testDefault")
     default MethodHandle mh_testDefaultMethodHandle() {

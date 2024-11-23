@@ -19,6 +19,7 @@ package overrun.marshal;
 import io.github.overrun.memstack.MemoryStack;
 import overrun.marshal.gen.DowncallMethodParameter;
 import overrun.marshal.gen.DowncallMethodType;
+import overrun.marshal.gen.ConvertedClassType;
 import overrun.marshal.gen.processor.ReturnValueTransformer;
 
 import java.lang.invoke.*;
@@ -96,7 +97,7 @@ public final class DowncallFactory {
         MethodHandles.Lookup lookup,
         String name,
         Class<?> type,
-        Class<?> parameterType,
+        ConvertedClassType parameterType,
         boolean byValue,
         boolean ref,
         long sized,
@@ -110,7 +111,7 @@ public final class DowncallFactory {
         MethodHandles.Lookup lookup,
         String entrypoint,
         Class<?> type,
-        Class<?> returnType,
+        ConvertedClassType returnType,
         boolean byValue,
         boolean critical,
         boolean criticalAllowHeapAccess,
@@ -128,5 +129,15 @@ public final class DowncallFactory {
             sized,
             charset,
             canonicalType);
+    }
+
+    public static ConvertedClassType createExtendedClassType(
+        MethodHandles.Lookup lookup,
+        String name,
+        Class<?> type,
+        Class<?> javaClass,
+        Class<?> downcallClass
+    ) {
+        return new ConvertedClassType(javaClass, downcallClass);
     }
 }

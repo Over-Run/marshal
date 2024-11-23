@@ -16,12 +16,10 @@
 
 package overrun.marshal.gen.processor;
 
-import overrun.marshal.internal.StringCharset;
+import overrun.marshal.gen.DowncallMethodParameter;
+import overrun.marshal.gen.DowncallMethodType;
 
 import java.lang.classfile.CodeBuilder;
-import java.lang.reflect.Parameter;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Insert code after invoking the downcall handle.
@@ -37,29 +35,26 @@ public final class AfterInvokeProcessor extends CodeInserter<AfterInvokeProcesso
 
     /**
      * The context.
-     *
-     * @param parameters the parameter
-     * @param refSlotMap the map
      */
     public record Context(
-        List<Parameter> parameters,
-        Map<Parameter, Integer> refSlotMap
+        DowncallMethodType methodType,
+        int[] refSlotList
     ) {
     }
 
     @Override
     public void process(CodeBuilder builder, Context context) {
-        List<Parameter> parameters = context.parameters();
-        var refSlotMap = context.refSlotMap();
+        var parameters = context.methodType.parameters();
+        int[] refSlotList = context.refSlotList;
         for (int i = 0, size = parameters.size(); i < size; i++) {
-            Parameter parameter = parameters.get(i);
-            if (refSlotMap.containsKey(parameter)) {
-                ProcessorType type = ProcessorTypes.fromParameter(parameter);
+            DowncallMethodParameter parameter1 = parameters.get(i);
+            if (refSlotList[i] != -1) {
+                ProcessorType type = ProcessorTypes.fromClass(parameter1.type().javaClass());
                 RefCopyProcessor.getInstance().process(builder,
                     type,
-                    new RefCopyProcessor.Context(refSlotMap.get(parameter),
+                    new RefCopyProcessor.Context(refSlotList[i],
                         builder.parameterSlot(i),
-                        StringCharset.getCharset(parameter)));
+                        parameter1.charset()));
             }
         }
         super.process(builder, context);

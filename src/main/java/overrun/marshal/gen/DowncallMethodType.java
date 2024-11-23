@@ -16,10 +16,13 @@
 
 package overrun.marshal.gen;
 
+import overrun.marshal.gen.processor.AllocatorRequirement;
+import overrun.marshal.gen.processor.ProcessorTypes;
 import overrun.marshal.internal.Constants;
 import overrun.marshal.struct.ByValue;
 
 import java.lang.constant.*;
+import java.lang.foreign.SegmentAllocator;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -32,7 +35,7 @@ import java.util.Optional;
  */
 public final class DowncallMethodType implements Constable {
     private final String entrypoint;
-    private final Class<?> returnType;
+    private final ConvertedClassType returnType;
     private final DowncallMethodParameter[] parameters;
     private final boolean byValue;
     private final boolean critical;
@@ -40,10 +43,11 @@ public final class DowncallMethodType implements Constable {
     private final long sized;
     private final String charset;
     private final String canonicalType;
+    private final AllocatorRequirement allocatorRequirement;
 
     public DowncallMethodType(
         String entrypoint,
-        Class<?> returnType,
+        ConvertedClassType returnType,
         DowncallMethodParameter[] parameters,
         boolean byValue,
         boolean critical,
@@ -61,22 +65,20 @@ public final class DowncallMethodType implements Constable {
         this.sized = sized;
         this.charset = charset;
         this.canonicalType = canonicalType;
+        this.allocatorRequirement = Arrays.stream(parameters)
+            .reduce(byValue ? AllocatorRequirement.ALLOCATOR : AllocatorRequirement.NONE,
+                (r, p) -> AllocatorRequirement.stricter(r, ProcessorTypes.fromClass(p.type().javaClass()).allocationRequirement()),
+                AllocatorRequirement::stricter);
     }
 
     public static DowncallMethodType of(Method method) {
         CanonicalType anCanonicalType = method.getDeclaredAnnotation(CanonicalType.class);
-        Convert anConvert = method.getDeclaredAnnotation(Convert.class);
         Critical anCritical = method.getDeclaredAnnotation(Critical.class);
         Sized anSized = method.getDeclaredAnnotation(Sized.class);
         StrCharset anStrCharset = method.getDeclaredAnnotation(StrCharset.class);
 
-        Class<?> returnType = method.getReturnType();
-        if (returnType == boolean.class && anConvert != null) {
-            returnType = anConvert.value().javaClass();
-        }
-
         return new DowncallMethodType(getMethodEntrypoint(method),
-            returnType,
+            ConvertedClassType.returnType(method),
             getMethodParameters(method),
             method.getDeclaredAnnotation(ByValue.class) != null,
             anCritical != null,
@@ -101,14 +103,14 @@ public final class DowncallMethodType implements Constable {
 
     @Override
     public Optional<Desc> describeConstable() {
-        return Optional.of(new Desc(entrypoint, ClassDesc.ofDescriptor(returnType.descriptorString()), parameters, byValue, critical, criticalAllowHeapAccess, sized, charset, canonicalType));
+        return Optional.of(new Desc(entrypoint, returnType.describeConstable().orElseThrow(), parameters, byValue, critical, criticalAllowHeapAccess, sized, charset, canonicalType));
     }
 
     public String entrypoint() {
         return entrypoint;
     }
 
-    public Class<?> returnType() {
+    public ConvertedClassType returnType() {
         return returnType;
     }
 
@@ -140,6 +142,26 @@ public final class DowncallMethodType implements Constable {
         return canonicalType;
     }
 
+    public AllocatorRequirement allocatorRequirement() {
+        return allocatorRequirement;
+    }
+
+    public int descriptorStartParameter() {
+        return parameters.length == 0 ? 0 : skipAllocator();
+    }
+
+    public int invocationStartParameter() {
+        return parameters.length == 0 || byValue ? 0 : skipAllocator();
+    }
+
+    private int skipAllocator() {
+        if (allocatorRequirement != AllocatorRequirement.NONE &&
+            SegmentAllocator.class.isAssignableFrom(parameters[0].type().javaClass())) {
+            return 1;
+        }
+        return 0;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -158,7 +180,7 @@ public final class DowncallMethodType implements Constable {
         if (charset != null) {
             sb.append("[StrCharset=").append(charset).append(']');
         }
-        sb.append(returnType.getSimpleName()).append(' ');
+        sb.append(returnType).append(' ');
         sb.append(entrypoint).append('(');
         for (int i = 0; i < parameters.length; i++) {
             if (i > 0) {
@@ -171,7 +193,7 @@ public final class DowncallMethodType implements Constable {
     }
 
     public static final class Desc extends DynamicConstantDesc<DowncallMethodType> {
-        private final ClassDesc returnType;
+        private final ConvertedClassType.Desc returnType;
         private final DowncallMethodParameter[] parameters;
         private final boolean byValue;
         private final boolean critical;
@@ -182,7 +204,7 @@ public final class DowncallMethodType implements Constable {
 
         public Desc(
             String entrypoint,
-            ClassDesc returnType,
+            ConvertedClassType.Desc returnType,
             DowncallMethodParameter[] parameters,
             boolean byValue,
             boolean critical,
