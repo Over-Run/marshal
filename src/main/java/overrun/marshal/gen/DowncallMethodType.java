@@ -29,10 +29,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * @author squid233
- * @since 0.1.0
- */
+/// The method type of downcall method.
+///
+/// @author squid233
+/// @since 0.1.0
 public final class DowncallMethodType implements Constable {
     private final String entrypoint;
     private final ConvertedClassType returnType;
@@ -45,6 +45,17 @@ public final class DowncallMethodType implements Constable {
     private final String canonicalType;
     private final AllocatorRequirement allocatorRequirement;
 
+    /// constructor
+    ///
+    /// @param entrypoint              entrypoint
+    /// @param returnType              returnType
+    /// @param parameters              parameters
+    /// @param byValue                 byValue
+    /// @param critical                critical
+    /// @param criticalAllowHeapAccess criticalAllowHeapAccess
+    /// @param sized                   sized
+    /// @param charset                 charset
+    /// @param canonicalType           canonicalType
     public DowncallMethodType(
         String entrypoint,
         ConvertedClassType returnType,
@@ -71,6 +82,10 @@ public final class DowncallMethodType implements Constable {
                 AllocatorRequirement::stricter);
     }
 
+    /// Creates a downcall method type with the given method.
+    ///
+    /// @param method the method
+    /// @return the method type
     public static DowncallMethodType of(Method method) {
         CanonicalType anCanonicalType = method.getDeclaredAnnotation(CanonicalType.class);
         Critical anCritical = method.getDeclaredAnnotation(Critical.class);
@@ -106,50 +121,62 @@ public final class DowncallMethodType implements Constable {
         return Optional.of(new Desc(entrypoint, returnType.describeConstable().orElseThrow(), parameters, byValue, critical, criticalAllowHeapAccess, sized, charset, canonicalType));
     }
 
+    /// {@return the entrypoint}
     public String entrypoint() {
         return entrypoint;
     }
 
+    /// {@return the return type}
     public ConvertedClassType returnType() {
         return returnType;
     }
 
+    /// {@return the parameters}
     public List<DowncallMethodParameter> parameters() {
         return Arrays.asList(parameters);
     }
 
+    /// {@return `true` if return-by-value}
     public boolean byValue() {
         return byValue;
     }
 
+    /// {@return `true` if [_critical_][java.lang.foreign.Linker.Option#critical(boolean)]}
     public boolean critical() {
         return critical;
     }
 
+    /// {@return value of [Critical]}
     public boolean criticalAllowHeapAccess() {
         return criticalAllowHeapAccess;
     }
 
+    ///  {@return value of [Sized]}
     public long sized() {
         return sized;
     }
 
+    /// {@return value of [StrCharset]}
     public String charset() {
         return charset;
     }
 
+    /// {@return value of [CanonicalType]}
     public String canonicalType() {
         return canonicalType;
     }
 
+    /// {@return the allocation requirement}
     public AllocatorRequirement allocatorRequirement() {
         return allocatorRequirement;
     }
 
+    /// {@return the first parameter of function descriptor}
     public int descriptorStartParameter() {
         return parameters.length == 0 ? 0 : skipAllocator();
     }
 
+    /// {@return the first parameter of `invokedynamic` in [Downcall][overrun.marshal.Downcall]}
     public int invocationStartParameter() {
         return parameters.length == 0 || byValue ? 0 : skipAllocator();
     }
@@ -192,6 +219,7 @@ public final class DowncallMethodType implements Constable {
         return sb.toString();
     }
 
+    /// The constant desc.
     public static final class Desc extends DynamicConstantDesc<DowncallMethodType> {
         private final ConvertedClassType.Desc returnType;
         private final DowncallMethodParameter[] parameters;
@@ -202,6 +230,17 @@ public final class DowncallMethodType implements Constable {
         private final String charset;
         private final String canonicalType;
 
+        /// constructor
+        ///
+        /// @param entrypoint              entrypoint
+        /// @param returnType              returnType
+        /// @param parameters              parameters
+        /// @param byValue                 byValue
+        /// @param critical                critical
+        /// @param criticalAllowHeapAccess criticalAllowHeapAccess
+        /// @param sized                   sized
+        /// @param charset                 charset
+        /// @param canonicalType           canonicalType
         public Desc(
             String entrypoint,
             ConvertedClassType.Desc returnType,

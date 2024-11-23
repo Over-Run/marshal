@@ -39,6 +39,7 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
      * @param allocatorSlot the slot of the allocator
      * @param variableSlot  the slot of the value
      * @param charset       the charset annotation value
+     * @param downcallClass the class type of the downcall handle
      */
     public record Context(
         int allocatorSlot,

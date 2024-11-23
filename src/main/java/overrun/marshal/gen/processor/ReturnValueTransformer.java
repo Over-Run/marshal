@@ -27,10 +27,10 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.nio.charset.Charset;
 
-/**
- * @author squid233
- * @since 0.1.0
- */
+/// Transforms the return value with [Unmarshal].
+///
+/// @author squid233
+/// @since 0.1.0
 public final class ReturnValueTransformer extends HandleTransformer<ReturnValueTransformer.Context> {
     private static final MethodHandles.Lookup lookup = MethodHandles.publicLookup();
     private static final MethodHandles.Lookup privateLookup = MethodHandles.lookup();
@@ -87,6 +87,13 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
         }
     }
 
+    private ReturnValueTransformer() {
+    }
+
+    /// The context.
+    ///
+    /// @param returnType         the java return type
+    /// @param downcallMethodType the downcall method type
     public record Context(
         Class<?> returnType,
         DowncallMethodType downcallMethodType
@@ -163,6 +170,7 @@ public final class ReturnValueTransformer extends HandleTransformer<ReturnValueT
         return ((ProcessorType.Upcall<T>) ProcessorTypes.fromClass(type)).checkFactory().create(segment);
     }
 
+    /// {@return the instance}
     public static ReturnValueTransformer getInstance() {
         final class Holder {
             private static final ReturnValueTransformer INSTANCE = new ReturnValueTransformer();

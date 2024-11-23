@@ -35,6 +35,9 @@ public final class AfterInvokeProcessor extends CodeInserter<AfterInvokeProcesso
 
     /**
      * The context.
+     *
+     * @param methodType  the method type
+     * @param refSlotList the ref slots
      */
     public record Context(
         DowncallMethodType methodType,

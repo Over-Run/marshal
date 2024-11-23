@@ -25,10 +25,13 @@ import overrun.marshal.gen.processor.ReturnValueTransformer;
 import java.lang.invoke.*;
 import java.util.Arrays;
 
-/**
- * @author squid233
- * @since 0.1.0
- */
+/// The downcall factory creates method handle and call sites for the generated native function invoker.
+///
+/// The factory provides bootstrap methods where [Downcall] uses `invokedynamic`, which enables to create the method
+/// handles on demand.
+///
+/// @author squid233
+/// @since 0.1.0
 public final class DowncallFactory {
     private static final MethodHandles.Lookup privateLookup = MethodHandles.lookup();
     private static final MethodHandle
@@ -49,6 +52,13 @@ public final class DowncallFactory {
     private DowncallFactory() {
     }
 
+    /// Accesses downcall method handle with the given entrypoint.
+    ///
+    /// @param caller     the caller
+    /// @param entrypoint the entrypoint name
+    /// @param type       the type
+    /// @param data       the direct access data
+    /// @return the obtained method handle
     public static MethodHandle downcallHandle(
         MethodHandles.Lookup caller,
         String entrypoint,
@@ -58,6 +68,18 @@ public final class DowncallFactory {
         return data.methodHandle(entrypoint);
     }
 
+    /// Creates a call site for the downcall method handle specified with the given entrypoint.
+    ///
+    /// This method wraps the target handle with exception handling and memory stack popping as well as return value
+    /// transforming.
+    ///
+    /// @param caller             the caller
+    /// @param entrypoint         the entrypoint name
+    /// @param type               the method type of java method
+    /// @param data               the direct access data
+    /// @param downcallMethodType the downcall method handle type
+    /// @param popStack           `true` if the memory stack should be popped
+    /// @return the call site which targets to the new method handle
     public static CallSite downcallCallSite(
         MethodHandles.Lookup caller,
         String entrypoint,
@@ -93,6 +115,18 @@ public final class DowncallFactory {
         MemoryStack.popLocal();
     }
 
+    /// BSM for [DowncallMethodParameter]
+    ///
+    /// @param lookup        unused
+    /// @param name          unused
+    /// @param type          unused
+    /// @param parameterType parameterType
+    /// @param byValue       byValue
+    /// @param ref           ref
+    /// @param sized         sized
+    /// @param charset       charset
+    /// @param canonicalType canonicalType
+    /// @return the created [DowncallMethodParameter]
     public static DowncallMethodParameter createDowncallMethodParameter(
         MethodHandles.Lookup lookup,
         String name,
@@ -107,6 +141,20 @@ public final class DowncallFactory {
         return new DowncallMethodParameter(parameterType, byValue, ref, sized, charset, canonicalType);
     }
 
+    /// BSM for [DowncallMethodType]
+    ///
+    /// @param lookup                  unused
+    /// @param entrypoint              entrypoint
+    /// @param type                    unused
+    /// @param returnType              returnType
+    /// @param byValue                 byValue
+    /// @param critical                critical
+    /// @param criticalAllowHeapAccess criticalAllowHeapAccess
+    /// @param sized                   sized
+    /// @param charset                 charset
+    /// @param canonicalType           canonicalType
+    /// @param args                    parameters
+    /// @return the created [DowncallMethodType]
     public static DowncallMethodType createDowncallMethodType(
         MethodHandles.Lookup lookup,
         String entrypoint,
@@ -131,7 +179,15 @@ public final class DowncallFactory {
             canonicalType);
     }
 
-    public static ConvertedClassType createExtendedClassType(
+    /// BSM for [ConvertedClassType]
+    ///
+    /// @param lookup        unused
+    /// @param name          unused
+    /// @param type          unused
+    /// @param javaClass     javaClass
+    /// @param downcallClass downcallClass
+    /// @return the created [ConvertedClassType]
+    public static ConvertedClassType createConvertedClassType(
         MethodHandles.Lookup lookup,
         String name,
         Class<?> type,

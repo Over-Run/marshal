@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Handle transformers process a method handle with a given context.
+ *
+ * @param <T> the type of the context
  * @author squid233
  * @since 0.1.0
  */
@@ -31,6 +34,13 @@ public abstract class HandleTransformer<T> implements Processor<HandleTransforme
     protected HandleTransformer() {
     }
 
+    /// Processes the given method handle with the alternative transformers.
+    ///
+    /// If all alternatives return `null`, then the original handle is returned.
+    ///
+    /// @param originalHandle the original method handle
+    /// @param context        the context
+    /// @return the processed method handle; or _`originalHandle`_ if not processed
     public MethodHandle process(MethodHandle originalHandle, T context) {
         for (HandleTransformer<T> transformer : list) {
             MethodHandle handle = transformer.process(originalHandle, context);

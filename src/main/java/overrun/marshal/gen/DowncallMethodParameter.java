@@ -24,10 +24,16 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Parameter;
 import java.util.Optional;
 
-/**
- * @author squid233
- * @since 0.1.0
- */
+/// A parameter of a downcall method.
+///
+/// @param type          the type of the parameter
+/// @param byValue       `true` if pass-by-value
+/// @param ref           `true` if returns from native function
+/// @param sized         value of [Sized]
+/// @param charset       value of [StrCharset]
+/// @param canonicalType value of [CanonicalType]
+/// @author squid233
+/// @since 0.1.0
 public record DowncallMethodParameter(
     ConvertedClassType type,
     boolean byValue,
@@ -36,6 +42,10 @@ public record DowncallMethodParameter(
     String charset,
     String canonicalType
 ) implements Constable {
+    /// Creates a downcall method parameter from the given parameter.
+    ///
+    /// @param parameter the parameter
+    /// @return the downcall method parameter
     public static DowncallMethodParameter of(Parameter parameter) {
         CanonicalType anCanonicalType = parameter.getDeclaredAnnotation(CanonicalType.class);
         Sized anSized = parameter.getDeclaredAnnotation(Sized.class);
@@ -76,6 +86,7 @@ public record DowncallMethodParameter(
         return sb.toString();
     }
 
+    /// The constant desc
     public static final class Desc extends DynamicConstantDesc<DowncallMethodParameter> {
         private final ConvertedClassType.Desc type;
         private final boolean byValue;
@@ -84,6 +95,14 @@ public record DowncallMethodParameter(
         private final String charset;
         private final String canonicalType;
 
+        /// constructor
+        ///
+        /// @param type          type
+        /// @param byValue       byValue
+        /// @param ref           ref
+        /// @param sized         sized
+        /// @param charset       charset
+        /// @param canonicalType canonicalType
         public Desc(ConvertedClassType.Desc type, boolean byValue, boolean ref, long sized, String charset, String canonicalType) {
             super(Constants.BSM_DowncallFactory_createDowncallMethodParameter,
                 ConstantDescs.DEFAULT_NAME,

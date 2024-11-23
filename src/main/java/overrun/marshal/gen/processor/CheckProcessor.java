@@ -38,6 +38,8 @@ public final class CheckProcessor extends CodeInserter<CheckProcessor.Context> {
 
     /**
      * The context.
+     *
+     * @param methodType the method type
      */
     public record Context(DowncallMethodType methodType) {
     }

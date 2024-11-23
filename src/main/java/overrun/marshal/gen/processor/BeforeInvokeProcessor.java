@@ -39,6 +39,8 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
     /**
      * The context.
      *
+     * @param methodType    the method type
+     * @param refSlotList   the ref slots
      * @param allocatorSlot the slot of the allocator
      */
     public record Context(

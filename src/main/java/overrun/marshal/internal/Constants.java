@@ -347,10 +347,10 @@ public final class Constants {
             CD_String,
             CD_String,
             CD_Object.arrayType()));
-    /// BSM_DowncallFactory_createExtendedClassType
-    public static final DirectMethodHandleDesc BSM_DowncallFactory_createExtendedClassType = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+    /// BSM_DowncallFactory_createConvertedClassType
+    public static final DirectMethodHandleDesc BSM_DowncallFactory_createConvertedClassType = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
         CD_DowncallFactory,
-        "createExtendedClassType",
+        "createConvertedClassType",
         MethodTypeDesc.of(CD_ConvertedClassType,
             CD_MethodHandles_Lookup,
             CD_String,

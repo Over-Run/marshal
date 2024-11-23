@@ -25,18 +25,28 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Optional;
 
-/**
- * @author squid233
- * @since 0.1.0
- */
+/// Class with [Convert] information
+///
+/// @param javaClass     the class type in java method
+/// @param downcallClass the class type in downcall handle
+/// @author squid233
+/// @since 0.1.0
 public record ConvertedClassType(
     Class<?> javaClass,
     Class<?> downcallClass
 ) implements Constable {
+    /// Creates return type for the given method.
+    ///
+    /// @param method the method
+    /// @return the return type
     public static ConvertedClassType returnType(Method method) {
         return of(method, method.getReturnType());
     }
 
+    /// Creates parameter type for the given parameter.
+    ///
+    /// @param parameter the parameter
+    /// @return the parameter type
     public static ConvertedClassType parameterType(Parameter parameter) {
         return of(parameter, parameter.getType());
     }
@@ -62,12 +72,17 @@ public record ConvertedClassType(
         return downcallClass.getSimpleName() + "<from " + javaClass.getSimpleName() + ">";
     }
 
+    /// The constant desc
     public static final class Desc extends DynamicConstantDesc<ConvertedClassType> {
         private final ClassDesc javaClass;
         private final ClassDesc downcallClass;
 
+        /// constructor
+        ///
+        /// @param javaClass     [ConvertedClassType#javaClass()]
+        /// @param downcallClass [ConvertedClassType#downcallClass()]
         public Desc(ClassDesc javaClass, ClassDesc downcallClass) {
-            super(Constants.BSM_DowncallFactory_createExtendedClassType, ConstantDescs.DEFAULT_NAME, Constants.CD_ConvertedClassType, javaClass, downcallClass);
+            super(Constants.BSM_DowncallFactory_createConvertedClassType, ConstantDescs.DEFAULT_NAME, Constants.CD_ConvertedClassType, javaClass, downcallClass);
             this.javaClass = javaClass;
             this.downcallClass = downcallClass;
         }
