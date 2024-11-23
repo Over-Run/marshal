@@ -44,7 +44,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author squid233
  * @since 0.1.0
  */
-@SuppressWarnings("preview")
 public class CEnumSimulateTest {
     private static final ClassDesc CD_MyEnum = ClassDesc.of("overrun.marshal.test.downcall.CEnumSimulateTest$MyEnum");
     private static Functions instance;

@@ -50,7 +50,6 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
     ) {
     }
 
-    @SuppressWarnings("preview")
     @Override
     public void process(CodeBuilder builder, Context context) {
         var parameters = context.methodType.parameters();
@@ -61,7 +60,7 @@ public final class BeforeInvokeProcessor extends CodeInserter<BeforeInvokeProces
             if (type.isArray() &&
                 parameter.ref()) {
                 ProcessorType processorType = ProcessorTypes.fromClass(type);
-                int local = builder.allocateLocal(TypeKind.ReferenceType);
+                int local = builder.allocateLocal(TypeKind.REFERENCE);
                 MarshalProcessor.getInstance().process(builder, processorType, new MarshalProcessor.Context(
                     context.allocatorSlot(),
                     builder.parameterSlot(i),
