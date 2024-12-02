@@ -31,7 +31,6 @@ import java.util.Optional;
 /// @param ref           `true` if returns from native function
 /// @param sized         value of [Sized]
 /// @param charset       value of [StrCharset]
-/// @param canonicalType value of [CanonicalType]
 /// @author squid233
 /// @since 0.1.0
 public record DowncallMethodParameter(
@@ -39,15 +38,13 @@ public record DowncallMethodParameter(
     boolean byValue,
     boolean ref,
     long sized,
-    String charset,
-    String canonicalType
+    String charset
 ) implements Constable {
     /// Creates a downcall method parameter from the given parameter.
     ///
     /// @param parameter the parameter
     /// @return the downcall method parameter
     public static DowncallMethodParameter of(Parameter parameter) {
-        CanonicalType anCanonicalType = parameter.getDeclaredAnnotation(CanonicalType.class);
         Sized anSized = parameter.getDeclaredAnnotation(Sized.class);
         StrCharset anStrCharset = parameter.getDeclaredAnnotation(StrCharset.class);
 
@@ -55,13 +52,12 @@ public record DowncallMethodParameter(
             parameter.getDeclaredAnnotation(ByValue.class) != null,
             parameter.getDeclaredAnnotation(Ref.class) != null,
             anSized != null ? anSized.value() : -1,
-            anStrCharset != null ? anStrCharset.value() : null,
-            anCanonicalType != null ? anCanonicalType.value() : null);
+            anStrCharset != null ? anStrCharset.value() : null);
     }
 
     @Override
     public Optional<Desc> describeConstable() {
-        return Optional.of(new Desc(type.describeConstable().orElseThrow(), byValue, ref, sized, charset, canonicalType));
+        return Optional.of(new Desc(type.describeConstable().orElseThrow(), byValue, ref, sized, charset));
     }
 
     @Override
@@ -69,9 +65,6 @@ public record DowncallMethodParameter(
         StringBuilder sb = new StringBuilder();
         if (byValue) {
             sb.append("[ByValue]");
-        }
-        if (canonicalType != null) {
-            sb.append("[CanonicalType=").append(canonicalType).append(']');
         }
         if (ref) {
             sb.append("[Ref]");
@@ -93,7 +86,6 @@ public record DowncallMethodParameter(
         private final boolean ref;
         private final long sized;
         private final String charset;
-        private final String canonicalType;
 
         /// constructor
         ///
@@ -102,8 +94,7 @@ public record DowncallMethodParameter(
         /// @param ref           ref
         /// @param sized         sized
         /// @param charset       charset
-        /// @param canonicalType canonicalType
-        public Desc(ConvertedClassType.Desc type, boolean byValue, boolean ref, long sized, String charset, String canonicalType) {
+        public Desc(ConvertedClassType.Desc type, boolean byValue, boolean ref, long sized, String charset) {
             super(Constants.BSM_DowncallFactory_createDowncallMethodParameter,
                 ConstantDescs.DEFAULT_NAME,
                 Constants.CD_DowncallMethodParameter,
@@ -111,19 +102,17 @@ public record DowncallMethodParameter(
                 byValue ? ConstantDescs.TRUE : ConstantDescs.FALSE,
                 ref ? ConstantDescs.TRUE : ConstantDescs.FALSE,
                 sized,
-                charset != null ? charset : ConstantDescs.NULL,
-                canonicalType != null ? canonicalType : ConstantDescs.NULL);
+                charset != null ? charset : ConstantDescs.NULL);
             this.type = type;
             this.byValue = byValue;
             this.ref = ref;
             this.sized = sized;
             this.charset = charset;
-            this.canonicalType = canonicalType;
         }
 
         @Override
         public DowncallMethodParameter resolveConstantDesc(MethodHandles.Lookup lookup) throws ReflectiveOperationException {
-            return new DowncallMethodParameter(type.resolveConstantDesc(lookup), byValue, ref, sized, charset, canonicalType);
+            return new DowncallMethodParameter(type.resolveConstantDesc(lookup), byValue, ref, sized, charset);
         }
     }
 }

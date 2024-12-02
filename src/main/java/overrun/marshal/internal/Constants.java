@@ -329,7 +329,6 @@ public final class Constants {
             CD_boolean,
             CD_boolean,
             CD_long,
-            CD_String,
             CD_String));
     /// BSM_DowncallFactory_createDowncallMethodType
     public static final DirectMethodHandleDesc BSM_DowncallFactory_createDowncallMethodType = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
@@ -344,7 +343,6 @@ public final class Constants {
             CD_boolean,
             CD_boolean,
             CD_long,
-            CD_String,
             CD_String,
             CD_Object.arrayType()));
     /// BSM_DowncallFactory_createConvertedClassType

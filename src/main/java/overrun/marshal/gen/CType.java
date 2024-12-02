@@ -30,7 +30,7 @@ import java.lang.annotation.*;
  * @since 0.1.0
  */
 @Documented
-@Target(ElementType.TYPE_USE)
+@Target({ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.SOURCE)
 public @interface CType {
     /**

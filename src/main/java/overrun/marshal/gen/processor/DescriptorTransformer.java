@@ -16,7 +16,6 @@
 
 package overrun.marshal.gen.processor;
 
-import overrun.marshal.CanonicalLayouts;
 import overrun.marshal.gen.DowncallMethodParameter;
 import overrun.marshal.gen.DowncallMethodType;
 
@@ -36,66 +35,47 @@ public final class DescriptorTransformer extends TypeTransformer<DowncallMethodT
     private DescriptorTransformer() {
     }
 
-    private MemoryLayout findCanonicalLayout(String typename) {
-        MemoryLayout layout = CanonicalLayouts.get(typename);
-        if (layout == null) {
-            throw new IllegalArgumentException("Canonical layout not found for type name: " + typename);
-        }
-        return layout;
-    }
-
     @Override
     public FunctionDescriptor process(DowncallMethodType methodType) {
-        MemoryLayout returnLayout;
-        if (methodType.canonicalType() != null) {
-            returnLayout = findCanonicalLayout(methodType.canonicalType());
-        } else {
-            ProcessorType returnType = ProcessorTypes.fromClass(methodType.returnType().downcallClass());
-            returnLayout = switch (returnType) {
-                case ProcessorType.Allocator allocator -> allocator.downcallLayout();
-                case ProcessorType.Array array -> methodType.sized() >= 0 ?
-                    ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), array.componentType().downcallLayout())) :
-                    array.downcallLayout();
-                case ProcessorType.Custom _, ProcessorType.Str _, ProcessorType.Upcall<?> _ ->
-                    returnType.downcallLayout();
-                case ProcessorType.Struct struct -> {
-                    if (methodType.byValue()) {
-                        yield struct.downcallLayout();
-                    }
+        ProcessorType returnType = ProcessorTypes.fromClass(methodType.returnType().downcallClass());
+        MemoryLayout returnLayout = switch (returnType) {
+            case ProcessorType.Allocator allocator -> allocator.downcallLayout();
+            case ProcessorType.Array array -> methodType.sized() >= 0 ?
+                ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), array.componentType().downcallLayout())) :
+                array.downcallLayout();
+            case ProcessorType.Custom _, ProcessorType.Str _, ProcessorType.Upcall<?> _ -> returnType.downcallLayout();
+            case ProcessorType.Struct struct -> {
+                if (methodType.byValue()) {
+                    yield struct.downcallLayout();
+                }
+                if (methodType.sized() >= 0) {
+                    yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), struct.downcallLayout()));
+                }
+                yield ValueLayout.ADDRESS.withTargetLayout(struct.downcallLayout());
+            }
+            case ProcessorType.Value value -> {
+                if (value == ProcessorType.Value.ADDRESS) {
                     if (methodType.sized() >= 0) {
-                        yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), struct.downcallLayout()));
+                        yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), ValueLayout.JAVA_BYTE));
                     }
-                    yield ValueLayout.ADDRESS.withTargetLayout(struct.downcallLayout());
                 }
-                case ProcessorType.Value value -> {
-                    if (value == ProcessorType.Value.ADDRESS) {
-                        if (methodType.sized() >= 0) {
-                            yield ValueLayout.ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(methodType.sized(), ValueLayout.JAVA_BYTE));
-                        }
-                    }
-                    yield value.downcallLayout();
-                }
-                case ProcessorType.Void _ -> null;
-            };
-        }
+                yield value.downcallLayout();
+            }
+            case ProcessorType.Void _ -> null;
+        };
 
         var parameters = methodType.parameters();
         List<MemoryLayout> argLayouts = new ArrayList<>(parameters.size());
         for (int i = methodType.descriptorStartParameter(), size = parameters.size(); i < size; i++) {
             DowncallMethodParameter parameter = parameters.get(i);
-            String parameterCType = parameter.canonicalType();
             MemoryLayout layout;
-            if (parameterCType != null) {
-                layout = findCanonicalLayout(parameterCType);
+            ProcessorType type = ProcessorTypes.fromClass(parameter.type().downcallClass());
+            if (type instanceof ProcessorType.Struct struct) {
+                layout = parameter.byValue() ?
+                    struct.downcallLayout() :
+                    ValueLayout.ADDRESS;
             } else {
-                ProcessorType type = ProcessorTypes.fromClass(parameter.type().downcallClass());
-                if (type instanceof ProcessorType.Struct struct) {
-                    layout = parameter.byValue() ?
-                        struct.downcallLayout() :
-                        ValueLayout.ADDRESS;
-                } else {
-                    layout = type.downcallLayout();
-                }
+                layout = type.downcallLayout();
             }
             argLayouts.add(layout);
         }
