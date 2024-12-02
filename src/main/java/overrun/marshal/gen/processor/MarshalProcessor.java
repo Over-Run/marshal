@@ -49,7 +49,6 @@ public final class MarshalProcessor extends TypedCodeProcessor<MarshalProcessor.
     ) {
     }
 
-    @SuppressWarnings("preview")
     @Override
     public boolean process(CodeBuilder builder, ProcessorType type, Context context) {
         final int allocatorSlot = context.allocatorSlot();

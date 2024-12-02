@@ -235,6 +235,25 @@ public final class DowncallMethodType implements Constable {
             long sized,
             String charset
         ) {
+            super(Constants.BSM_DowncallFactory_createDowncallMethodType, entrypoint, Constants.CD_DowncallMethodType, args(returnType, parameters, byValue, critical, criticalAllowHeapAccess, sized, charset));
+            this.returnType = returnType;
+            this.parameters = parameters;
+            this.byValue = byValue;
+            this.critical = critical;
+            this.criticalAllowHeapAccess = criticalAllowHeapAccess;
+            this.sized = sized;
+            this.charset = charset;
+        }
+
+        private static ConstantDesc[] args(
+            ConvertedClassType.Desc returnType,
+            DowncallMethodParameter[] parameters,
+            boolean byValue,
+            boolean critical,
+            boolean criticalAllowHeapAccess,
+            long sized,
+            String charset
+        ) {
             ConstantDesc[] args = new ConstantDesc[1 + 1 + 1 + 1 + 1 + 1 + parameters.length];
             args[0] = returnType;
             args[1] = byValue ? ConstantDescs.TRUE : ConstantDescs.FALSE;
@@ -245,14 +264,7 @@ public final class DowncallMethodType implements Constable {
             for (int i = 0; i < parameters.length; i++) {
                 args[i + 6] = parameters[i].describeConstable().orElseThrow();
             }
-            super(Constants.BSM_DowncallFactory_createDowncallMethodType, entrypoint, Constants.CD_DowncallMethodType, args);
-            this.returnType = returnType;
-            this.parameters = parameters;
-            this.byValue = byValue;
-            this.critical = critical;
-            this.criticalAllowHeapAccess = criticalAllowHeapAccess;
-            this.sized = sized;
-            this.charset = charset;
+            return args;
         }
 
         @Override

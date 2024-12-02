@@ -133,7 +133,6 @@ import static overrun.marshal.internal.Constants.*;
  * @see LayoutBuilder
  * @since 0.1.0
  */
-@SuppressWarnings("preview")
 public final class StructAllocator<T> implements StructAllocatorSpec<T> {
     private final MethodHandle constructor;
     private final StructLayout layout;
