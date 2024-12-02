@@ -125,7 +125,6 @@ public final class DowncallFactory {
     /// @param ref           ref
     /// @param sized         sized
     /// @param charset       charset
-    /// @param canonicalType canonicalType
     /// @return the created [DowncallMethodParameter]
     public static DowncallMethodParameter createDowncallMethodParameter(
         MethodHandles.Lookup lookup,
@@ -135,10 +134,9 @@ public final class DowncallFactory {
         boolean byValue,
         boolean ref,
         long sized,
-        String charset,
-        String canonicalType
+        String charset
     ) {
-        return new DowncallMethodParameter(parameterType, byValue, ref, sized, charset, canonicalType);
+        return new DowncallMethodParameter(parameterType, byValue, ref, sized, charset);
     }
 
     /// BSM for [DowncallMethodType]
@@ -152,7 +150,6 @@ public final class DowncallFactory {
     /// @param criticalAllowHeapAccess criticalAllowHeapAccess
     /// @param sized                   sized
     /// @param charset                 charset
-    /// @param canonicalType           canonicalType
     /// @param args                    parameters
     /// @return the created [DowncallMethodType]
     public static DowncallMethodType createDowncallMethodType(
@@ -165,7 +162,6 @@ public final class DowncallFactory {
         boolean criticalAllowHeapAccess,
         long sized,
         String charset,
-        String canonicalType,
         Object... args
     ) {
         return new DowncallMethodType(entrypoint,
@@ -175,8 +171,7 @@ public final class DowncallFactory {
             critical,
             criticalAllowHeapAccess,
             sized,
-            charset,
-            canonicalType);
+            charset);
     }
 
     /// BSM for [ConvertedClassType]
