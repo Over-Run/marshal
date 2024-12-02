@@ -93,6 +93,7 @@ allprojects {
         // add your dependencies
         compileOnly("org.jetbrains:annotations:25.0.0")
         testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
         testImplementation("io.github.over-run:platform:$platformVersion")
         api("io.github.over-run:memstack:$memstackVersion")
     }
