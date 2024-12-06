@@ -422,7 +422,7 @@ public final class Unmarshal {
      * @return the array
      */
     public static String @Nullable [] unmarshalAsStringArray(AddressLayout elementLayout, MemorySegment segment, Charset charset) {
-        return unmarshal(elementLayout, segment, String[]::new, s -> s.get(STR_LAYOUT, 0L).getString(0L, charset));
+        return unmarshal(elementLayout, segment, String[]::new, s -> unmarshalStringPointer(s, charset));
     }
 
     /**
@@ -567,7 +567,7 @@ public final class Unmarshal {
     public static void copy(MemorySegment src, String @Nullable [] dst, Charset charset) {
         if (isNullPointer(src) || dst == null) return;
         for (int i = 0; i < dst.length; i++) {
-            dst[i] = ((MemorySegment) vh_stringArray.get(src, (long) i)).getString(0L, charset);
+            dst[i] = unmarshalAsString(((MemorySegment) vh_stringArray.get(src, (long) i)), charset);
         }
     }
 
