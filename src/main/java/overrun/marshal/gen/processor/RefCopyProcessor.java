@@ -46,13 +46,12 @@ public final class RefCopyProcessor extends TypedCodeProcessor<RefCopyProcessor.
     ) {
     }
 
-    @SuppressWarnings("preview")
     @Override
     public boolean process(CodeBuilder builder, ProcessorType type, Context context) {
-        if (!(type instanceof ProcessorType.Array array)) {
+        if (!(type instanceof ProcessorType.Array(ProcessorType componentType))) {
             return true;
         }
-        return switch (array.componentType()) {
+        return switch (componentType) {
             case ProcessorType.Str _ -> {
                 builder.aload(context.srcSegmentSlot())
                     .aload(context.dstArraySlot())
